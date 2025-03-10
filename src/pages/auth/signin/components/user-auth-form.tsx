@@ -10,10 +10,7 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  loginUser,
-  resetError
-} from '@/redux/features/authSlice';
+import { loginUser, resetError } from '@/redux/features/authSlice';
 import { AppDispatch } from '@/redux/store';
 import { useRouter } from '@/routes/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -114,23 +111,33 @@ export default function UserAuthForm() {
 
             <Link
               to="/forgot-password"
-              className="text-sm text-teal-600 hover:text-teal-500"
+              className="text-sm text-supperagent hover:text-supperagent"
             >
               Forgot Password?
             </Link>
           </div>
 
-          <Button disabled={loading} type="submit" className="w-full text-white bg-teal-600 hover:bg-teal-600/90">
+          <Button
+            disabled={loading}
+            type="submit"
+            className="w-full bg-supperagent text-white hover:bg-supperagent/90"
+          >
             Login
           </Button>
           {error && <Badge className="mt-2 text-red-500">{error}</Badge>}
           <p className="text-center text-sm text-gray-600">
-            By signin up, you agree to our{" "}
-            <Link to="/terms" className="text-teal-600 hover:text-teal-500">
+            By signin up, you agree to our{' '}
+            <Link
+              to="/terms"
+              className="text-supperagent hover:text-supperagent"
+            >
               Terms and Conditions
-            </Link>{" "}
-            &{" "}
-            <Link to="/privacy" className="text-teal-600 hover:text-teal-500">
+            </Link>{' '}
+            &{' '}
+            <Link
+              to="/privacy"
+              className="text-supperagent hover:text-supperagent"
+            >
               Privacy Policy
             </Link>
           </p>

@@ -1,23 +1,23 @@
-import { Layers } from 'lucide-react'
+import { Layers } from 'lucide-react';
 
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Link } from 'react-router-dom'
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Link } from 'react-router-dom';
 
 export default function LoginPage() {
   return (
     <div className="flex min-h-screen">
       {/* Left Section */}
-      <div className="relative hidden w-1/2 bg-teal-600 lg:block">
+      <div className="relative hidden w-1/2 bg-supperagent lg:block">
         <div className="flex h-full flex-col gap-60 p-8">
           {/* Logo */}
           <div className="flex items-center gap-2 text-white">
             <Layers className="h-6 w-6" />
-            <span className="text-lg font-semibold">UniAid</span>
+            <span className="text-lg font-semibold">Recruitment</span>
           </div>
-          
+
           {/* Main Content */}
           <div className="relative z-10 mb-20">
             <div className="mb-8">
@@ -29,8 +29,7 @@ export default function LoginPage() {
               />
             </div>
             <h1 className="mb-4 text-4xl font-bold text-white">
-              A few more clicks to{" "}
-              <br />
+              A few more clicks to <br />
               sign in to your account.
             </h1>
             <p className="text-lg text-gray-300">
@@ -38,13 +37,16 @@ export default function LoginPage() {
             </p>
           </div>
         </div>
-        
+
         {/* Curved Edge */}
-        <div className="absolute right-0 top-0 h-full w-32 bg-teal-600" 
-             style={{
-               clipPath: 'polygon(100% 0, 0% 0, 0 100%, 100% 100%, 100% 0, 100% 0, 0 100%, 0 100%)',
-               background: 'linear-gradient(to right, #0d9488 0%, transparent 100%)'
-             }} 
+        <div
+          className="absolute right-0 top-0 h-full w-32 bg-supperagent"
+          style={{
+            clipPath:
+              'polygon(100% 0, 0% 0, 0 100%, 100% 100%, 100% 0, 100% 0, 0 100%, 0 100%)',
+            background:
+              'linear-gradient(to right, #0d9488 0%, transparent 100%)'
+          }}
         />
       </div>
 
@@ -89,23 +91,32 @@ export default function LoginPage() {
 
               <Link
                 to="/forgot-password"
-                className="text-sm text-teal-600 hover:text-teal-500"
+                className="text-sm text-supperagent hover:text-supperagent"
               >
                 Forgot Password?
               </Link>
             </div>
 
-            <Button type="submit" className="w-full text-white bg-teal-600 hover:bg-teal-600/90">
+            <Button
+              type="submit"
+              className="w-full bg-supperagent text-white hover:bg-supperagent/90"
+            >
               Login
             </Button>
 
             <p className="text-center text-sm text-gray-600">
-              By signin up, you agree to our{" "}
-              <Link to="/terms" className="text-teal-600 hover:text-teal-500">
+              By signin up, you agree to our{' '}
+              <Link
+                to="/terms"
+                className="text-supperagent hover:text-supperagent"
+              >
                 Terms and Conditions
-              </Link>{" "}
-              &{" "}
-              <Link to="/privacy" className="text-teal-600 hover:text-teal-500">
+              </Link>{' '}
+              &{' '}
+              <Link
+                to="/privacy"
+                className="text-supperagent hover:text-supperagent"
+              >
                 Privacy Policy
               </Link>
             </p>
@@ -113,6 +124,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-
