@@ -63,7 +63,7 @@ export default function CoursesPage() {
       let response;
       if (editingCourse) {
         // Update course relation
-        response = await axiosInstance.patch(`/courses/${editingCourse?.id}`, data);
+        response = await axiosInstance.patch(`/courses/${editingCourse?._id}`, data);
       } else {
         // Create new course relation
         response = await axiosInstance.post(`/courses`, data);
@@ -159,7 +159,7 @@ export default function CoursesPage() {
                   <TableCell className="text-center">
                     <Switch
                       checked={course.status == 1}
-                      onCheckedChange={(checked) => handleStatusChange(course.id, checked)}
+                      onCheckedChange={(checked) => handleStatusChange(course._id, checked)}
                       className="mx-auto"
                     />
                   </TableCell>

@@ -14,8 +14,7 @@ export function StaffDialog({ open, onOpenChange, onSubmit, initialData }) {
     reset,
   } = useForm({
     defaultValues: {
-      firstName: "",
-      lastName: "",
+      name: "",
       email: "",
       phone: "",
       password: "",
@@ -26,8 +25,7 @@ export function StaffDialog({ open, onOpenChange, onSubmit, initialData }) {
    useEffect(() => {
     if (initialData) {
       reset({
-        firstName: initialData.firstName ?? "",
-        lastName: initialData.lastName ?? "",
+        name: initialData.name ?? "",
         email: initialData.email ?? "",
         phone: initialData.phone ?? "",
         password: initialData.password ?? "",
@@ -45,7 +43,7 @@ export function StaffDialog({ open, onOpenChange, onSubmit, initialData }) {
 
   const onSubmitForm = (data) => {
     if (!data.password) {
-      delete data.password; // Remove password field if it's empty
+      delete data.password; 
     }
     onSubmit(data);
     onOpenChange(false);
@@ -59,26 +57,16 @@ export function StaffDialog({ open, onOpenChange, onSubmit, initialData }) {
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
+            
             <div className="space-y-2">
-              <Label htmlFor="firstName">
-                First Name <span className="text-red-500">*</span>
+              <Label htmlFor="name">
+                Full Name <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="firstName"
-                {...register("firstName", { required: "First Name is required" })}
+                id="name"
+                {...register("name", { required: "Last Name is required" })}
               />
-              <ErrorMessage message={errors.firstName?.message?.toString()} />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="lastName">
-                Last Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="lastName"
-                {...register("lastName", { required: "Last Name is required" })}
-              />
-              <ErrorMessage message={errors.lastName?.message?.toString()} />
+              <ErrorMessage message={errors.name?.message?.toString()} />
             </div>
 
             <div className="space-y-2">

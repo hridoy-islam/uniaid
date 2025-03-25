@@ -29,10 +29,13 @@ import CreatorFollowupsPage from '@/pages/creatorfollowup';
 import CourseRelationDetails from '@/pages/course-relation/details';
 import AgentDetails from '@/pages/agent/details';
 import InvoicesPage from '@/pages/invoice';
-import StudentListPage from '@/pages/invoice/student';
+import StudentListPage from '@/pages/invoice/student-invoice';
 import GenerateInvoicePage from '@/pages/invoice/generate';
-import { ProfessionalInvoice } from '@/pages/invoice/pdf';
+import  InvoicePDF  from '@/pages/invoice/pdf';
 import { StaffSettings } from '@/pages/staff/settings';
+import RemitPage from '@/pages/remit';
+import RemitDetailsPage from '@/pages/remit/details';
+import StudentStatusListPage from '@/pages/invoice/status/student';
 
 const SignInPage = lazy(() => import('@/pages/auth/signin'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -70,17 +73,35 @@ export default function AppRouter() {
           element: <InvoicesPage />
         },
         {
-          path: 'invoice/students',
+          path: 'invoice/remit',
+          element: <RemitPage />
+        },
+       
+        {
+          path: 'invoice/remit/:id',
+          element: <RemitDetailsPage />
+        },
+        
+        {
+          path: 'invoice/generate',
           element: <StudentListPage />
         },
         {
-          path: 'invoice/generate',
-          element: <GenerateInvoicePage />
+          path: 'invoice/status',
+          element: <StudentStatusListPage />
         },
         {
-          path: 'invoice/pdf',
-          element: <ProfessionalInvoice />
+          path: 'invoice/students/:id',
+          element: <StudentListPage />
         },
+        {
+          path: 'invoice/create',
+          element: <GenerateInvoicePage />
+        },
+        // {
+        //   path: 'invoice/pdf',
+        //   element: <ProfessionalInvoice />
+        // },
         {
           path: 'students',
           element: <StudentsPage />
@@ -137,6 +158,7 @@ export default function AppRouter() {
           path: 'staff/:id',
           element: <StaffSettings />
         },
+       
         {
           path: 'agents',
           element: <AgentsPage />

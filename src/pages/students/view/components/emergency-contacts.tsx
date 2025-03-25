@@ -8,7 +8,7 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
+  TableRow,
 } from '@/components/ui/table';
 import { EmergencyContactDialog } from './emergency-contact-dialog';
 
@@ -25,28 +25,42 @@ export function EmergencyContacts({ student, onSave }) {
 
   const handleAddContact = async (data) => {
     if (editingContact) {
-      const updatedContacts = { ...data, id: editingContact.id };
-      onSave({ emergencyContact: [updatedContacts] });
+      // Update the existing contact in the array
+      const updatedContacts = contacts.map((contact) =>
+        contact._id === editingContact._id ? { ...contact, ...data } : contact
+      );
+  
+      onSave({ emergencyContact: updatedContacts });
       setEditingContact(null);
     } else {
-      onSave({ emergencyContact: [data] });
+      // Append new contact without removing previous ones
+      onSave({ emergencyContact: [...contacts, { ...data}] });
     }
+  
+    // Close the dialog
+    setDialogOpen(false);
   };
+  
 
   const handleEdit = (contact) => {
     setEditingContact(contact);
     setDialogOpen(true);
   };
 
-  const handleStatusChange = (id, currentStatus) => {
+  const handleStatusChange = (_id, currentStatus) => {
     // Toggle the status
     const newStatus = currentStatus === 1 ? 0 : 1;
+
+    // Update the contact's status in the local state
+    const updatedContacts = contacts.map((contact) =>
+      contact._id === _id ? { ...contact, status: newStatus } : contact
+    );
+
+    // Update local state
+    setContacts(updatedContacts);
+
     // Persist the change using onSave
-    const updatedContact = contacts.find((contact) => contact.id === id);
-    if (updatedContact) {
-      const updatedContactWithStatus = { ...updatedContact, status: newStatus };
-      onSave({ emergencyContact: [updatedContactWithStatus] });
-    }
+    onSave({ emergencyContact: updatedContacts });
   };
 
   // Reset editingContact to default blank values when opening the dialog for a new contact
@@ -89,7 +103,7 @@ export function EmergencyContacts({ student, onSave }) {
             </TableRow>
           ) : (
             contacts.map((contact) => (
-              <TableRow key={contact.id}>
+              <TableRow key={contact._id}>
                 <TableCell>{contact.name}</TableCell>
                 <TableCell>{contact.phone}</TableCell>
                 <TableCell>{contact.email}</TableCell>
@@ -99,7 +113,7 @@ export function EmergencyContacts({ student, onSave }) {
                   <Switch
                     checked={parseInt(contact.status) === 1}
                     onCheckedChange={(checked) =>
-                      handleStatusChange(contact.id, checked ? 0 : 1)
+                      handleStatusChange(contact._id, checked ? 0 : 1)
                     }
                     className="mx-auto"
                   />

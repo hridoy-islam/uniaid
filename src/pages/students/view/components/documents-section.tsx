@@ -201,7 +201,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 export function DocumentsSection({
   student,
-  documents,
+
   fetchDocuments,
   onSave
 }) {
@@ -222,23 +222,7 @@ export function DocumentsSection({
     fetchDocuments(); // Refresh the documents list
   };
 
-  // Handle document delete
-  const handleDelete = async (docid) => {
-    try {
-      await axios.delete(
-        `https://core.qualitees.co.uk/api/documents/${docid}`,
-        {
-          headers: {
-            'x-company-token': import.meta.env.VITE_COMPANY_TOKEN // Add the custom header
-          }
-        }
-      );
-      setDeleteDialog(null); // Close the delete confirmation dialog
-      fetchDocuments(); // Refresh the documents list
-    } catch (error) {
-      console.error('Error deleting the document:', error);
-    }
-  };
+ 
 
   // Handle no documents checkbox
   const handleNoDocument = (checked) => {
@@ -283,15 +267,15 @@ export function DocumentsSection({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!Array.isArray(documents) || documents.length === 0 ? (
+            {!Array.isArray(student?.documents) || student?.documents.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center">
                   No documents uploaded
                 </TableCell>
               </TableRow>
             ) : (
-              documents.map((doc) => (
-                <TableRow key={doc.id}>
+              student?.documents.map((doc) => (
+                <TableRow key={doc._id}>
                   <TableCell className="font-medium capitalize">
                     {doc.file_type}
                   </TableCell>
@@ -299,20 +283,20 @@ export function DocumentsSection({
                     <div className="flex justify-end space-x-2">
                       <Button variant="ghost" size="icon">
                         <Link
-                          to={doc.file_url}
+                          to={doc.fileUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
                           <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
-                      <Button
+                      {/* <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setDeleteDialog(doc.id)}
+                        onClick={() => setDeleteDialog(doc._id)}
                       >
                         <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </Button> */}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -326,10 +310,10 @@ export function DocumentsSection({
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSubmit={handleUpload}
-        initialData={student.id}
+        initialData={student._id}
       />
 
-      <AlertDialog
+      {/* <AlertDialog
         open={!!deleteDialog}
         onOpenChange={() => setDeleteDialog(null)}
       >
@@ -351,7 +335,7 @@ export function DocumentsSection({
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+      </AlertDialog> */}
     </div>
   );
 }

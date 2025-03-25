@@ -27,7 +27,7 @@ export function TermDialog({ open, onOpenChange, onSubmit, initialData }) {
         )
         .map((year) => ({
           label: year.academic_year,
-          value: year.id,
+          value: year._id,
         }));
     } catch (error) {
       console.error("Error fetching academic years:", error);
@@ -41,7 +41,7 @@ export function TermDialog({ open, onOpenChange, onSubmit, initialData }) {
       setName(initialData.term || ""); // Populate term name
       setAcademicYear({
         label: initialData.academic_year, // Populate academic year dropdown
-        value: initialData.academic_year_id,
+        value: initialData.academic_year_id?._id,
       });
     } else {
       // Reset form for adding a new term
@@ -62,7 +62,7 @@ export function TermDialog({ open, onOpenChange, onSubmit, initialData }) {
     // Submit form data
     onSubmit({
       term: name,
-      academic_year_id: academicYear.value.toString(),
+      academic_year_id: academicYear.value,
     });
 
     // Close dialog and reset fields

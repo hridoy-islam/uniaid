@@ -69,7 +69,7 @@ export default function CourseRelationPage() {
       if (editingCourseRelation) {
         // Update course relation
         response = await axiosInstance.patch(
-          `/course-relations/${editingCourseRelation?.id}`,
+          `/course-relations/${editingCourseRelation?._id}`,
           data
         );
       } else {
@@ -163,7 +163,7 @@ export default function CourseRelationPage() {
           </TableHeader>
           <TableBody>
             {courseRelations.map((relation) => (
-              <TableRow key={relation?.id}>
+              <TableRow key={relation?._id}>
                 <TableCell>{relation?.institute?.name}</TableCell>
                 <TableCell>{relation?.course?.name}</TableCell>
                 <TableCell>{relation?.term?.term}</TableCell>
@@ -187,13 +187,13 @@ export default function CourseRelationPage() {
                   <Switch
                     checked={relation?.status == 1}
                     onCheckedChange={(checked) =>
-                      handleStatusChange(relation?.id, checked)
+                      handleStatusChange(relation?._id, checked)
                     }
                     className="mx-auto"
                   />
                 </TableCell>
                 <TableCell className="space-x-1 text-center">
-                  {/* <Link to={`${relation.id}`}>
+                  <Link to={`${relation._id}`}>
                     <Button
                       variant="ghost"
                       className="bg-blue-500 text-white hover:bg-blue-500 border-none"
@@ -201,7 +201,7 @@ export default function CourseRelationPage() {
                     >
                       <Link2 className="w-4 h-4" />
                     </Button>
-                  </Link> */}
+                  </Link>
                   <Button
                     variant="ghost"
                     className="border-none bg-supperagent text-white hover:bg-supperagent/90"

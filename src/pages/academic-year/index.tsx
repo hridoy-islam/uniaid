@@ -64,21 +64,56 @@ export default function AcademicYearPage() {
       let response;
       if (editingAcademicYear) {
         // Update course relation
-        response = await axiosInstance.patch(`/academic-years/${editingAcademicYear?.id}`, data);
+        response = await axiosInstance.patch(`/academic-years/${editingAcademicYear?._id}`, data);
+
+         // Check if the API response indicates success
+      if (response.data && response.data.success === true) {
+        toast({
+          title: "Academic Year Updated successfully",
+          className: "bg-supperagent border-none text-white",
+        });
+      } else if (response.data && response.data.success === false) {
+        toast({
+          title:  "Operation failed",
+          className: "bg-red-500 border-none text-white",
+        });
+      } else {
+        toast({
+          title: "Unexpected response. Please try again.",
+          className: "bg-red-500 border-none text-white",
+        });
+      }
       } else {
         // Create new course relation
         response = await axiosInstance.post(`/academic-years`, data);
+         // Check if the API response indicates success
+      if (response.data && response.data.success === true) {
+        toast({
+          title: "Academic Year Created successfully",
+          className: "bg-supperagent border-none text-white",
+        });
+      } else if (response.data && response.data.success === false) {
+        toast({
+          title:  "Operation failed",
+          className: "bg-red-500 border-none text-white",
+        });
+      } else {
+        toast({
+          title: "Unexpected response. Please try again.",
+          className: "bg-red-500 border-none text-white",
+        });
+      }
       }
 
       // Check if the API response indicates success
       if (response.data && response.data.success === true) {
         toast({
-          title: response.data.message || "Record Updated successfully",
+          title: "Record Updated successfully",
           className: "bg-supperagent border-none text-white",
         });
       } else if (response.data && response.data.success === false) {
         toast({
-          title: response.data.message || "Operation failed",
+          title:  "Operation failed",
           className: "bg-red-500 border-none text-white",
         });
       } else {
@@ -156,7 +191,7 @@ export default function AcademicYearPage() {
                   <TableCell className="text-center">
                     <Switch
                       checked={year.status == 1}
-                      onCheckedChange={(checked) => handleStatusChange(year.id, checked)}
+                      onCheckedChange={(checked) => handleStatusChange(year._id, checked)}
                       className="mx-auto"
                     />
                   </TableCell>

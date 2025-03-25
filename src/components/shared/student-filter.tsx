@@ -33,8 +33,8 @@ export default function StudentFilter({ onSubmit }) {
         axiosInstance.get('/institutions?limit=all&status=1'),
         axiosInstance.get('/terms?limit=all&status=1'),
         axiosInstance.get('/academic-years?limit=all&status=1'),
-        axiosInstance.get('/agents?where=with:user,status,1&limit=all'),
-        axiosInstance.get('/staffs?where=with:user,status,1&limit=all')
+        axiosInstance.get('/users?role=agent&status=1&limit=all'),
+        axiosInstance.get('/users?role=staff&status=1&limit=all')
       ]);
       setInstitutes(instituteResponse.data.data.result);
       setTerms(termsResponse.data.data.result);
@@ -69,7 +69,7 @@ export default function StudentFilter({ onSubmit }) {
     onSubmit(filterData);
   };
 
-  console.log('checking', user.privileges?.student?.search?.agent);
+  
 
   return (
     <div>
@@ -104,7 +104,7 @@ export default function StudentFilter({ onSubmit }) {
           >
             <option value="">Select Academic Year</option>
             {academicYear.map((year) => (
-              <option key={year.id} value={year.id}>
+              <option key={year._id} value={year._id}>
                 {year.academic_year}
               </option>
             ))}
@@ -118,7 +118,7 @@ export default function StudentFilter({ onSubmit }) {
           >
             <option value="">Select Term</option>
             {terms.map((item) => (
-              <option key={item.id} value={item.id}>
+              <option key={item._id} value={item._id}>
                 {item.term}
               </option>
             ))}
@@ -132,7 +132,7 @@ export default function StudentFilter({ onSubmit }) {
           >
             <option value="">Select Institute</option>
             {institutes.map((item) => (
-              <option key={item.id} value={item.id}>
+              <option key={item._id} value={item._id}>
                 {item.name}
               </option>
             ))}
@@ -175,8 +175,8 @@ export default function StudentFilter({ onSubmit }) {
             >
               <option value="">Select Agent</option>
               {agents.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.agentName}
+                <option key={item._id} value={item._id}>
+                  {item.name}
                 </option>
               ))}
             </select>
@@ -193,8 +193,8 @@ export default function StudentFilter({ onSubmit }) {
             >
               <option value="">Select Staff</option>
               {staffs.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.firstName} {item.lastName}
+                <option key={item._id} value={item._id}>
+                  {item.name}
                 </option>
               ))}
             </select>

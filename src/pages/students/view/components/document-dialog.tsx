@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { mockData } from '@/types';
-import axios from 'axios';
+import axiosInstance from '@/lib/axios';
+import { useParams } from 'react-router-dom';
 
 export function DocumentDialog({
   open,
@@ -29,6 +30,8 @@ export function DocumentDialog({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [customType, setCustomType] = useState<string>(''); // New state for custom type description
+  const {id} = useParams();
+
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,19 +42,19 @@ export function DocumentDialog({
     setUploadProgress(0);
 
     const formData = new FormData();
-    formData.append('entity_id', initialData); // Assuming inititalData is the student ID
+    formData.append('studentId', id); // Assuming inititalData is the student ID
     formData.append(
       'file_type',
       type === 'Other' ? customType : type.toLowerCase()
     );
-    formData.append('files[]', file); // 'files' is expected as an array
+    formData.append('file', file); // 'files' is expected as an array
 
     try {
-      await axios.post('https://core.qualitees.co.uk/api/documents', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'x-company-token': import.meta.env.VITE_COMPANY_TOKEN
-        },
+      await axiosInstance.post('/documents', formData, {
+        // headers: {
+        //   'Content-Type': 'multipart/form-data',
+        //   'x-company-token': import.meta.env.VITE_COMPANY_TOKEN
+        // },
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round(
             (progressEvent.loaded * 100) / progressEvent?.total

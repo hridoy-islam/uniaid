@@ -28,16 +28,24 @@ export function AssignStaff({ student, onSave }) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialog, setDeleteDialog] = useState<string | null>(null)
 
-  const handleStatusChange = (id, currentStatus) => {
+  const handleStatusChange = (_id, currentStatus) => {
     // Toggle the status
     const newStatus = currentStatus === 1 ? 0 : 1;
+  
+    // Update the status in the local state
+    const updatedStaffs = staffs.map((staff) =>
+      staff._id === _id ? { ...staff, status: newStatus } : staff
+    );
+    
+    setStaffs(updatedStaffs);  // Update local state
+  
     // Persist the change using onSave
-    const updatedStaff = staffs.find((staff) => staff.id === id);
-    if (updatedStaff) {
-      const updatedStaffWithStatus = { id: updatedStaff.id, status: newStatus };
-      onSave({ assignStaff: [updatedStaffWithStatus] });
-    }
+    const updatedStaffWithStatus = { _id, status: newStatus };
+    onSave({ assignStaff: [updatedStaffWithStatus] });
   };
+  
+
+
 
   useEffect(() => {
     if (Array.isArray(student.assignStaff)) {
@@ -46,9 +54,13 @@ export function AssignStaff({ student, onSave }) {
   }, [student.assignStaff]);
 
   const handleSubmit = (data) => {
-    onSave({ assignStaff: [data] });
-  }
+    const updatedStaffs = [...staffs, data];
+    setStaffs(updatedStaffs);
+    onSave({ assignStaff: updatedStaffs });  
+  };
+  
 
+ 
 
   return (
     <div className="space-y-4 rounded-md shadow-md p-4">
@@ -81,17 +93,18 @@ export function AssignStaff({ student, onSave }) {
               </TableRow>
             ) : (
               staffs.map((staff) => (
-                <TableRow key={staff.id}>
+                <TableRow key={staff._id}>
 
-                  <TableCell>{staff.staff.firstName} {staff.staff.lastName}</TableCell>
-                  <TableCell>{staff.staff.email} </TableCell>
-                  <TableCell className="text-right">
-                    <Switch
-                      checked={parseInt(staff.status) === 1}
-                      onCheckedChange={(checked) => handleStatusChange(staff.id, checked ? 0 : 1)}
-                      className="mx-auto"
-                    />
-                  </TableCell>
+                  <TableCell>{staff.name}</TableCell>
+                  <TableCell>{staff.email} </TableCell>
+                  {/* <TableCell className="text-right">
+                  <Switch
+  checked={staff.status === 1} // Ensure the status is correctly evaluated
+  onCheckedChange={(checked) => handleStatusChange(staff._id, checked ? 1 : 0)} // Correctly toggle status
+  className="mx-auto"
+/>
+
+                  </TableCell> */}
                 </TableRow>
               ))
             )}

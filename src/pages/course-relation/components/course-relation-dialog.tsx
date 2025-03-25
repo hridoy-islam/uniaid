@@ -11,9 +11,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import axiosInstance from '@/lib/axios';
 
 const newEntrySchema = z.object({
-  institute_id: z.string().min(1, "Institution is required"),
-  course_id: z.string().min(1, "Course is required"),
-  term_id: z.string().min(1, "Term is required"),
+  institute: z.string().min(1, "Institution is required"),
+  course: z.string().min(1, "Course is required"),
+  term: z.string().min(1, "Term is required"),
   local: z.boolean(),
   local_amount: z.string().optional(),
   international: z.boolean(),
@@ -21,9 +21,9 @@ const newEntrySchema = z.object({
 });
 
 const editEntrySchema = z.object({
-  institute_id: z.string().optional(),
-  course_id: z.string().optional(),
-  term_id: z.string().optional(),
+  institute: z.string().optional(),
+  course: z.string().optional(),
+  term: z.string().optional(),
   local: z.boolean(),
   local_amount: z.string().optional(),
   international: z.boolean(),
@@ -52,9 +52,9 @@ export function CourseRelationDialog({
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
-      institute_id: "",
-      course_id: "",
-      term_id: "",
+      institute: "",
+      course: "",
+      term: "",
       local: false,
       local_amount: "",
       international: false,
@@ -72,15 +72,15 @@ export function CourseRelationDialog({
         ]);
 
         setInstitutes(institutesResponse.data.data.result.map((institute: any) => ({
-          value: institute.id,
+          value: institute._id,
           label: institute.name,
         })));
         setTerms(termsResponse.data.data.result.map((term: any) => ({
-          value: term.id,
+          value: term._id,
           label: term.term,
         })));
         setCourses(coursesResponse.data.data.result.map((course: any) => ({
-          value: course.id,
+          value: course._id,
           label: course.name,
         })));
       } catch (error) {
@@ -96,9 +96,9 @@ export function CourseRelationDialog({
   useEffect(() => {
     if (initialData) {
       form.reset({
-        institute_id: initialData.institute?.id || "",
-        course_id: initialData.course?.id || "",
-        term_id: initialData.term?.id || "",
+        institute: initialData.institute?._id || "",
+        course: initialData.course?._id || "",
+        term: initialData.term?._id || "",
         local: initialData.local || false,
         local_amount: initialData.local_amount || "",
         international: initialData.international || false,
@@ -123,7 +123,7 @@ export function CourseRelationDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmitForm)} className="space-y-4">
             <Controller
-              name="institute_id"
+              name="institute"
               control={form.control}
               render={({ field }) => (
                 <select {...field} className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500">
@@ -137,7 +137,7 @@ export function CourseRelationDialog({
               )}
             />
             <Controller
-              name="course_id"
+              name="course"
               control={form.control}
               render={({ field }) => (
                 <select {...field} className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500">
@@ -151,7 +151,7 @@ export function CourseRelationDialog({
               )}
             />
             <Controller
-              name="term_id"
+              name="term"
               control={form.control}
               render={({ field }) => (
                 <select {...field} className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500">

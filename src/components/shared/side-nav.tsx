@@ -44,7 +44,7 @@ const navItems = [
   },
   { icon: UsersIcon, label: 'Students', href: 'students' },
   { icon: UserIcon, label: 'Enrolled', href: '#' },
-  { icon: FileTextIcon, label: 'Invoices', href: '#' },
+  { icon: FileTextIcon, label: 'Invoices', href: 'invoice' },
   {
     icon: Settings2Icon,
     label: 'Settings',

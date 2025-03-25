@@ -51,59 +51,33 @@ export function AcademicHistoryDialog({
       studyLevel: '',
       resultScore: '',
       outOf: '',
-      startDate: initialData?.startDate
-        ? moment(initialData.startDate, 'YYYY-MM-DD HH:mm:ss').format(
-            'YYYY-MM-DD'
-          )
-        : moment().format('YYYY-MM-DD'),
-      endDate: initialData?.endDate
-        ? moment(initialData.endDate, 'YYYY-MM-DD HH:mm:ss').format(
-            'YYYY-MM-DD'
-          )
-        : moment().format('YYYY-MM-DD')
+      startDate: moment().format('YYYY-MM-DD'),
+      endDate: moment().format('YYYY-MM-DD')
     }
   });
 
   useEffect(() => {
     if (initialData) {
+      // Reset the form with initial data on edit
       form.reset({
-        ...initialData,
-        startDate: initialData?.startDate
-          ? moment(initialData.startDate, 'YYYY-MM-DD HH:mm:ss').format(
-              'YYYY-MM-DD'
-            )
+        institution: initialData.institution || '',
+        course: initialData.course || '',
+        studyLevel: initialData.studyLevel || '',
+        resultScore: initialData.resultScore || '',
+        outOf: initialData.outOf || '',
+        startDate: initialData.startDate
+          ? moment(initialData.startDate, 'YYYY-MM-DD HH:mm:ss').format('YYYY-MM-DD')
           : moment().format('YYYY-MM-DD'),
-        endDate: initialData?.endDate
-          ? moment(initialData.endDate, 'YYYY-MM-DD HH:mm:ss').format(
-              'YYYY-MM-DD'
-            )
-          : moment().format('YYYY-MM-DD')
-      });
-    } else {
-      form.reset({
-        institution: '',
-        course: '',
-        studyLevel: '',
-        resultScore: '',
-        outOf: '',
-        startDate: initialData?.startDate
-          ? moment(initialData.startDate, 'YYYY-MM-DD HH:mm:ss').format(
-              'YYYY-MM-DD'
-            )
-          : moment().format('YYYY-MM-DD'),
-        endDate: initialData?.endDate
-          ? moment(initialData.endDate, 'YYYY-MM-DD HH:mm:ss').format(
-              'YYYY-MM-DD'
-            )
+        endDate: initialData.endDate
+          ? moment(initialData.endDate, 'YYYY-MM-DD HH:mm:ss').format('YYYY-MM-DD')
           : moment().format('YYYY-MM-DD')
       });
     }
   }, [initialData, form]);
 
   const handleSubmit = (values) => {
-    onSubmit(values);
-    form.reset();
-    onOpenChange(false);
+    onSubmit(values);  // Submit the values to the parent function
+    onOpenChange(false); // Close the dialog after submission
   };
 
   return (
@@ -152,8 +126,8 @@ export function AcademicHistoryDialog({
                 <FormItem>
                   <FormLabel>Study Level</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value} // Controlled value
+                    onValueChange={field.onChange} // Update form state on change
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -161,10 +135,8 @@ export function AcademicHistoryDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="undergraduate">High School</SelectItem>
-                      <SelectItem value="postgraduate">
-                        Higher Secondary
-                      </SelectItem>
+                      <SelectItem value="undergraduate">Undergraduate</SelectItem>
+                      <SelectItem value="postgraduate">Postgraduate</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -229,7 +201,10 @@ export function AcademicHistoryDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => {
+                  form.reset(); // Reset the form on cancel
+                  onOpenChange(false); // Close the dialog
+                }}
               >
                 Cancel
               </Button>

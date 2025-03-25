@@ -21,6 +21,7 @@ import axiosInstance from '@/lib/axios';
 import { StudentProfile } from '../students/view/components/student-profile';
 import moment from 'moment';
 import { ArrowLeft } from 'lucide-react';
+import { useSelector } from 'react-redux';
 
 export default function CourseDetails() {
   const { id, courseid } = useParams();
@@ -28,6 +29,7 @@ export default function CourseDetails() {
   const [application, setApplication] = useState<any>(null); // Filtered application
   const [currentStatus, setCurrentStatus] = useState<any>(null);
   const [initialLoading, setInitialLoading] = useState(true); // New state for initial loading
+  const { user } = useSelector((state: any) => state.auth);
 
   const fetchData = async () => {
     try {
@@ -38,7 +40,7 @@ export default function CourseDetails() {
 
       // Filter the application based on courseid
       const selectedApplication = data.applications.find(
-        (app) => app.id == courseid
+        (app) => app._id == courseid
       );
       setApplication(selectedApplication);
       setCurrentStatus(selectedApplication?.status || null);
@@ -53,20 +55,108 @@ export default function CourseDetails() {
     fetchData();
   };
 
+  // const handleSave = async () => {
+  //   try {
+  //     // Ensure application exists before updating
+  //     if (!application) {
+  //       console.error("Application not found.");
+  //       return;
+  //     }
+
+  //     // Find the last status log entry to get the previous status
+  //     const previousLog = application.statusLogs?.[application.statusLogs.length - 1];
+
+  //     // Create a new status log entry
+  //     const statusLog = {
+  //       prev_status: previousLog?.changed_to || application.status || 'New',
+  //       changed_to: currentStatus,
+  //       assigned_by: previousLog?.assigned_by || null,
+  //       changed_by: user._id,
+  //       assigned_at: previousLog?.assigned_at || null,
+  //       created_at: moment().toISOString(),
+  //     };
+
+  //     // Preserve all properties of the existing application
+  //     const updatedApplication = {
+  //       ...application, // Spread existing application to keep all properties
+  //       status: currentStatus,
+  //       statusLogs: [...(application.statusLogs || []), statusLog], // Append new log
+  //     };
+
+  //     // Send the updated application data to the backend
+  //     await axiosInstance.patch(`/students/${id}`, {
+  //       applications: [updatedApplication], // Wrap in an array if required by the backend
+  //     });
+
+  //     // Refetch data to update the UI
+  //     fetchData();
+  //   } catch (error) {
+  //     console.error("Error updating application status:", error);
+  //   }
+  // };
+
   const handleSave = async () => {
     try {
-      // Create an array with the updated application
-      const updatedApplication = [
-        {
-          id: courseid,
-          status: currentStatus
-        }
-      ];
+      // Ensure application exists before updating
+      if (!application) {
+        console.error('Application not found.');
+        return;
+      }
 
-      // Send the updated application array to the backend
+      // Find the last status log entry to get the previous status
+      const previousLog =
+        application.statusLogs?.[application.statusLogs.length - 1];
+
+      // Create a new status log entry
+      const statusLog = {
+        prev_status: previousLog?.changed_to || application.status || 'New',
+        changed_to: currentStatus,
+        assigned_by: previousLog?.assigned_by || null,
+        changed_by: user._id,
+        assigned_at: previousLog?.assigned_at || null,
+        created_at: moment().toISOString()
+      };
+
+      // Preserve all properties of the existing application
+      const updatedApplication = {
+        ...application, // Spread existing application to keep all properties
+        status: currentStatus,
+        statusLogs: [...(application.statusLogs || []), statusLog] // Append new log
+      };
+
+      // Send the updated application data to the backend
       await axiosInstance.patch(`/students/${id}`, {
-        applications: updatedApplication
+        applications: [updatedApplication] // Wrap in an array if required by the backend
       });
+
+      // If the status is "Enrolled", update the accounts field
+      if (currentStatus === 'Enrolled') {
+        const courseRelationId = application.courseRelationId._id;
+
+        const courseRelationResponse = await axiosInstance.get(
+          `/course-relations/${courseRelationId}`
+        );
+        const courseRelation = courseRelationResponse.data.data;
+
+        const accountsData = {
+          courseRelationId: courseRelationId,
+          years: courseRelation.years.map((year) => ({
+            id: year._id,
+            year: year.year,
+            sessions: year.sessions.map((session) => ({
+              id: session._id,
+              sessionName: session.sessionName,
+              invoiceDate: session.invoiceDate,
+              status: 'due' // Set session status to "due" by default
+            }))
+          }))
+        };
+
+        // Send a PATCH request to update the accounts field
+        await axiosInstance.patch(`/students/${id}`, {
+          accounts: [accountsData] // Add the new account data
+        });
+      }
 
       // Refetch data to update the UI
       fetchData();
@@ -106,11 +196,15 @@ export default function CourseDetails() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Institution</Label>
-            <p className="text-sm ">{application?.institution?.name}</p>
+            <p className="text-sm ">
+              {application?.courseRelationId?.institute?.name}
+            </p>
           </div>
           <div>
             <Label>Course</Label>
-            <p className="text-sm">{application?.course?.name}</p>
+            <p className="text-sm">
+              {application?.courseRelationId?.course?.name}
+            </p>
           </div>
           <div>
             <Label>Amount</Label>
@@ -118,7 +212,9 @@ export default function CourseDetails() {
           </div>
           <div>
             <Label>Term</Label>
-            <p className="text-sm">{application?.term.term}</p>
+            <p className="text-sm">
+              {application?.courseRelationId?.term?.term}
+            </p>
           </div>
           <div>
             <Label>Change Status</Label>
@@ -177,16 +273,22 @@ export default function CourseDetails() {
               </TableHeader>
               <TableBody>
                 {application?.statusLogs.map((change) => (
-                  <TableRow key={change?.id}>
+                  <TableRow key={change?._id}>
                     <TableCell>{change?.prev_status || '---'}</TableCell>
-                    <TableCell>{change?.assigned_by.name || '---'}</TableCell>
+                    <TableCell>{change?.assigned_by?.name || '---'}</TableCell>
                     <TableCell>
-                      {moment(change.assigned_at).format('DD-MM-YYYY') || '-'}
+                      {change.assigned_at &&
+                      moment(change.assigned_at).isValid()
+                        ? moment(change.assigned_at).format('DD-MM-YYYY')
+                        : '---'}
                     </TableCell>
+
                     <TableCell>{change?.changed_to}</TableCell>
-                    <TableCell>{change?.changed_by.name}</TableCell>
+                    <TableCell>{change?.changed_by?.name}</TableCell>
                     <TableCell>
-                      {moment(change.created_at).format('DD-MM-YYYY')}
+                      {change.created_at && moment(change.created_at).isValid()
+                        ? moment(change.created_at).format('DD-MM-YYYY')
+                        : '---'}
                     </TableCell>
                   </TableRow>
                 ))}

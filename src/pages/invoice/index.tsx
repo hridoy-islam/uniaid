@@ -1,72 +1,416 @@
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Link } from "react-router-dom"
-
-const demoInvoices = [
-  { id: "INV001", date: "2023-05-01", amount: 300, studentCount: 3 },
-  { id: "INV002", date: "2023-05-15", amount: 500, studentCount: 5 },
-  { id: "INV003", date: "2023-06-01", amount: 200, studentCount: 2 },
-]
+import { useEffect, useState } from "react";
+import axiosInstance from "@/lib/axios";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import moment from "moment";
+import { Send } from "lucide-react";
+import InvoicePDF from "./pdf"
+import { Link, useNavigate } from "react-router-dom";
+import { DataTablePagination } from "../students/view/components/data-table-pagination";
+import { toast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import { AlertModal } from "@/components/shared/alert-modal";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import logo from "@/assets/imges/home/logos/cyber.jpeg"
+import axios from "axios";
+import { pdf } from "@react-pdf/renderer";
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState(demoInvoices)
+  const [invoices, setInvoices] = useState([]);
+  const [remitOptions, setRemitOptions] = useState([]);
+  const [remit, setRemit] = useState("");
+  const [status, setStatus] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [invoiceToMark, setInvoiceToMark] = useState<string | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false); 
+  const [invoiceToExport, setInvoiceToExport] = useState<string | null>(null);
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+  
+  const fetchInvoices = async () => {
+    try {
+      const params: any = {};
+
+      if (status) params.status = status;
+      if (remit) params.remit = remit;
+      if (searchTerm) params.searchTerm = searchTerm;
+      if (fromDate) params.fromDate = fromDate;
+      if (toDate) params.toDate = toDate;
+      const response = await axiosInstance.get("/invoice?limit=all", {
+        params
+      });
+      setInvoices(response.data?.data?.result || []);
+      setTotalPages(response.data.data.meta.totalPage);
+
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+    }
+  };
+
+  // Function to fetch remit options
+  const fetchRemits = async () => {
+    try {
+      const response = await axiosInstance.get("/remit?limit=all");
+      setRemitOptions(response.data?.data?.result || []); // Extract the 'result' array
+    } catch (error) {
+      console.error("Error fetching remit data:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRemits();
+    fetchInvoices();
+
+  }, []);
+
+
+
+  const handleSearchClick = () => {
+    fetchInvoices(); }
 
   const handleEdit = (invoiceId: string) => {
-    console.log(invoiceId)
-  }
+    navigate(`/admin/invoice/students/${invoiceId}`);
+  };
 
-  const handleDownload = (invoiceId: string) => {
-    console.log(`Downloading invoice ${invoiceId}`)
-    // In a real application, you would trigger the download here
-  }
+  const handleDownload = async (invoiceId: string) => {
+    try {
+      // Fetch invoice data from backend
+      const response = await axiosInstance.get(`/invoice/${invoiceId}`);
+      const invoiceData = response.data?.data;
+  
+      // Create a PDF document using InvoicePDF component
+      const MyDoc = (
+      
+          <InvoicePDF invoice={invoiceData} />
+      );
+  
+      // Generate PDF and trigger download
+      const pdfBlob = await pdf(MyDoc).toBlob();
+      
+      // Create a download link and trigger the download
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `invoice_${invoiceData.reference}.pdf`;
+      link.click();
+  
+      // Clean up the object URL
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    }
+  };
+  
+
+
+  const handleConfirmMarkAsPaid = async () => {
+    if (!invoiceToMark) return;
+
+    try {
+      await axiosInstance.patch(`/invoice/${invoiceToMark}`, { status: "paid" });
+
+      setInvoices((prevInvoices) =>
+        prevInvoices.map((invoice) =>
+          invoice._id === invoiceToMark ? { ...invoice, status: "paid" } : invoice
+        )
+      );
+
+      toast({
+        title: "Operation successful",
+        className: "bg-supperagent border-none text-white",
+      });
+    } catch (error) {
+      console.error("Error updating invoice status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update the invoice status",
+        variant: "destructive",
+      });
+    }
+
+    setIsModalOpen(false);
+    setInvoiceToMark(null);
+  };
+
+  const transactionCategory = import.meta.env.VITE_TRANSACTION_CATEGORY;
+  const transactionMethod = import.meta.env.VITE_TRANSACTION_METHOD;
+  const storage = import.meta.env.VITE_STORAGE;
+  const companyId = import.meta.env.VITE_COMPANY_ID;
+  const account = import.meta.env.VITE_ACCOUNTING
+
+
+  const handleExport = (invoiceId: string) => {
+    setInvoiceToExport(invoiceId); // Set the invoice ID to be exported
+    setIsExportModalOpen(true); // Open the confirmation modal
+  };
+
+  const handleConfirmExport = async () => {
+    if (!invoiceToExport) return;
+
+    try {
+      const invoiceResponse = await axiosInstance.get(`/invoice/${invoiceToExport}`);
+      const invoiceData = invoiceResponse.data?.data;
+
+      const payload = {
+        transactionType: "inflow",
+        transactionDate: new Date().toISOString(),
+        invoiceDate: invoiceData.createdAt,
+        invoiceNumber: invoiceData.reference,
+        description: invoiceData.students.map((student: any) => student.refId).join(", "),
+        transactionAmount: invoiceData.totalAmount,
+        transactionCategory,
+        transactionMethod,
+        storage,
+        companyId,
+      };
+
+      await axios.post(`${account}`, payload, {
+        headers: {
+          "x-company-token": `${companyId}`,
+        },
+      });
+
+      await axiosInstance.patch(`/invoice/${invoiceToExport}`, { exported: true });
+
+      toast({
+        title: "Export successful",
+        className: "bg-supperagent border-none text-white",
+      });
+
+      fetchInvoices();
+    } catch (error) {
+      console.error("Error exporting invoice:", error);
+      toast({
+        title: "Error",
+        description: "Failed to export the invoice",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExportModalOpen(false); // Close the modal
+      setInvoiceToExport(null); // Reset the invoice ID
+    }
+  };
+
 
   return (
     <div className="mx-auto py-1">
       <div className="flex justify-between">
-      <h1 className="text-2xl font-bold mb-6">Invoices</h1>
-      <Link to='students'><Button className="bg-supperagent text-white hover:bg-supperagent">Students</Button></Link>
+        <h1 className="text-2xl font-bold mb-6">Invoices</h1>
+        <div className="space-x-4">
+          <Link to="generate">
+            <Button className="bg-supperagent text-white hover:bg-supperagent">Create Invoice</Button>
+          </Link>
+          <Link to="status">
+            <Button className="bg-supperagent text-white hover:bg-supperagent">Check Status</Button>
+          </Link>
+          <Link to="remit">
+            <Button className="bg-supperagent text-white hover:bg-supperagent">Remit List</Button>
+          </Link>
+
+        </div>
       </div>
+
       <Card>
-        <CardHeader>
-          <CardTitle>Generated Invoices</CardTitle>
-        </CardHeader>
+      <CardHeader>
+  <div className="flex space-x-6">
+    {/* Search by Reference */}
+    <div className="min-w-[200px]">
+      <h1 className="mb-2 block text-sm font-medium">Search</h1>
+      <Input
+        type="text"
+        placeholder="Search by reference"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
+      />
+    </div>
+
+    {/* From Date */}
+    <div className="min-w-[200px]">
+      <h1 className="mb-2 block text-sm font-medium">From Date</h1>
+      <Input
+        type="date"
+        value={fromDate}
+        onChange={(e) => setFromDate(e.target.value)}
+        className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
+      />
+    </div>
+
+    {/* To Date */}
+    <div className="min-w-[200px]">
+      <h1 className="mb-2 block text-sm font-medium">To Date</h1>
+      <Input
+        type="date"
+        value={toDate}
+        onChange={(e) => setToDate(e.target.value)}
+        className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
+      />
+    </div>
+
+    {/* Remit To Dropdown */}
+    <div className="min-w-[200px]">
+      <h1 className="mb-2 block text-sm font-medium">Remit To</h1>
+      <select
+        value={remit}
+        onChange={(e) => setRemit(e.target.value)}
+        className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
+      >
+        <option value="">All</option>
+        {remitOptions.map((remit) => (
+          <option key={remit._id} value={remit._id}>
+            {remit.name}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div className="min-w-[200px]">
+      <h1 className="mb-2 block text-sm font-medium">Status</h1>
+      <select
+        value={status}
+        onChange={(e) => setStatus(e.target.value)}
+        className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
+      >
+        <option value="">All</option>
+        <option value="paid">Paid</option>
+        <option value="due">Due</option>
+      </select>
+    </div>
+
+    <div className="flex items-center mt-7">
+      <Button
+        className="bg-supperagent text-white hover:bg-supperagent min-w-[120px]"
+        onClick={handleSearchClick}
+      >
+        Search
+      </Button>
+    </div>
+  </div>
+</CardHeader>
+
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Invoice ID</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead>Created At</TableHead>
+                <TableHead>Reference</TableHead>
+                <TableHead>Remit To</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Students</TableHead>
-                <TableHead>Actions</TableHead>
+                {/* <TableHead>Status</TableHead> */}
+                <TableHead>Invoice Status</TableHead>
+                <TableHead>Exported</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell>{invoice.id}</TableCell>
-                  <TableCell>{invoice.date}</TableCell>
-                  <TableCell>{invoice.amount} GBP</TableCell>
-                  <TableCell>{invoice.studentCount}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button size="sm" onClick={() => handleEdit(invoice.id)}>
-                        Edit
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleDownload(invoice.id)}>
-                        Download
-                      </Button>
-                    </div>
+              {invoices.length > 0 ? (
+                invoices.map((invoice) => (
+                  <TableRow key={invoice._id}>
+                    <TableCell>{moment(invoice.date).format("DD MMM YYYY")}</TableCell>
+                    <TableCell>{invoice.reference}</TableCell>
+                    <TableCell>{invoice.remit?.name}</TableCell>
+                    <TableCell>{invoice.totalAmount}</TableCell>
+                    <TableCell>{invoice.noOfStudents}</TableCell>
+                    {/* <TableCell>{invoice.status}</TableCell> */}
+                    <TableCell>{invoice.status === "due" ? (
+                      <div className="flex flex-row items-center justify-start gap-2">
+                        <span className="text-xs text-red-500 font-semibold">Due</span>
+                        <Button
+                          size="sm"
+                          className="bg-supperagent text-white hover:bg-supperagent max-w-[100px]"
+                          onClick={() => {
+                            setInvoiceToMark(invoice._id);
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          Mark as Paid
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-green-500 font-semibold text-xs">Paid</span>
+                    )}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-row gap-2 items-center">
+                        {invoice.exported ? "Yes" : "No"}
+                        {!invoice.exported && (
+                          <Button
+                            size="sm"
+                            className="bg-supperagent text-white hover:bg-supperagent"
+                            onClick={() => handleExport(invoice._id)}
+                          >
+                            <Send className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2 justify-end">
+
+                        {invoice.status !== "paid" && (
+                          <Button
+                            className="bg-supperagent text-white hover:bg-supperagent"
+                            size="sm"
+                            onClick={() => handleEdit(invoice._id)}
+                          >
+                            Edit
+                          </Button>
+                        )}
+
+                        <Button
+                          size="sm"
+                          className="bg-supperagent text-white hover:bg-supperagent"
+                          onClick={() => handleDownload(invoice._id)}
+                        >
+                          Download
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">
+                    No invoices found.
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
+
+          <DataTablePagination
+            pageSize={entriesPerPage}
+            setPageSize={setEntriesPerPage}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
+
+        <AlertModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onConfirm={handleConfirmMarkAsPaid}
+          loading={false}
+          title="Confirm Action"
+          description="Are you sure you want to mark this invoice as paid?"
+        />
+         <AlertModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onConfirm={handleConfirmExport}
+        loading={false}
+        title="Confirm Export"
+        description="Are you sure you want to export this invoice?"
+      />
       </Card>
     </div>
-  )
+  );
 }
 

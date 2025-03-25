@@ -14,6 +14,8 @@ import { countries, languages, mockData } from '@/types';
 import { useEffect, useState } from 'react';
 import axiosInstance from '@/lib/axios';
 import { useSelector } from 'react-redux';
+import { Divide } from 'lucide-react';
+import moment from 'moment';
 
 export function PersonalDetailsForm({ student, onSave }) {
   const { user } = useSelector((state: any) => state.auth);
@@ -44,7 +46,7 @@ export function PersonalDetailsForm({ student, onSave }) {
       passportIssueDate: '',
       passportExpiryDate: '',
       collageRoll: '',
-      agentId: '',
+      agent: '',
       addressLine1: '',
       addressLine2: '',
       townCity: '',
@@ -65,10 +67,10 @@ export function PersonalDetailsForm({ student, onSave }) {
   const fetchAgents = async () => {
     try {
       if (isLoading) setIsLoading(true);
-      const response = await axiosInstance.get('/agents?limit=all');
+      const response = await axiosInstance.get('/users?role=agent');
       const options = response.data.data.result.map((agent) => ({
-        value: agent.id,
-        label: agent.agentName
+        value: agent._id,
+        label: agent.name
       }));
       setStaffOptions(options);
       setIsLoading(false); // Set loading to false after fetching
@@ -103,7 +105,7 @@ export function PersonalDetailsForm({ student, onSave }) {
         passportIssueDate: student.passportIssueDate || '',
         passportExpiryDate: student.passportExpiryDate || '',
         collageRoll: student.collageRoll || '',
-        agentId: student.agent?.id || '',
+        agent: student.agent?.value || '',
         addressLine1: student.addressLine1 || '',
         addressLine2: student.addressLine2 || '',
         townCity: student.townCity || '',
@@ -121,8 +123,8 @@ export function PersonalDetailsForm({ student, onSave }) {
 
   // Ensure agentId is set again when staffOptions are updated
   useEffect(() => {
-    if (student?.agent?.id) {
-      setValue('agentId', student.agent.id);
+    if (student?.agent?._id) {
+      setValue('agent', student.agent._id);
     }
   }, [staffOptions, student, setValue]);
 
@@ -200,9 +202,21 @@ export function PersonalDetailsForm({ student, onSave }) {
 
           {/* Date of Birth */}
           <div className="space-y-2">
-            <Label htmlFor="dob">Date of Birth</Label>
-            <Input id="dob" type="date" {...register('dob')} />
-          </div>
+  <Label htmlFor="dob">Date of Birth</Label>
+  <Controller
+    name="dob"
+    control={control}
+    render={({ field }) => (
+      <Input
+        id="dob"
+        type="date"
+        {...field}
+        value={field.value ? moment(field.value).format('YYYY-MM-DD') : ''}
+        onChange={(e) => field.onChange(e.target.value)}
+      />
+    )}
+  />
+</div>
 
           {/* Marital Status Dropdown */}
           <div className="space-y-2">
@@ -419,12 +433,16 @@ export function PersonalDetailsForm({ student, onSave }) {
             (user.role === 'staff' &&
               user.privileges?.student?.agentChange)) && (
             <div>
-              <Label htmlFor="agentId">Agent</Label>
+              <Label htmlFor="agent">Agent</Label>
               <Controller
-                name="agentId"
+                name="agent"
                 control={control}
                 render={({ field }) => (
-                  <select {...field} className="w-full rounded border p-2">
+                  <select
+                    {...field}
+                    value={field.value || ''}
+                    className="w-full rounded border p-2"
+                  >
                     <option value="">Select an Agent</option>
                     {staffOptions.map((agent) => (
                       <option key={agent.value} value={agent.value}>

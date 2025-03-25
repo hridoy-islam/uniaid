@@ -30,7 +30,7 @@ export default function AgentsPage() {
   const fetchData = async (page, entriesPerPage) => {
     try {
       if (initialLoading) setInitialLoading(true);
-      const response = await axiosInstance.get(`/agents`, {
+      const response = await axiosInstance.get(`/users?role=agent`, {
         params: {
           page,
           limit: entriesPerPage
@@ -51,23 +51,19 @@ export default function AgentsPage() {
       if (editingAgent) {
         // Update agent
         response = await axiosInstance.patch(
-          `/agents/${editingAgent?.id}`,
+          `/users/${editingAgent?._id}`,
           data
         );
-      } else {
-        // Create new agent
-        response = await axiosInstance.post(`/agents`, data);
-      }
 
-      // Check if the API response indicates success
+        // Check if the API response indicates success
       if (response.data && response.data.success === true) {
         toast({
-          title: response.data.message || 'Operation completed successfully',
+          title: 'Agent Updated successfully',
           className: 'bg-supperagent border-none text-white'
         });
       } else if (response.data && response.data.success === false) {
         toast({
-          title: response.data.message || 'Operation failed',
+          title: 'Operation failed',
           className: 'bg-red-500 border-none text-white'
         });
       } else {
@@ -76,6 +72,30 @@ export default function AgentsPage() {
           className: 'bg-red-500 border-none text-white'
         });
       }
+      } else {
+        // Create new agent
+        response = await axiosInstance.post(`/auth/signup`, data);
+
+        // Check if the API response indicates success
+      if (response.data && response.data.success === true) {
+        toast({
+          title: 'Agent created successfully',
+          className: 'bg-supperagent border-none text-white'
+        });
+      } else if (response.data && response.data.success === false) {
+        toast({
+          title: 'Operation failed',
+          className: 'bg-red-500 border-none text-white'
+        });
+      } else {
+        toast({
+          title: 'Unexpected response. Please try again.',
+          className: 'bg-red-500 border-none text-white'
+        });
+      }
+      }
+
+      
 
       // Refresh data
       fetchData(currentPage, entriesPerPage);
@@ -92,7 +112,7 @@ export default function AgentsPage() {
   const handleStatusChange = async (id, status) => {
     try {
       const updatedStatus = status ? '1' : '0';
-      await axiosInstance.patch(`/agents/${id}`, { status: updatedStatus });
+      await axiosInstance.patch(`/users/${id}`, { status: updatedStatus });
       toast({
         title: 'Record updated successfully',
         className: 'bg-supperagent border-none text-white'
@@ -154,20 +174,20 @@ export default function AgentsPage() {
             </TableHeader>
             <TableBody>
               {agents.map((agent) => (
-                <TableRow key={agent.id}>
-                  <TableCell>{agent.agentName}</TableCell>
-                  <TableCell>{agent.organization}</TableCell>
-                  <TableCell>{agent.contactPerson}</TableCell>
-                  <TableCell>{agent.phone}</TableCell>
-                  <TableCell>{agent.email}</TableCell>
-                  <TableCell>{agent.location}</TableCell>
+                <TableRow key={agent._id}>
+                  <TableCell>{agent?.name}</TableCell>
+                  <TableCell>{agent?.organization}</TableCell>
+                  <TableCell>{agent?.contactPerson}</TableCell>
+                  <TableCell>{agent?.phone}</TableCell>
+                  <TableCell>{agent?.email}</TableCell>
+                  <TableCell>{agent?.location}</TableCell>
                   <TableCell>
-                    {agent.nominatedStaffs.map((item, index) => (
+                    {agent?.nominatedStaffs.map((item, index) => (
                       <Badge
                         key={index}
                         className="m-1 bg-supperagent text-white hover:bg-supperagent"
                       >
-                        {item.firstName} {item.lastName}
+                        {item.name}
                       </Badge>
                     ))}
                   </TableCell>
@@ -175,13 +195,13 @@ export default function AgentsPage() {
                     <Switch
                       checked={agent.status == 1}
                       onCheckedChange={(checked) =>
-                        handleStatusChange(agent.id, checked)
+                        handleStatusChange(agent._id, checked)
                       }
                       className="mx-auto"
                     />
                   </TableCell>
                   <TableCell className="space-x-1 text-center">
-                    {/* <Link to={`${agent.id}`}>
+                    <Link to={`${agent._id}`}>
                   <Button
                       variant="outline"
                       className="bg-blue-500 text-white hover:bg-blue-500/90 border-none"
@@ -190,7 +210,7 @@ export default function AgentsPage() {
                     >
                       <Link2 className="w-4 h-4" />
                     </Button>
-                    </Link> */}
+                    </Link>
 
                     <Button
                       variant="outline"

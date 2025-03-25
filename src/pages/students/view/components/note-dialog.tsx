@@ -215,7 +215,7 @@ export function AddNoteDialog({ open, onOpenChange, onSubmit }) {
   const fetchData = async () => {
     try {
       if (initialLoading) setInitialLoading(true);
-      const response = await axiosInstance.get(`/staffs?limit=all`);
+      const response = await axiosInstance.get(`/users?role=staff&limit=all`);
       setStaffs(response.data.data.result);
     } catch (error) {
       console.error('Error fetching institutions:', error);
@@ -235,9 +235,9 @@ export function AddNoteDialog({ open, onOpenChange, onSubmit }) {
     }
   }, [open, form]);
 
-  const options = staffs.map(({ id, firstName, lastName }) => ({
-    value: id.toString(), // Ensuring ID is a string
-    label: `${firstName} ${lastName}`
+  const options = staffs.map(({ _id, name }) => ({
+    value: _id, // Ensuring ID is a string
+    label: `${name}`
   }));
 
   const handleSubmit = (values) => {

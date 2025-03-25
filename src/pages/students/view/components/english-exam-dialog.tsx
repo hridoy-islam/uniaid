@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import moment from "moment";
 
 const formSchema = z.object({
   exam: z.string().min(1, "Exam type is required"),
@@ -42,8 +43,8 @@ export function EnglishExamDialog({ open, onOpenChange, onSubmit, initialData })
       form.reset({
         ...initialData,
         examDate: initialData.examDate
-          ? new Date(initialData.examDate).toISOString().split('T')[0]
-          : "",
+          ? moment(initialData.examDate).format('YYYY-MM-DD') // Format as YYYY-MM-DD
+          : "",  
       });
     } else {
       form.reset({
@@ -53,6 +54,8 @@ export function EnglishExamDialog({ open, onOpenChange, onSubmit, initialData })
       });
     }
   }, [initialData, form]);
+  
+  
 
   const handleSubmit = (values) => {
     onSubmit(values);
@@ -97,7 +100,7 @@ export function EnglishExamDialog({ open, onOpenChange, onSubmit, initialData })
                 <FormItem>
                   <FormLabel>Exam Date</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input type="date" {...field} value={field.value || ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -120,7 +123,9 @@ export function EnglishExamDialog({ open, onOpenChange, onSubmit, initialData })
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button className="bg-supperagent hover:bg-supperagent text-white" type="submit">{initialData ? "Update Exam" : "Add Exam"}</Button>
+              <Button className="bg-supperagent hover:bg-supperagent text-white" type="submit">
+                {initialData ? "Update Exam" : "Add Exam"}
+              </Button>
             </div>
           </form>
         </Form>

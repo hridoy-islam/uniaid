@@ -148,6 +148,20 @@ export const isWorkExperienceComplete = (student) => {
   return hasWorkExperience;
 };
 
+// Logic for checking if documents are complete
+export const isDocumentComplete = (student) => {
+  if (!student) return false; 
+
+  const hasDocuments =
+    Array.isArray(student.documents) &&
+    student.documents.length > 0 &&
+    student.documents.every(
+      (doc) => doc.file_type && doc.fileUrl
+    );
+
+  return hasDocuments;
+};
+
 export interface StaffPrivilege {
   management: {
     course: boolean;

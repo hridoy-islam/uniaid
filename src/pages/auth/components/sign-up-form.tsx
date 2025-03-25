@@ -28,7 +28,7 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
       email: '',
       password: '',
       phone: '',
-      role: 'user'
+      role: 'agent'
     }
   });
 

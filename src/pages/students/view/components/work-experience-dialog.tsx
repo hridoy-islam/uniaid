@@ -45,7 +45,7 @@ export function WorkExperienceDialog({
       address: '',
       phone: '',
       fromDate: '',
-      toDate: null,
+      toDate: '',
       currentlyWorking: false
     }
   });
@@ -70,7 +70,7 @@ export function WorkExperienceDialog({
           address: '',
           phone: '',
           fromDate: '',
-          toDate: null,
+          toDate: '',
           currentlyWorking: false
         }); // Reset to blank default values for a new entry
       }

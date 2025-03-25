@@ -24,7 +24,7 @@ export function AgentDialog({ open, onOpenChange, onSubmit, initialData }) {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      agentName: "",
+      name: "",
       organization: "",
       contactPerson: "",
       phone: "",
@@ -38,10 +38,10 @@ export function AgentDialog({ open, onOpenChange, onSubmit, initialData }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axiosInstance.get('/staffs?limit=all');
+        const response = await axiosInstance.get('/users?role=staff&limit=all');
         const options = response.data.data.result.map((staff) => ({
-          value: staff.id,
-          label: `${staff.firstName} ${staff.lastName}`,
+          value: staff._id,
+          label: `${staff.name}`,
         }));
         setStaffOptions(options);
       } catch (error) {
@@ -63,15 +63,15 @@ export function AgentDialog({ open, onOpenChange, onSubmit, initialData }) {
   useEffect(() => {
     if (initialData) {
       reset({
-        agentName: initialData.agentName ?? "",
+        name: initialData.name ?? "",
         organization: initialData.organization ?? "",
         contactPerson: initialData.contactPerson ?? "",
         phone: initialData.phone ?? "",
         email: initialData.email ?? "",
         location: initialData.location ?? "",
         nominatedStaffs: initialData.nominatedStaffs?.map(staff => ({
-          value: staff.id,
-          label: `${staff.firstName} ${staff.lastName}`,
+          value: staff._id,
+          label: `${staff.name}`,
         })) ?? [], // Map initial data to react-select format
         password: initialData.password ?? "",
       });
@@ -100,10 +100,10 @@ export function AgentDialog({ open, onOpenChange, onSubmit, initialData }) {
             <div>
               <label className="block text-sm font-medium">Agent Name *</label>
               <Input
-                {...register("agentName", { required: "Agent Name is required" })}
+                {...register("name", { required: "Agent Name is required" })}
                 placeholder="Agent Name"
               />
-              <ErrorMessage message={errors.agentName?.message?.toString()} />
+              <ErrorMessage message={errors.name?.message?.toString()} />
             </div>
 
             <div>

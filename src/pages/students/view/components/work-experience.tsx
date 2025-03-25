@@ -29,13 +29,32 @@ export function WorkExperienceSection({ student, onSave }) {
   }, [student.workDetails]);
 
   const handleAddWorkDetail = async (data) => {
-    if (editingWorkDetail) {
-      const updatedWorkDetail = { ...data, id: editingWorkDetail.id };
-      onSave({ workDetails: [updatedWorkDetail] });
-      setEditingWorkDetail(null);
-    } else {
-      onSave({ workDetails: [data] });
+    if (editingWorkDetail && !editingWorkDetail._id) {
+      console.error('Invalid ID: editingWorkDetail does not have a valid _id');
+      return; // Prevent the update if there is no valid _id
     }
+
+    let updatedWorkExperiences;
+
+    if (editingWorkDetail) {
+      // Ensure the _id exists before proceeding
+      updatedWorkExperiences = workExperiences.map((experience) =>
+        experience._id === editingWorkDetail._id
+          ? { ...experience, ...data }
+          : experience
+      );
+    } else {
+      updatedWorkExperiences = [...workExperiences, data];
+    }
+
+    // Update local state
+    setWorkExperiences(updatedWorkExperiences);
+
+    // Persist changes using onSave
+    onSave({ workDetails: updatedWorkExperiences });
+
+    setEditingWorkDetail(null);
+    setDialogOpen(false);
   };
 
   const handleEdit = (experience) => {
@@ -44,24 +63,25 @@ export function WorkExperienceSection({ student, onSave }) {
   };
 
   const handleWorkExperience = (checked) => {
-    setNoExperience(checked);
-    onSave({ workExperience: checked });
+    const isChecked = !!checked; // Convert to boolean explicitly
+    setNoExperience(isChecked);
+    onSave({ workExperience: isChecked });
   };
 
-  const handleStatusChange = (id, currentStatus) => {
+  const handleStatusChange = (_id, currentStatus) => {
     // Toggle the status
     const newStatus = currentStatus === 1 ? 0 : 1;
-    // Persist the change using onSave
-    const updatedExperience = workExperiences.find(
-      (experience) => experience.id === id
+
+    // Update the work experience's status in the local state
+    const updatedWorkExperiences = workExperiences.map((experience) =>
+      experience._id === _id ? { ...experience, status: newStatus } : experience
     );
-    if (updatedExperience) {
-      const updatedExperienceWithStatus = {
-        ...updatedExperience,
-        status: newStatus
-      };
-      onSave({ workDetails: [updatedExperienceWithStatus] });
-    }
+
+    // Update local state
+    setWorkExperiences(updatedWorkExperiences);
+
+    // Persist the change using onSave
+    onSave({ workDetails: updatedWorkExperiences });
   };
 
   // Reset editingWorkDetail to default blank values when opening the dialog for a new work experience
@@ -74,7 +94,7 @@ export function WorkExperienceSection({ student, onSave }) {
     <div className="space-y-4 rounded-md p-4 shadow-md">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Work Details</h2>
-        {!noExperience && (
+        {!noExperience && student.workExperience !== true && (
           <Button
             className="bg-supperagent text-white hover:bg-supperagent/90"
             onClick={handleOpenDialog} // Use handleOpenDialog instead of directly setting dialogOpen
@@ -88,13 +108,14 @@ export function WorkExperienceSection({ student, onSave }) {
       <div className="flex items-center space-x-2">
         <Checkbox
           id="noExperience"
-          checked={noExperience}
-          onCheckedChange={(checked) => handleWorkExperience(checked)}
+          checked={student.workExperience || false} // Ensure it's always a boolean
+          onCheckedChange={(checked) => handleWorkExperience(!!checked)} // Convert checked to boolean explicitly
         />
+
         <label htmlFor="noExperience">No work Experiences.</label>
       </div>
 
-      {!noExperience && (
+      {!noExperience && student.workExperience !== true &&(
         <>
           <Table>
             <TableHeader>
@@ -119,7 +140,7 @@ export function WorkExperienceSection({ student, onSave }) {
                 </TableRow>
               ) : (
                 workExperiences.map((experience) => (
-                  <TableRow key={experience.id}>
+                  <TableRow key={experience._id}>
                     <TableCell>{experience.jobTitle}</TableCell>
                     <TableCell>{experience.organization}</TableCell>
                     <TableCell>{experience.address}</TableCell>
@@ -138,7 +159,7 @@ export function WorkExperienceSection({ student, onSave }) {
                       <Switch
                         checked={parseInt(experience.status) === 1}
                         onCheckedChange={(checked) =>
-                          handleStatusChange(experience.id, checked ? 0 : 1)
+                          handleStatusChange(experience._id, checked ? 0 : 1)
                         }
                         className="mx-auto"
                       />

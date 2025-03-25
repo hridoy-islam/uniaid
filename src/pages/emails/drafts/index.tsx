@@ -52,7 +52,7 @@ export function DraftsManager() {
     try {
       if (editingDraft) {
         // Update institution
-        await axiosInstance.patch(`/email-drafts/${editingDraft?.id}`, data);
+        await axiosInstance.patch(`/email-drafts/${editingDraft?._id}`, data);
         toast({
           title: 'Draft Updated successfully',
           className: 'bg-supperagent border-none text-white'
@@ -104,16 +104,18 @@ export function DraftsManager() {
             </TableHeader>
             <TableBody>
               {drafts.map((draft) => (
-                <TableRow key={draft.id}>
+                <TableRow key={draft._id}>
                   <TableCell>{draft.subject}</TableCell>
                   <TableCell className="text-right">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
                       onClick={() => {
                         setEditingDraft(draft);
                         setDraftDialogOpen(true);
                       }}
+
+                      className='bg-supperagent text-white hover:bg-supperagent/90'
                     >
                       <Pen className="h-4 w-4" />
                     </Button>

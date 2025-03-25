@@ -3,28 +3,44 @@ import { Button } from '@/components/ui/button';
 import { EmailSendDialog } from './email-send-dialog';
 import { EmailLogTable } from './email-log-table';
 import axiosInstance from '@/lib/axios';
+import { useParams } from 'react-router-dom';
 
 export function SendEmailComponent({ student}) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [emailLogs, setEmailLogs] = useState<any>([]);
+  const {id} = useParams();
+
 
   const handleSendEmail = async (payload) => {
-      try {
-        const data = {...payload, studentId: student.id, emails: [student.email]};
-        
-        await axiosInstance.post(`/email-send`, data);
-        fetchData(); // Refresh data
-      } catch (error) {
-        console.error("Error updating status:", error);
+    try {
+      const emailData = { ...payload, studentId: id, emails: [student.email] };
+
+     
+      const logResponse = await axiosInstance.post(`/email-logs`, emailData);
+      const logId = logResponse.data?.data?._id; 
+
+      
+      await axiosInstance.post(`/email-send`, emailData);
+
+      if (logId) {
+        await axiosInstance.patch(`/email-logs/${logId}`, { status: "sent" });
       }
+
+      fetchData(); 
+    } catch (error) {
+      console.error("Error sending email:", error);
+    }
     setIsDialogOpen(false);
   };
 
   const fetchData = async () => {
       try {
         const response = await axiosInstance.get(
-          `/email-logs?where=student_id,${student.id}`
-        ); // Update with your API endpoint
+          `/email-logs`,{
+      params: { studentId: id }, 
+    }
+
+        );
         setEmailLogs(response.data.data.result);
       } catch (error) {
         console.error('Error fetching notes:', error);
@@ -33,7 +49,7 @@ export function SendEmailComponent({ student}) {
   
     useEffect(() => {
       fetchData();
-    }, [student]);
+    }, [student,id,emailLogs]);
 
   return (
     <div className="space-y-4 rounded-md p-4 shadow-md">
@@ -46,6 +62,7 @@ export function SendEmailComponent({ student}) {
           Send Email
         </Button>
       </div>
+      
       <EmailSendDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}

@@ -21,8 +21,9 @@ export function ApplicationsSection({ student, onSave }) {
   const { user } = useSelector((state: any) => state.auth);
 
   const handleSubmit = (data) => {
-    onSave({ applications: [data] });
+    onSave({ applications: [...applications, data] });
   };
+  
 
   // Get the status badge color
   const getStatusBadgeColor = (status) => {
@@ -42,7 +43,7 @@ export function ApplicationsSection({ student, onSave }) {
       setApplications(student?.applications || []);
     }
   }, [student?.applications]);
-
+    console.log(applications)
   return (
     <div className="space-y-4 rounded-md p-4 shadow-md">
       <div className="flex items-center justify-between">
@@ -79,10 +80,10 @@ export function ApplicationsSection({ student, onSave }) {
             </TableRow>
           ) : (
             applications.map((course) => (
-              <TableRow key={course.id}>
-                <TableCell>{course.institution.name}</TableCell>
-                <TableCell>{course.course.name}</TableCell>
-                <TableCell>{course.term.term}</TableCell>
+              <TableRow key={course._id}>
+                <TableCell>{course?.courseRelationId?.institute?.name}</TableCell>
+                <TableCell>{course?.courseRelationId?.course?.name}</TableCell>
+                <TableCell>{course?.courseRelationId?.term?.term}</TableCell>
                 <TableCell>
                   {course.choice === 'Local' && (
                     <Badge variant="secondary" className="bg-green-500">
@@ -116,7 +117,7 @@ export function ApplicationsSection({ student, onSave }) {
                   {(user.role === 'admin' ||
                     (user.role === 'staff' &&
                       user.privileges?.student?.applicationStatus)) && (
-                    <Link to={`course/${course.id}`}>
+                    <Link to={`course/${course._id}`}>
                       <Button variant="ghost" size="icon">
                         <Eye className="h-4 w-4" />
                       </Button>

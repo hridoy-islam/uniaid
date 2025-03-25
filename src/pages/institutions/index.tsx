@@ -68,7 +68,7 @@ export default function InstitutionsPage() {
       let response;
       if (editingInstitution) {
         // Update institution
-        response = await axiosInstance.put(`/institutions/${editingInstitution?.id}`, data);
+        response = await axiosInstance.patch(`/institutions/${editingInstitution?._id}`, data);
       } else {
         // Create new institution
         data.status = "1";
@@ -157,12 +157,12 @@ export default function InstitutionsPage() {
             </TableHeader>
             <TableBody>
               {institutions.map((institution) => (
-                <TableRow key={institution.id}>
+                <TableRow key={institution._id}>
                   <TableCell>{institution.name}</TableCell>
                   <TableCell className="text-center">
                     <Switch
                       checked={institution.status == 1}
-                      onCheckedChange={(checked) => handleStatusChange(institution.id, checked)}
+                      onCheckedChange={(checked) => handleStatusChange(institution._id, checked)}
                       className="mx-auto"
                     />
                   </TableCell>

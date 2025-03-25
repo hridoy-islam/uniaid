@@ -13,7 +13,7 @@ import {
 import { Form } from "@/components/ui/form";
 
 const schema = z.object({
-  staffId: z.string().nonempty("Please select a staff member"),
+  _id: z.string().nonempty("Please select a staff member"),
 });
 
 export function StaffDialog({ open, onOpenChange, onSubmit }) {
@@ -22,17 +22,17 @@ export function StaffDialog({ open, onOpenChange, onSubmit }) {
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      staffId: "",
+      _id: "",
     },
   });
 
   useEffect(() => {
     const fetchStaffMembers = async () => {
       try {
-        const response = await axiosInstance.get('/staffs?limit=all');
+        const response = await axiosInstance.get('/users?role=staff&limit=all');
         const options = response.data.data.result.map((staff) => ({
-          value: staff.id,
-          label: `${staff.firstName} ${staff.lastName}`,
+          value: staff._id,
+          label: `${staff.name}`,
         }));
         setStaffOptions(options);
       } catch (error) {
@@ -61,7 +61,7 @@ export function StaffDialog({ open, onOpenChange, onSubmit }) {
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <div>
               <Controller
-                name="staffId"
+                name="_id"
                 control={form.control}
                 render={({ field }) => (
                   <select {...field}

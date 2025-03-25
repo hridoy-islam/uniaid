@@ -15,17 +15,21 @@ import axiosInstance from '@/lib/axios';
 import moment from 'moment';
 import { Badge } from '@/components/ui/badge';
 import { Link, useParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 export function NotesPage() {
   const { id } = useParams();
   const [notes, setNotes] = useState<any>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { user } = useSelector((state: any) => state.auth);
 
   const handleAddNote = async (data) => {
     try {
       const formattedValues = {
         ...data,
-        studentId: id
+        student: id,
+        createdBy:user._id,
+        status:"pending"
       };
       const response = await axiosInstance.post('/notes', formattedValues);
       console.log('Note added successfully:', response.data);
@@ -43,17 +47,21 @@ export function NotesPage() {
   // Fetch data when the component mounts
   const fetchNotes = async () => {
     try {
-      const response = await axiosInstance.get(`/notes?where=student_id,${id}`); // Update with your API endpoint
-      setNotes(response.data.data.result);
+      const response = await axiosInstance.get(`/notes`, {
+        params: { student: id }, // Pass student id to filter notes
+      });
+      setNotes(response?.data?.data?.result);
     } catch (error) {
-      console.error('Error fetching notes:', error);
+      console.error("Error fetching notes:", error);
     }
   };
+  
 
   useEffect(() => {
     fetchNotes();
   }, []);
 
+  console.log(notes[0])
   return (
     <div className="space-y-4 rounded-md p-4 shadow-md">
       <div className="flex items-center justify-between">
@@ -79,7 +87,7 @@ export function NotesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {notes.length === 0 ? (
+            {notes?.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={7}
@@ -89,8 +97,8 @@ export function NotesPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              notes.map((note) => (
-                <TableRow key={note.id}>
+              notes?.map((note) => (
+                <TableRow key={note._id}>
                   <TableCell>{note.note}</TableCell>
                   <TableCell>
                     {note.isFollowUp === true ? 'Yes' : 'No'}
@@ -101,10 +109,10 @@ export function NotesPage() {
                       <div className="flex flex-wrap gap-1">
                         {note.followUpBy.map((staff) => (
                           <Badge
-                            key={staff.id}
+                            key={staff._id}
                             className="bg-blue-500 text-white hover:bg-blue-500"
                           >
-                            {staff.firstName} {staff.lastName}
+                            {staff?.name}
                           </Badge>
                         ))}
                       </div>
@@ -115,7 +123,7 @@ export function NotesPage() {
                   <TableCell>
                     <div className="flex flex-col gap-1">
                       <Badge className="bg-green-500 text-white hover:bg-green-500">
-                        {note.createdBy.name}
+                        {note?.createdBy?.name}
                       </Badge>
 
                       <span className="text-xs text-muted-foreground">
@@ -130,7 +138,7 @@ export function NotesPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Link to={`note/${note.id}/comments`}>
+                    <Link to={`note/${note._id}/comments`}>
                       <Button variant="ghost" size="icon">
                         <Eye className="h-4 w-4" />
                       </Button>

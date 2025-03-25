@@ -83,8 +83,8 @@ export function StaffSettings() {
   const fetchData = async () => {
     try {
       setInitialLoading(true);
-      const response = await axiosInstance.get(`/staffs/${id}`);
-      const response2 = await axiosInstance.get(`/privileges/${id}`);
+      const response = await axiosInstance.get(`/users/${id}`);
+      const response2 = await axiosInstance.get(`/users/${id}`);
 
       const privilegesData = response2.data.data.privileges || {};
       setStaffDetails(response.data.data || {});
@@ -136,37 +136,40 @@ export function StaffSettings() {
 
   // Function to dynamically update nested privilege fields
   const handleToggle = async (fieldName: string, value: boolean) => {
-    setValue(fieldName, value); // Update form state
-
-    // Constructing dynamic payload
+    // Get the current form values
+    const currentValues = form.getValues();
+  
+    // Update the specific privilege
     const fieldParts = fieldName.split('.');
-    let payload: Record<string, any> = {};
-
+    let updatedValues = { ...currentValues };
+  
     if (fieldParts.length === 2) {
       // Example: "management.course"
       const [section, key] = fieldParts;
-      payload = { privileges: { [section]: { [key]: value } } };
+      updatedValues[section][key] = value;
     } else if (fieldParts.length === 3) {
       // Example: "student.search.agent"
       const [section, subSection, key] = fieldParts;
-      payload = {
-        privileges: { [section]: { [subSection]: { [key]: value } } }
-      };
+      updatedValues[section][subSection][key] = value;
     }
-
+  
+    // Update the form state
+    form.setValue(fieldName, value);
+  
+    // Construct the payload
+    const payload = { privileges: updatedValues };
+  
     try {
-      const response = await axiosInstance.patch(`/privileges/${id}`, payload);
-
+      const response = await axiosInstance.patch(`/users/${id}`, payload);
+  
       // Handle success response
       if (response.data && response.data.success === true) {
         toast({
-          title: response.data.message || 'Staff Access Updated successfully',
+          title: 'Staff Access Updated successfully',
           className: 'bg-supperagent border-none text-white'
         });
-        await fetchData();
-      }
-      // Handle failure response from API
-      else if (response.data && response.data.success === false) {
+        await fetchData(); // Reload the updated data
+      } else if (response.data && response.data.success === false) {
         toast({
           title: response.data.message || 'Operation failed',
           className: 'bg-red-500 border-none text-white'
@@ -176,6 +179,7 @@ export function StaffSettings() {
       console.error('Error updating privilege:', error);
     }
   };
+
 
   return (
     <Form {...form}>
@@ -187,7 +191,7 @@ export function StaffSettings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p>
-              {staffDetails?.firstName} {staffDetails?.lastName}
+              {staffDetails?.name} 
             </p>
             <p>{staffDetails?.email}</p>
             <p>{staffDetails?.phone}</p>

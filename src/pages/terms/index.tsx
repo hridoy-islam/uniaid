@@ -64,7 +64,7 @@ export default function TermsPage() {
         let response;
         if (editingTerm) {
           // Update course relation
-          response = await axiosInstance.patch(`/terms/${editingTerm?.id}`, data);
+          response = await axiosInstance.patch(`/terms/${editingTerm?._id}`, data);
         } else {
           // Create new course relation
           response = await axiosInstance.post(`/terms`, data);
@@ -94,7 +94,7 @@ export default function TermsPage() {
       } catch (error) {
         // Display an error toast if the request fails
         toast({
-          title: error.response.data.message || "An error occurred. Please try again.",
+          title: error|| "An error occurred. Please try again.",
           className: "bg-red-500 border-none text-white",
         });
       }
@@ -157,11 +157,11 @@ export default function TermsPage() {
               {terms.map((term) => (
                 <TableRow key={term.id}>
                   <TableCell>{term.term}</TableCell>
-                  <TableCell>{term.academic_year}</TableCell>
+                  <TableCell>{term?.academic_year_id.academic_year}</TableCell>
                   <TableCell className="text-center">
                     <Switch
                       checked={term.status == 1}
-                      onCheckedChange={(checked) => handleStatusChange(term.id, checked)}
+                      onCheckedChange={(checked) => handleStatusChange(term._id, checked)}
                       className="mx-auto"
                     />
                   </TableCell>

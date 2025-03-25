@@ -66,7 +66,7 @@ export function EmailConfigDialog({
     if (initialData) {
       form.reset({
         email: initialData.email,
-        password: '',
+        password: initialData.password,
         host: initialData.host,
         port: initialData.port,
         encryption: initialData.encryption,

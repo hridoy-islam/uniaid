@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
+import { useParams } from 'react-router-dom';
 
 const formSchema = z.object({
   emailConfigId: z.string(),
@@ -42,6 +43,27 @@ export function EmailSendDialog({ open, onOpenChange, onSend }) {
   const [emailConfigs, setEmailConfigs] = useState<any[]>([]); // For "To" options
   const [emailDrafts, setEmailDrafts] = useState<any[]>([]); // For draft options
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const {id} = useParams();
+
+  useEffect(() => {
+    const fetchEmail = async () => {
+      if (!id) return;
+
+      try {
+        const response = await axiosInstance.get(`/students/${id}`);
+        setEmail(response?.data?.data?.email); 
+      } catch (error) {
+        console.error('Error fetching email:', error);
+      }
+    };
+
+    if (open) {
+      fetchEmail();
+    }
+  }, [id, open]);
+
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -52,9 +74,8 @@ export function EmailSendDialog({ open, onOpenChange, onSend }) {
     }
   });
 
-  // Handle draft selection and update form values
   const handleDraftChange = (draftId: string) => {
-    const selectedDraft = emailDrafts.find((draft) => draft.id === draftId);
+    const selectedDraft = emailDrafts.find((draft) => draft._id === draftId);
 
     if (selectedDraft) {
       form.setValue('subject', selectedDraft.subject || '');
@@ -68,7 +89,10 @@ export function EmailSendDialog({ open, onOpenChange, onSend }) {
     const payload = {
       emailConfigId: values.emailConfigId,
       subject: values.subject,
-      body: values.body
+      body: values.body,
+      emailDraft: form.getValues("draftId"),
+      to:email,
+      Emails: [email]
     }
 
     onSend(payload);
@@ -128,7 +152,7 @@ export function EmailSendDialog({ open, onOpenChange, onSend }) {
                 </FormControl>
                 <SelectContent>
                   {emailConfigs.map((config) => (
-                    <SelectItem key={config.id} value={config.id.toString()}>
+                    <SelectItem key={config._id} value={config._id}>
                       {config.email}
                     </SelectItem>
                   ))}
@@ -145,7 +169,7 @@ export function EmailSendDialog({ open, onOpenChange, onSend }) {
                 </FormControl>
                 <SelectContent>
                   {emailDrafts.map((draft) => (
-                    <SelectItem key={draft.id} value={draft.id}>{draft.subject}</SelectItem>
+                    <SelectItem key={draft._id} value={draft._id}>{draft.subject}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

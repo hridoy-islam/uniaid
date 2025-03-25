@@ -6,41 +6,23 @@ import { ImageUploader } from '@/components/shared/image-uploader';
 import moment from 'moment';
 import axios from 'axios';
 
-export function StudentProfile({ student }) {
+export function StudentProfile({ student, fetchStudent }) {
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [profilePhotoUrl, setProfilePhotoUrl] = useState(
-    student?.profilePhotoUrl
-  );
+  
 
-  const fetchData = async () => {
-    try {
-      const response = await axios.get(
-        `https://core.qualitees.co.uk/api/documents?where=entity_id,${student.id},&file_type=profile&limit=1`,
-        {
-          headers: {
-            'x-company-token': import.meta.env.VITE_COMPANY_TOKEN // Add the custom header
-          }
-        }
-      );
 
-      if (response.data.result && response.data.result.length > 0) {
-        setProfilePhotoUrl(response.data.result[0].file_url); // Assuming the API returns the URL of the uploaded image
-      }
-    } catch (error) {
-      console.error('Error fetching documents:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [student?.id]); // Re-fetch data if student.id changes
 
   useEffect(() => {
     if (!uploadOpen) {
-      fetchData(); // Refetch data when the upload dialog is closed
+      fetchStudent; 
     }
-  }, [uploadOpen]); // Re-fetch data when uploadOpen changes
+  }, [uploadOpen]); 
 
+  const handleUploadComplete = (data) => {
+    
+    setUploadOpen(false); // Close the upload dialog
+    fetchStudent; // Re-fetch student data after upload completes
+  };
   return (
     <Card className="border-0 shadow-none">
       <CardContent className="grid grid-cols-[auto,1fr,1fr] gap-6 p-6">
@@ -48,7 +30,7 @@ export function StudentProfile({ student }) {
           <div className="relative h-48 w-48 overflow-hidden rounded-full">
             <img
               src={
-                profilePhotoUrl ||
+                student?.imageUrl ||
                 'https://kzmjkvje8tr2ra724fhh.lite.vusercontent.net/placeholder.svg'
               }
               alt={`${student?.firstName} ${student?.lastName}`}
@@ -89,6 +71,7 @@ export function StudentProfile({ student }) {
               <span className="text-sm font-medium">Date of Birth:</span>
               <span className="text-sm text-muted-foreground">
                 {moment(student?.dob).format('DD-MM-YYYY')}
+                {/* {student?.dob} */}
               </span>
             </div>
           </div>
@@ -111,10 +94,8 @@ export function StudentProfile({ student }) {
       <ImageUploader
         open={uploadOpen}
         onOpenChange={setUploadOpen}
-        onUploadComplete={(data) => {
-          setProfilePhotoUrl(data.url); // Update the profile photo URL after upload
-        }}
-        studentId={student?.id}
+        onUploadComplete={handleUploadComplete}
+        studentId={student?._id}
       />
     </Card>
   );
