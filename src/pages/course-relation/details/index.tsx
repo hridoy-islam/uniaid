@@ -451,6 +451,7 @@ import { format, parseISO } from 'date-fns';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import moment from 'moment';
+import { BlinkingDots } from '@/components/shared/blinking-dots';
 
 interface Session {
   _id?: string;
@@ -513,19 +514,21 @@ const yearSessionSchema = z.object({
           sessionName: z.string(),
           invoiceDate: z.string(),
           rate: z.number(),
-          type: z.enum(["flat", "percentage"]),
+          type: z.enum(['flat', 'percentage'])
         })
-      ),
+      )
     })
-  ),
+  )
 });
 
 export default function CourseRelationDetails() {
   const { id } = useParams();
-  const [courseRelation, setCourseRelation] = useState<CourseRelation | null>(null);
+  const [courseRelation, setCourseRelation] = useState<CourseRelation | null>(
+    null
+  );
   const [years, setYears] = useState<Year[]>([]);
   const [isAddingYear, setIsAddingYear] = useState(false);
-  const [selectedYear, setSelectedYear] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [editingSession, setEditingSession] = useState<{
     yearId: string;
@@ -536,9 +539,9 @@ export default function CourseRelationDetails() {
 
   // State for adding new year sessions
   const [newYearSessions, setNewYearSessions] = useState<Session[]>([
-    { sessionName: "Session 1", invoiceDate: "", rate: 0, type: "flat" },
-    { sessionName: "Session 2", invoiceDate: "", rate: 0, type: "flat" },
-    { sessionName: "Session 3", invoiceDate: "", rate: 0, type: "flat" },
+    { sessionName: 'Session 1', invoiceDate: '', rate: 0, type: 'flat' },
+    { sessionName: 'Session 2', invoiceDate: '', rate: 0, type: 'flat' },
+    { sessionName: 'Session 3', invoiceDate: '', rate: 0, type: 'flat' }
   ]);
 
   // Fetch course relations data
@@ -550,8 +553,8 @@ export default function CourseRelationDetails() {
         setYears(response.data.data.years || []);
       }
     } catch (error) {
-      console.error("Error fetching course relations:", error);
-      toast.error("Failed to fetch data");
+      console.error('Error fetching course relations:', error);
+      toast.error('Failed to fetch data');
     } finally {
       setIsLoading(false);
     }
@@ -563,16 +566,22 @@ export default function CourseRelationDetails() {
 
   // Get available years
   const getAvailableYears = () => {
-    const existingYears = years.map((y) => parseInt(y.year.split(" ")[1]));
+    const existingYears = years.map((y) => parseInt(y.year.split(' ')[1]));
     return Array.from({ length: 4 }, (_, i) => `Year ${i + 1}`).filter(
-      (year) => !existingYears.includes(parseInt(year.split(" ")[1]))
+      (year) => !existingYears.includes(parseInt(year.split(' ')[1]))
     );
   };
 
   // Handle updating new session data
-  const handleUpdateNewSession = (index: number, field: keyof Session, value: string | number) => {
+  const handleUpdateNewSession = (
+    index: number,
+    field: keyof Session,
+    value: string | number
+  ) => {
     setNewYearSessions((prev) =>
-      prev.map((session, i) => (i === index ? { ...session, [field]: value } : session))
+      prev.map((session, i) =>
+        i === index ? { ...session, [field]: value } : session
+      )
     );
   };
 
@@ -581,7 +590,7 @@ export default function CourseRelationDetails() {
     setEditingSession({
       yearId: year._id!,
       sessionId: session._id!,
-      data: { ...session },
+      data: { ...session }
     });
     setIsEditingSession(true);
   };
@@ -599,10 +608,10 @@ export default function CourseRelationDetails() {
                 ...year,
                 sessions: year.sessions.map((session) =>
                   session._id === sessionId ? { ...session, ...data } : session
-                ),
+                )
               }
             : year
-        ),
+        )
       });
 
       // Update local state
@@ -613,7 +622,7 @@ export default function CourseRelationDetails() {
                 ...year,
                 sessions: year.sessions.map((session) =>
                   session._id === sessionId ? { ...session, ...data } : session
-                ),
+                )
               }
             : year
         )
@@ -621,10 +630,10 @@ export default function CourseRelationDetails() {
 
       setIsEditingSession(false);
       setEditingSession(null);
-      toast.success("Session updated successfully");
+      toast.success('Session updated successfully');
     } catch (error) {
-      console.error("Error updating session:", error);
-      toast.error("Failed to update session");
+      console.error('Error updating session:', error);
+      toast.error('Failed to update session');
     }
   };
 
@@ -637,45 +646,52 @@ export default function CourseRelationDetails() {
         ...years, // Existing years
         {
           year: selectedYear,
-          sessions: newYearSessions,
-        },
+          sessions: newYearSessions
+        }
       ];
-  
+
       await axiosInstance.patch(`/course-relations/${id}`, {
-        years: updatedYears, // Send updated years array
+        years: updatedYears // Send updated years array
       });
-  
+
       setIsAddingYear(false);
       fetchCourseRelations(); // Refresh data
-      setSelectedYear("");
+      setSelectedYear('');
       setNewYearSessions([
-        { sessionName: "Session 1", invoiceDate: "", rate: 0, type: "flat" },
-        { sessionName: "Session 2", invoiceDate: "", rate: 0, type: "flat" },
-        { sessionName: "Session 3", invoiceDate: "", rate: 0, type: "flat" },
+        { sessionName: 'Session 1', invoiceDate: '', rate: 0, type: 'flat' },
+        { sessionName: 'Session 2', invoiceDate: '', rate: 0, type: 'flat' },
+        { sessionName: 'Session 3', invoiceDate: '', rate: 0, type: 'flat' }
       ]);
-      toast.success("Year added successfully");
+      toast.success('Year added successfully');
     } catch (error) {
-      console.error("Error updating course relations:", error);
-      toast.error("Failed to add year");
+      console.error('Error updating course relations:', error);
+      toast.error('Failed to add year');
     }
   };
-  
 
   // Format date safely
   const formatDate = (dateString: string) => {
     try {
-      return format(parseISO(dateString), "dd MMM yyyy");
+      return format(parseISO(dateString), 'dd MMM yyyy');
     } catch (error) {
       return dateString;
     }
   };
 
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    return (
+      <div className="flex justify-center py-6">
+        <BlinkingDots size="large" color="bg-supperagent" />
+      </div>
+    );
   }
 
   if (!courseRelation) {
-    return <div className="flex h-screen items-center justify-center">Course relation not found</div>;
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Course relation not found
+      </div>
+    );
   }
   return (
     <div className="space-y-6 p-6">
@@ -737,7 +753,7 @@ export default function CourseRelationDetails() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium">Sessions</h3>
                   </div>
-                
+
                   {newYearSessions.map((session, index) => (
                     <div
                       key={index}
@@ -745,7 +761,6 @@ export default function CourseRelationDetails() {
                     >
                       {/* Align Invoice Date, Rate, and Type in a single row */}
 
-                     
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         {/* Invoice Date */}
                         <div className="gap-2">
@@ -952,7 +967,9 @@ export default function CourseRelationDetails() {
                           onClick={() => handleEditSession(year, session)}
                         >
                           <div className="mb-2 flex items-center justify-between">
-                            <h3 className="font-medium">{session.sessionName}</h3>
+                            <h3 className="font-medium">
+                              {session.sessionName}
+                            </h3>
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
@@ -961,7 +978,7 @@ export default function CourseRelationDetails() {
                             </div>
                             <div className="flex items-center">
                               {session.type === 'flat' ? (
-                                <span className='px-2 font-semibold'>£</span>
+                                <span className="px-2 font-semibold">£</span>
                               ) : (
                                 <Percent className="mr-2 h-4 w-4 text-black" />
                               )}
