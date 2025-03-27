@@ -222,8 +222,6 @@ export function DocumentsSection({
     fetchDocuments(); // Refresh the documents list
   };
 
- 
-
   // Handle no documents checkbox
   const handleNoDocument = (checked) => {
     setNoDocuments(checked);
@@ -267,7 +265,8 @@ export function DocumentsSection({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!Array.isArray(student?.documents) || student?.documents.length === 0 ? (
+            {!Array.isArray(student?.documents) ||
+            student?.documents.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center">
                   No documents uploaded
@@ -310,7 +309,7 @@ export function DocumentsSection({
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSubmit={handleUpload}
-        initialData={student._id}
+        entityId={student._id}
       />
 
       {/* <AlertDialog

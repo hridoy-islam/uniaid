@@ -127,7 +127,7 @@ export default function CustomerPage() {
                 <TableHead>Customer</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Address</TableHead>
-              
+
                 <TableHead className="w-32 text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -143,7 +143,7 @@ export default function CustomerPage() {
                   <TableCell>
                     <Link to={`${customer._id}`}>{customer?.address}</Link>
                   </TableCell>
-                  
+
                   <TableCell className="space-x-1 text-center">
                     <Link to={`${customer._id}`}>
                       <Button variant="outline" size="icon">
@@ -168,10 +168,10 @@ export default function CustomerPage() {
       <CustomerDialog
         open={dialogOpen}
         onOpenChange={(open) => {
-          setDialogOpen(open); 
+          setDialogOpen(open);
         }}
         onSubmit={handleSubmit}
-        initialData={null} 
+        initialData={null}
       />
     </div>
   );

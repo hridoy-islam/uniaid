@@ -1,33 +1,28 @@
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm } from 'react-hook-form';
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import ErrorMessage from "@/components/shared/error-message";
-import { useEffect, useState } from "react";
-import axiosInstance from "@/lib/axios";
+  DialogTitle
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import ErrorMessage from '@/components/shared/error-message';
+import { useEffect } from 'react';
 
 export function CustomerDialog({ open, onOpenChange, onSubmit, initialData }) {
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors }
   } = useForm({
     defaultValues: {
-      logo: "", 
-      name: "", 
-      email: "", 
-      address: "", 
-      sortCode: "", 
-      accountNo: "", 
-      beneficiary: "", 
-    },
+      name: '',
+      email: '',
+      address: ''
+    }
   });
 
   useEffect(() => {
@@ -46,13 +41,9 @@ export function CustomerDialog({ open, onOpenChange, onSubmit, initialData }) {
   useEffect(() => {
     if (initialData) {
       reset({
-        logo: initialData.logo ?? "",
-        name: initialData.name ?? "",
-        email: initialData.email ?? "",
-        address: initialData.address ?? "",
-        sortCode: initialData.sortCode ?? "",
-        accountNo: initialData.accountNo ?? "",
-        beneficiary: initialData.beneficiary ?? "",
+        name: initialData.name ?? '',
+        email: initialData.email ?? '',
+        address: initialData.address ?? ''
       });
     }
   }, [initialData, reset]);
@@ -67,7 +58,9 @@ export function CustomerDialog({ open, onOpenChange, onSubmit, initialData }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>{initialData ? "Edit Customer" : "Add New Customer"}</DialogTitle>
+          <DialogTitle>
+            {initialData ? 'Edit Customer' : 'Add New Customer'}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-2">
@@ -82,9 +75,11 @@ export function CustomerDialog({ open, onOpenChange, onSubmit, initialData }) {
             </div> */}
 
             <div>
-              <label className="block text-sm font-medium">Customer Name *</label>
+              <label className="block text-sm font-medium">
+                Customer Name *
+              </label>
               <Input
-                {...register("name", { required: "Agent Name is required" })}
+                {...register('name', { required: 'Agent Name is required' })}
                 placeholder="Customer Name"
               />
               <ErrorMessage message={errors.name?.message?.toString()} />
@@ -93,8 +88,11 @@ export function CustomerDialog({ open, onOpenChange, onSubmit, initialData }) {
             <div>
               <label className="block text-sm font-medium">Email</label>
               <Input
-                {...register("email", {
-                  pattern: { value: /^\S+@\S+$/i, message: "Invalid email format" },
+                {...register('email', {
+                  pattern: {
+                    value: /^\S+@\S+$/i,
+                    message: 'Invalid email format'
+                  }
                 })}
                 placeholder="Email"
               />
@@ -103,26 +101,8 @@ export function CustomerDialog({ open, onOpenChange, onSubmit, initialData }) {
 
             <div>
               <label className="block text-sm font-medium">Address</label>
-              <Input {...register("address")} placeholder="Address" />
+              <Input {...register('address')} placeholder="Address" />
               <ErrorMessage message={errors.address?.message?.toString()} />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">Sort Code</label>
-              <Input {...register("sortCode")} placeholder="Sort Code" />
-              <ErrorMessage message={errors.sortCode?.message?.toString()} />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">Account No</label>
-              <Input {...register("accountNo")} placeholder="Account No" />
-              <ErrorMessage message={errors.accountNo?.message?.toString()} />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">Beneficiary</label>
-              <Input {...register("beneficiary")} placeholder="Beneficiary" />
-              <ErrorMessage message={errors.beneficiary?.message?.toString()} />
             </div>
           </div>
 
@@ -130,8 +110,11 @@ export function CustomerDialog({ open, onOpenChange, onSubmit, initialData }) {
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-supperagent text-white hover:bg-supperagent/90">
-              {initialData ? "Save Changes" : "Add Customer"}
+            <Button
+              type="submit"
+              className="bg-supperagent text-white hover:bg-supperagent/90"
+            >
+              {initialData ? 'Save Changes' : 'Add Customer'}
             </Button>
           </DialogFooter>
         </form>
