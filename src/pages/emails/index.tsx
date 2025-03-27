@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/use-toast';
 import axiosInstance from '../../lib/axios';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { DataTablePagination } from '../students/view/components/data-table-pagination';
+import { Input } from '@/components/ui/input';
 
 export default function EmailConfigPage() {
   const [emailConfigs, setEmailConfigs] = useState<any>([]);
@@ -24,14 +25,16 @@ export default function EmailConfigPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchData = async (page, entriesPerPage) => {
+  const fetchData = async (page, entriesPerPage, searchTerm = "") => {
     try {
       if (initialLoading) setInitialLoading(true);
       const response = await axiosInstance.get(`/email-configs`, {
         params: {
           page,
           limit: entriesPerPage,
+          ...(searchTerm ? { searchTerm } : {}),
         },
       });
       setEmailConfigs(response.data.data.result);
@@ -65,7 +68,7 @@ export default function EmailConfigPage() {
   const handleSubmit = async (data) => {
     try {
       let response;
-      
+
       if (editingEmailConfig) {
         // Update email configuration
         response = await axiosInstance.patch(`/email-configs/${editingEmailConfig?._id}`, data);
@@ -73,16 +76,16 @@ export default function EmailConfigPage() {
         // Create new email configuration
         response = await axiosInstance.post(`/email-configs`, data);
       }
-  
+
       // Check if the API response indicates success
       if (response.data && response.data.success === true) {
         toast({
-          title:  "Email configuration updated successfully",
+          title: "Email configuration updated successfully",
           className: "bg-supperagent border-none text-white",
         });
       } else if (response.data && response.data.success === false) {
         toast({
-          title:  "Operation failed",
+          title: "Operation failed",
           className: "bg-red-500 border-none text-white",
         });
       } else {
@@ -91,12 +94,12 @@ export default function EmailConfigPage() {
           className: "bg-red-500 border-none text-white",
         });
       }
-  
+
       // Refresh data
       fetchData(currentPage, entriesPerPage);
     } catch (error) {
       toast({
-        title:  "An error occurred. Please try again.",
+        title: "An error occurred. Please try again.",
         className: "bg-red-500 border-none text-white",
       });
     } finally {
@@ -129,8 +132,12 @@ export default function EmailConfigPage() {
     fetchData(currentPage, entriesPerPage);
   }, [currentPage, entriesPerPage]);
 
+  const handleSearch = () => {
+    fetchData(currentPage, entriesPerPage, searchTerm);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">All Email Configurations</h1>
         <Button
@@ -140,6 +147,22 @@ export default function EmailConfigPage() {
         >
           <Plus className="mr-2 h-4 w-4" />
           New Email Configuration
+        </Button>
+      </div>
+      <div className="flex items-center space-x-4">
+        <Input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by Email"
+          className='max-w-[400px] h-8'
+        />
+        <Button
+          onClick={handleSearch}
+          size="sm"
+          className="border-none bg-supperagent min-w-[100px] text-white hover:bg-supperagent/90"
+        >
+          Search
         </Button>
       </div>
       <div className="rounded-md bg-white p-4 shadow-2xl">

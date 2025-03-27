@@ -14,7 +14,7 @@ export function ImageUploader({
   open,
   onOpenChange,
   onUploadComplete,
-  studentId
+  entityId
 }) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -78,7 +78,7 @@ export function ImageUploader({
       }
 
       const formData = new FormData();
-      formData.append('studentId', studentId);
+      formData.append('entityId', entityId);
       formData.append('file_type', 'profile');
       formData.append('file', file);
 

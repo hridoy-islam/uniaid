@@ -43,7 +43,8 @@ export default function NewStudentPage() {
         gender: data.gender,
         maritualStatus: data.maritalStatus,
         country: data.country,
-        createdBy:user._id
+        createdBy:user._id,
+        email: data.email.toLowerCase(),
       };
       // Add agentID only if the user is an agent
       if (user.role === 'agent') {

@@ -14,16 +14,38 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { logout } from '@/redux/features/authSlice';
 import { AppDispatch } from '@/redux/store';
-
+import { useEffect, useState } from 'react';
+import { useToast } from '../ui/use-toast';
+import axiosInstance from "@/lib/axios"
 export function UserNav() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
   const { user } = useSelector((state: any) => state.auth);
+   const [profileData, setProfileData] = useState(
+      null
+    );
+
+
+  const fetchProfileData = async () => {
+      try {
+        const response = await axiosInstance.get(`/users/${user?._id}`);
+        const data = response.data.data;
+        setProfileData(data);
+      
+      } catch (error) {
+        console.error('Error fetching profile data:', error);
+       
+      }
+    };
+    useEffect(() => {
+  
+      fetchProfileData();
+    }, []);
 
   const handleLogout = async () => {
     await dispatch(logout());
-    navigate('/'); // Redirect to login after logout
+    navigate('/');
   };
   return (
     <div className="flex items-center gap-4">
@@ -31,7 +53,7 @@ export function UserNav() {
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="relative h-10 w-10 rounded-full">
             <Avatar className="h-10 w-10">
-              <AvatarImage src="/placeholder.svg" alt="@shadcn" />
+              <AvatarImage src={profileData?.imgUrl} alt="@shadcn"  />
               <AvatarFallback>
                 {user?.name
                   ?.split(' ') // Split name into an array of words
@@ -58,14 +80,14 @@ export function UserNav() {
               <User className="mr-2 h-4 w-4" />
               <Link to="profile">Profile</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            {/* <DropdownMenuItem>
               <UserPlus className="mr-2 h-4 w-4" />
               <span>Add Account</span>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <KeyRound className="mr-2 h-4 w-4" />
               <span>Reset Password</span>
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout}>

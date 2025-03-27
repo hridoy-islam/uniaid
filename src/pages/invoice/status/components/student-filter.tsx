@@ -148,36 +148,45 @@ export function StudentFilter({
 
               {/* Year Select */}
               <FormField
-                control={filterForm.control}
-                name="year"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Year</FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        handleYearChange(value);
-                      }}
-                      value={field.value}
-                      disabled={!filterForm.watch('course')}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Year" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {years?.map((year) => (
-                          <SelectItem key={year} value={year}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+  control={filterForm.control}
+  name="year"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Year</FormLabel>
+      <Select
+        onValueChange={(value) => {
+          field.onChange(value);
+          handleYearChange(value);
+        }}
+        value={field.value}
+        disabled={!filterForm.watch('course')}
+      >
+        <FormControl>
+          <SelectTrigger>
+            <SelectValue placeholder="Select Year" />
+          </SelectTrigger>
+        </FormControl>
+        <SelectContent>
+          {years
+            ?.sort((a, b) => {
+              // Sort years numerically (e.g., Year 1, Year 2, etc.)
+              const yearA = parseInt(a.split(' ')[1], 10);
+              const yearB = parseInt(b.split(' ')[1], 10);
+              return yearA - yearB;
+            })
+            .map((year) => (
+              <SelectItem key={year} value={year}>
+                {year}
+              </SelectItem>
+            ))}
+        </SelectContent>
+      </Select>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+
+          
 
               {/* Session Select */}
               <FormField

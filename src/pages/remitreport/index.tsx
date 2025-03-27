@@ -23,10 +23,10 @@ import axios from 'axios';
 import { pdf } from '@react-pdf/renderer';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 
-export default function InvoicesPage() {
+export default function RemitReportPage() {
   const [invoices, setInvoices] = useState([]);
-  const [customerOptions, setcustomerOptions] = useState([]);
-  const [customer, setcustomer] = useState('');
+  const [agents, setAgents] = useState([]);
+  const [remit, setRemit] = useState('');
   const [status, setStatus] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
@@ -43,19 +43,17 @@ export default function InvoicesPage() {
 
   const fetchInvoices = async (page, entriesPerPage) => {
     try {
-
       setLoading(true)
       const params: any = {
         page,
         limit: entriesPerPage
       };
-
       if (status) params.status = status;
-      if (customer) params.customer = customer;
+      if (remit) params.remitTo = remit;
       if (searchTerm) params.searchTerm = searchTerm;
       if (fromDate) params.fromDate = fromDate;
       if (toDate) params.toDate = toDate;
-      const response = await axiosInstance.get('/invoice', {
+      const response = await axiosInstance.get('/remit-invoice', {
         params
       });
       setInvoices(response.data?.data?.result || []);
@@ -64,22 +62,24 @@ export default function InvoicesPage() {
       console.error('Error fetching invoices:', error);
     } finally {
       setLoading(false)
-    }
 
+    }
   };
 
-  // Function to fetch customer options
-  const fetchcustomers = async () => {
+  // Function to fetch remit options
+  const fetchAgents = async () => {
     try {
-      const response = await axiosInstance.get('/customer?limit=all');
-      setcustomerOptions(response.data?.data?.result || []); // Extract the 'result' array
+      const response = await axiosInstance.get(
+        '/users?role=agent&limit=all&fields=name'
+      );
+      setAgents(response.data?.data?.result || []); // Extract the 'result' array
     } catch (error) {
-      console.error('Error fetching customer data:', error);
+      console.error('Error fetching remit data:', error);
     }
   };
 
   useEffect(() => {
-    fetchcustomers();
+    fetchAgents();
     fetchInvoices(currentPage, entriesPerPage);
   }, [currentPage, entriesPerPage]);
 
@@ -88,24 +88,30 @@ export default function InvoicesPage() {
   };
 
   const handleEdit = (invoiceId: string) => {
-    navigate(`/admin/invoice/editGenerate/${invoiceId}`);
+    navigate(`/admin/remit/editGenerate/${invoiceId}`);
   };
 
   const handleDownload = async (invoiceId: string) => {
     try {
-      const response = await axiosInstance.get(`/invoice/${invoiceId}`);
+      // Fetch invoice data from backend
+      const response = await axiosInstance.get(`/remit-invoice/${invoiceId}`);
       const invoiceData = response.data?.data;
 
+
+      // Create a PDF document using InvoicePDF component
       const MyDoc = <InvoicePDF invoice={invoiceData} />;
 
+      // Generate PDF and trigger download
       const pdfBlob = await pdf(MyDoc).toBlob();
 
+      // Create a download link and trigger the download
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `invoice_${invoiceData.reference}.pdf`;
       link.click();
 
+      // Clean up the object URL
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -116,7 +122,7 @@ export default function InvoicesPage() {
     if (!invoiceToMark) return;
 
     try {
-      await axiosInstance.patch(`/invoice/${invoiceToMark}`, {
+      await axiosInstance.patch(`/remit-invoice/${invoiceToMark}`, {
         status: 'paid'
       });
 
@@ -145,9 +151,7 @@ export default function InvoicesPage() {
     setInvoiceToMark(null);
   };
 
-  
  
-
   const companyId = import.meta.env.VITE_COMPANY_ID;
   const account = import.meta.env.VITE_ACCOUNTING;
 
@@ -161,12 +165,12 @@ export default function InvoicesPage() {
 
     try {
       const invoiceResponse = await axiosInstance.get(
-        `/invoice/${invoiceToExport}`
+        `/remit-invoice/${invoiceToExport}`
       );
       const invoiceData = invoiceResponse.data?.data;
 
       const payload = {
-        transactionType: 'inflow',
+        transactionType: 'outflow',
         transactionDate: new Date().toISOString(),
         invoiceDate: invoiceData.createdAt,
         invoiceNumber: invoiceData.reference,
@@ -174,8 +178,7 @@ export default function InvoicesPage() {
           .map((student: any) => student.refId)
           .join(', '),
         transactionAmount: invoiceData.totalAmount,
-       
-
+     
       };
 
       await axios.post(`${account}`, payload, {
@@ -184,7 +187,7 @@ export default function InvoicesPage() {
         }
       });
 
-      await axiosInstance.patch(`/invoice/${invoiceToExport}`, {
+      await axiosInstance.patch(`/remit-invoice/${invoiceToExport}`, {
         exported: true
       });
 
@@ -210,21 +213,16 @@ export default function InvoicesPage() {
   return (
     <div className="mx-auto py-1">
       <div className="flex justify-between">
-        <h1 className="mb-6 text-2xl font-bold">Invoices</h1>
+        <h1 className="mb-6 text-2xl font-bold">Remit Reports</h1>
         <div className="space-x-4">
           <Link to="generate">
             <Button className="bg-supperagent text-white hover:bg-supperagent">
-              Create Invoice
+              Create Remit
             </Button>
           </Link>
           <Link to="status">
             <Button className="bg-supperagent text-white hover:bg-supperagent">
               Check Status
-            </Button>
-          </Link>
-          <Link to="customer">
-            <Button className="bg-supperagent text-white hover:bg-supperagent">
-              Customer List
             </Button>
           </Link>
         </div>
@@ -267,18 +265,18 @@ export default function InvoicesPage() {
               />
             </div>
 
-            {/* customer To Dropdown */}
+            {/* Remit To Dropdown */}
             <div className="min-w-[200px]">
-              <h1 className="mb-2 block text-sm font-medium">Customer</h1>
+              <h1 className="mb-2 block text-sm font-medium">Agent</h1>
               <select
-                value={customer}
-                onChange={(e) => setcustomer(e.target.value)}
+                value={remit}
+                onChange={(e) => setRemit(e.target.value)}
                 className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
               >
                 <option value="">All</option>
-                {customerOptions.map((customer) => (
-                  <option key={customer._id} value={customer._id}>
-                    {customer.name}
+                {agents.map((agent) => (
+                  <option key={agent._id} value={agent._id}>
+                    {agent.name}
                   </option>
                 ))}
               </select>
@@ -311,105 +309,102 @@ export default function InvoicesPage() {
         <CardContent>
           {loading ? (<div className="flex justify-center py-6">
             <BlinkingDots size="large" color="bg-supperagent" />
-          </div>) :
-            (<Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Created At</TableHead>
-                  <TableHead>Reference</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Students</TableHead>
-                  {/* <TableHead>Status</TableHead> */}
-                  <TableHead>Invoice Status</TableHead>
-                  <TableHead>Exported</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invoices.length > 0 ? (
-                  invoices.map((invoice) => (
-                    <TableRow key={invoice._id}>
-                      <TableCell>
-                        {moment(invoice.createdAt).format('DD MMM YYYY')}
-                      </TableCell>
-                      <TableCell>{invoice.reference}</TableCell>
-                      <TableCell>{invoice.customer?.name}</TableCell>
-                      <TableCell>{invoice.totalAmount}</TableCell>
-                      <TableCell>{invoice.noOfStudents}</TableCell>
-                      {/* <TableCell>{invoice.status}</TableCell> */}
-                      <TableCell>
-                        {invoice.status === 'due' ? (
-                          <div className="flex flex-row items-center justify-start gap-2">
-                            <span className="text-xs font-semibold text-red-500">
-                              Due
-                            </span>
-                            <Button
-                              size="sm"
-                              className="max-w-[100px] bg-supperagent text-white hover:bg-supperagent"
-                              onClick={() => {
-                                setInvoiceToMark(invoice._id);
-                                setIsModalOpen(true);
-                              }}
-                            >
-                              Mark as Paid
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-xs font-semibold text-green-500">
-                            Paid
+          </div>) : 
+          (<Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Created At</TableHead>
+                <TableHead>Reference</TableHead>
+                <TableHead>Remit To</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Students</TableHead>
+                {/* <TableHead>Status</TableHead> */}
+                <TableHead>Remit Status</TableHead>
+                <TableHead>Exported</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {invoices.length > 0 ? (
+                invoices.map((invoice) => (
+                  <TableRow key={invoice._id}>
+                    <TableCell>
+                      {moment(invoice.date).format('DD MMM YYYY')}
+                    </TableCell>
+                    <TableCell>{invoice.reference}</TableCell>
+                    <TableCell>{invoice.remitTo?.name}</TableCell>
+                    <TableCell>{invoice.totalAmount}</TableCell>
+                    <TableCell>{invoice.noOfStudents}</TableCell>
+                    {/* <TableCell>{invoice.status}</TableCell> */}
+                    <TableCell>
+                      {invoice.status === 'due' ? (
+                        <div className="flex flex-row items-center justify-start gap-2">
+                          <span className="text-xs font-semibold text-red-500">
+                            Due
                           </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-row items-center gap-2">
-                          {invoice.exported ? 'Yes' : 'No'}
-
-                          {invoice.status === 'paid' && !invoice.exported && (
-                            <Button
-                              size="sm"
-                              className="bg-supperagent text-white hover:bg-supperagent"
-                              onClick={() => handleExport(invoice._id)}
-                            >
-                              <Send className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button
+                            size="sm"
+                            className="max-w-[100px] bg-supperagent text-white hover:bg-supperagent"
+                            onClick={() => {
+                              setInvoiceToMark(invoice._id);
+                              setIsModalOpen(true);
+                            }}
+                          >
+                            Mark as Paid
+                          </Button>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-end space-x-2">
-                          {invoice.status !== 'paid' && (
-                            <Button
-                              className="bg-supperagent text-white hover:bg-supperagent"
-                              size="sm"
-                              onClick={() => handleEdit(invoice._id)}
-                            >
-                              Edit
-                            </Button>
-                          )}
-
+                      ) : (
+                        <span className="text-xs font-semibold text-green-500">
+                          Paid
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-row items-center gap-2">
+                        {invoice.exported ? 'Yes' : 'No'}
+                        {invoice.status === "paid" && !invoice.exported && (
                           <Button
                             size="sm"
                             className="bg-supperagent text-white hover:bg-supperagent"
-                            onClick={() => handleDownload(invoice._id)}
+                            onClick={() => handleExport(invoice._id)}
                           >
-                            Download
+                            <Send className="h-4 w-4" />
                           </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center">
-                      No invoices found.
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end space-x-2">
+                        {invoice.status !== 'paid' && (
+                          <Button
+                            className="bg-supperagent text-white hover:bg-supperagent"
+                            size="sm"
+                            onClick={() => handleEdit(invoice._id)}
+                          >
+                            Edit
+                          </Button>
+                        )}
+
+                        <Button
+                          size="sm"
+                          className="bg-supperagent text-white hover:bg-supperagent"
+                          onClick={() => handleDownload(invoice._id)}
+                        >
+                          Download
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-            )}
-
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">
+                    No invoices found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>)}
 
           <DataTablePagination
             pageSize={entriesPerPage}

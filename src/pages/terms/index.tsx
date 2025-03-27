@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/use-toast"
 import axiosInstance from '../../lib/axios';
 import { BlinkingDots } from "@/components/shared/blinking-dots";
 import { DataTablePagination } from "../students/view/components/data-table-pagination"
+import { Input } from "@/components/ui/input"
 
 
 export default function TermsPage() {
@@ -22,21 +23,23 @@ export default function TermsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingTerm, setEditingTerm] = useState<any>()
   const [initialLoading, setInitialLoading] = useState(true); // New state for initial loading
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
 
-  const fetchData = async (page, entriesPerPage) => {
+  const fetchData = async (page, entriesPerPage,searchTerm="") => {
     try {
+
       if (initialLoading) setInitialLoading(true);
       const response = await axiosInstance.get(`/terms`, {
         params: {
           page,
           limit: entriesPerPage,
-        },
-      });
+          ...(searchTerm ? { searchTerm } : {}),
+        },      });
       setTerms(response.data.data.result);
       setTotalPages(response.data.data.meta.totalPage);
     } catch (error) {
@@ -100,6 +103,12 @@ export default function TermsPage() {
       }
     };
 
+    const handleSearch = () => {
+      fetchData(currentPage, entriesPerPage, searchTerm); 
+    };
+  
+  
+
 
   const handleStatusChange = async (id, status) => {
     try {
@@ -125,7 +134,7 @@ export default function TermsPage() {
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold">All Terms</h1>
         <Button className="bg-supperagent text-white hover:bg-supperagent/90" size={'sm'} onClick={() => setDialogOpen(true)}>
@@ -133,6 +142,23 @@ export default function TermsPage() {
           New Term
         </Button>
       </div>
+      <div className="flex items-center space-x-4">
+        <Input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)} 
+          placeholder="Search by Term"
+          className='max-w-[400px] h-8'
+        />
+        <Button
+          onClick={handleSearch} 
+          size="sm"
+          className="border-none bg-supperagent min-w-[100px] text-white hover:bg-supperagent/90"
+        >
+          Search
+        </Button>
+      </div>
+            
       <div className="rounded-md bg-white shadow-2xl p-4">
         {initialLoading ? (
           <div className="flex justify-center py-6">

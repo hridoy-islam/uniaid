@@ -1,16 +1,23 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Eye, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { RemitDialog } from './components/remit-dialog';
-import axiosInstance from '../../lib/axios';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table';
+import axiosInstance from '@/lib/axios';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { toast } from '@/components/ui/use-toast';
-import { DataTablePagination } from '../students/view/components/data-table-pagination';
 import { Link, useNavigate } from 'react-router-dom';
+import { DataTablePagination } from '@/pages/students/view/components/data-table-pagination';
+import { CustomerDialog } from './components/customer-dialog';
 
-export default function RemitPage() {
-  const [remits, setRemits] = useState<any>([]);
+export default function CustomerPage() {
+  const [customers, setcustomers] = useState<any>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -20,14 +27,13 @@ export default function RemitPage() {
   const fetchData = async (page, entriesPerPage) => {
     try {
       if (initialLoading) setInitialLoading(true);
-      const response = await axiosInstance.get(`/remit?limit=all`, {
+      const response = await axiosInstance.get(`/customer?limit=all`, {
         params: {
           page,
           limit: entriesPerPage
         }
       });
-      console.log('API response:', response.data);
-      setRemits(response.data.data.result);
+      setcustomers(response.data.data.result);
       setTotalPages(response.data.data.meta.totalPage);
     } catch (error) {
       console.error('Error fetching institutions:', error);
@@ -40,35 +46,34 @@ export default function RemitPage() {
     try {
       let response;
 
-      // Create new Remit (POST request)
-      response = await axiosInstance.post("/remit", data);
+      // Create new customer (POST request)
+      response = await axiosInstance.post('/customer', data);
 
       // Check if the API response indicates success
       if (response.data && response.data.success === true) {
         toast({
-          title: 'Remit Created successfully',
-          className: 'bg-supperagent border-none text-white',
+          title: 'customer Created successfully',
+          className: 'bg-supperagent border-none text-white'
         });
       } else if (response.data && response.data.success === false) {
         toast({
           title: 'Operation failed',
-          className: 'bg-red-500 border-none text-white',
+          className: 'bg-red-500 border-none text-white'
         });
       } else {
         toast({
           title: 'Unexpected response. Please try again.',
-          className: 'bg-red-500 border-none text-white',
+          className: 'bg-red-500 border-none text-white'
         });
       }
 
       // Refresh data
       fetchData(currentPage, entriesPerPage);
-
     } catch (error) {
       // Display an error toast if the request fails
       toast({
         title: 'An error occurred. Please try again.',
-        className: 'bg-red-500 border-none text-white',
+        className: 'bg-red-500 border-none text-white'
       });
     }
   };
@@ -81,14 +86,14 @@ export default function RemitPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">All Remits</h1>
+        <h1 className="text-2xl font-semibold">All customers</h1>
 
         <div className="space-x-4">
           <Button
             className="bg-supperagent text-white hover:bg-supperagent/90"
             size={'sm'}
             onClick={() => {
-              navigate('/admin/invoice');  // Navigate to the desired route
+              navigate('/admin/invoice'); // Navigate to the desired route
             }}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -98,11 +103,11 @@ export default function RemitPage() {
             className="bg-supperagent text-white hover:bg-supperagent/90"
             size={'sm'}
             onClick={() => {
-              setDialogOpen(true); // Open dialog to create a new remit
+              setDialogOpen(true); // Open dialog to create a new customer
             }}
           >
             <Plus className="mr-2 h-4 w-4" />
-            New Remit
+            New customer
           </Button>
         </div>
       </div>
@@ -111,7 +116,7 @@ export default function RemitPage() {
           <div className="flex justify-center py-6">
             <BlinkingDots size="large" color="bg-supperagent" />
           </div>
-        ) : remits.length === 0 ? (
+        ) : customers.length === 0 ? (
           <div className="flex justify-center py-6 text-gray-500">
             No records found.
           </div>
@@ -119,37 +124,34 @@ export default function RemitPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Remit To</TableHead>
+                <TableHead>Customer</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Address</TableHead>
-                <TableHead>Account No</TableHead>
+              
                 <TableHead className="w-32 text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {remits.map((remit) => (
-               <TableRow key={remit._id}>
-               <TableCell>
-                 <Link to={`${remit._id}`}>{remit?.name}</Link>
-               </TableCell>
-               <TableCell>
-                 <Link to={`${remit._id}`}>{remit?.email}</Link>
-               </TableCell>
-               <TableCell>
-                 <Link to={`${remit._id}`}>{remit?.address}</Link>
-               </TableCell>
-               <TableCell>
-                 <Link to={`${remit._id}`}>{remit?.accountNo}</Link>
-               </TableCell>
-               <TableCell className="space-x-1 text-center">
-                 <Link to={`${remit._id}`}>
-                   <Button variant="outline" size="icon">
-                     <Eye className="w-4 h-4" />
-                   </Button>
-                 </Link>
-               </TableCell>
-             </TableRow>
-             
+              {customers.map((customer) => (
+                <TableRow key={customer._id}>
+                  <TableCell>
+                    <Link to={`${customer._id}`}>{customer?.name}</Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link to={`${customer._id}`}>{customer?.email}</Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link to={`${customer._id}`}>{customer?.address}</Link>
+                  </TableCell>
+                  
+                  <TableCell className="space-x-1 text-center">
+                    <Link to={`${customer._id}`}>
+                      <Button variant="outline" size="icon">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </TableCell>
+                </TableRow>
               ))}
             </TableBody>
           </Table>
@@ -163,13 +165,13 @@ export default function RemitPage() {
           onPageChange={setCurrentPage}
         />
       </div>
-      <RemitDialog
+      <CustomerDialog
         open={dialogOpen}
         onOpenChange={(open) => {
-          setDialogOpen(open); // Close dialog on change
+          setDialogOpen(open); 
         }}
-        onSubmit={handleSubmit} // Only handle submit for creating new remit
-        initialData={null} // No initial data for creating new remit
+        onSubmit={handleSubmit}
+        initialData={null} 
       />
     </div>
   );

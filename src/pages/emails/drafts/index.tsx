@@ -14,6 +14,7 @@ import { EmailDraftDialog } from '../components/email-draft-dialog';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import axiosInstance from '@/lib/axios';
 import { DataTablePagination } from '@/pages/students/view/components/data-table-pagination';
+import { Input } from '@/components/ui/input';
 
 
 export function DraftsManager() {
@@ -25,15 +26,18 @@ export function DraftsManager() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
+    const [searchTerm, setSearchTerm] = useState("");
+  
 
-  const fetchData = async (page, entriesPerPage) => {
+  const fetchData = async (page, entriesPerPage,searchTerm="") => {
     try {
       if (initialLoading) setInitialLoading(true);
       const response = await axiosInstance.get(`/email-drafts`, {
         params: {
           page,
-          limit: entriesPerPage
-        }
+          limit: entriesPerPage,
+          ...(searchTerm ? { searchTerm } : {}),
+        },
       });
       setDrafts(response.data.data.result);
       setTotalPages(response.data.data.meta.totalPage);
@@ -72,8 +76,13 @@ export function DraftsManager() {
     }
   };
 
+  const handleSearch = () => {
+    fetchData(currentPage, entriesPerPage, searchTerm); 
+  };
+
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Email Drafts</h2>
         <Button
@@ -82,6 +91,23 @@ export function DraftsManager() {
         >
           <Plus className="mr-2 h-4 w-4" />
           New Draft
+        </Button>
+      </div>
+
+      <div className="flex items-center space-x-4">
+        <Input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)} 
+          placeholder="Search by Subject"
+          className='max-w-[400px] h-8'
+        />
+        <Button
+          onClick={handleSearch} 
+          size="sm"
+          className="border-none bg-supperagent min-w-[100px] text-white hover:bg-supperagent/90"
+        >
+          Search
         </Button>
       </div>
       <div className="rounded-md bg-white p-4 shadow-2xl">

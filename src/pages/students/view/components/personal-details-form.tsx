@@ -67,7 +67,7 @@ export function PersonalDetailsForm({ student, onSave }) {
   const fetchAgents = async () => {
     try {
       if (isLoading) setIsLoading(true);
-      const response = await axiosInstance.get('/users?role=agent');
+      const response = await axiosInstance.get('/users?role=agent&limit=10000');
       const options = response.data.data.result.map((agent) => ({
         value: agent._id,
         label: agent.name
@@ -83,6 +83,7 @@ export function PersonalDetailsForm({ student, onSave }) {
   useEffect(() => {
     fetchAgents();
   }, []);
+
 
   useEffect(() => {
     if (student) {

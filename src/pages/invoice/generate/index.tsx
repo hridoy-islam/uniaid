@@ -1,551 +1,267 @@
-'use client';
+import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+import moment from "moment";
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter
-} from '@/components/ui/card';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { ArrowLeft, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
-
-// Updated Zod schema to include remitTo, paymentInfo, and course details
-const invoiceSchema = z.object({
-  invoiceNumber: z.string().min(1, 'Invoice number is required'),
-  invoiceDate: z.string().min(1, 'Invoice date is required'),
-  dueDate: z.string().min(1, 'Due date is required'),
-  paymentMethod: z.string().min(1, 'Payment method is required'),
-  notes: z.string().optional(),
-  totalAmount: z.number().min(0, 'Total amount is required'),
-  Status: z.enum(['due', 'paid']),
-  remitTo: z.object({
-    name: z.string().min(1, 'Name is required'),
-    email: z.string().email('Invalid email address'),
-    address: z.string().min(1, 'Address is required')
-  }),
-  paymentInfo: z.object({
-    sortCode: z.string().min(1, 'Sort code is required'),
-    accountNo: z.string().min(1, 'Account number is required'),
-    beneficiary: z.string().optional()
-  }),
-  courseDetails: z.object({
-    course: z.string().min(1, 'Course is required'),
-    institute: z.string().min(1, 'Institute is required'),
-    semester: z.string().min(1, 'Semester is required'),
-    year: z.string().min(1, 'Year is required'),
-    session: z.string().min(1, 'Session is required')
-  }),
-  students: z.array(
-    z.object({
-      collageroll: z.number().min(1, 'College Roll is required'),
-      refId: z.string().min(1, 'Reference ID is required'),
-      name: z.string().min(1, 'Name is required'),
-      course: z.string().min(1, 'Course is required'),
-      amount: z.number().min(0, 'Amount is required')
-    })
-  )
+// Define styles
+const styles = StyleSheet.create({
+  page: {
+    flexDirection: "column",
+    backgroundColor: "#ffffff",
+    padding: 40,
+    fontFamily: "Helvetica",
+    marginTop:-40
+  },
+  // header: {
+  //   flexDirection: "row",
+  //   justifyContent: "space-between",
+  //   marginBottom: 20,
+  // },
+  logoContainer: {
+    width: "100%",
+    alignItems: "flex-start",
+    marginTop:-20
+    
+  },
+  logo: {
+    width: "150px",
+    height: "150px",
+    objectFit: "contain"
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: "semibold",
+    color: "#00a185",
+  
+  },
+  value: {
+    fontSize: 10,
+    fontWeight: "normal",
+    marginBottom: 3,
+  },
+  twoColumnContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  invoiceFromTo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  fromSection: {
+    width: "45%",
+  },
+  toSection: {
+    width: "45%",
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: "Bold",
+    paddingBottom: 2,
+  },
+  table: {
+    display: "table",
+    width: "100%",
+    marginTop: 10,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#00a185",
+  },
+  tableHeaderCell: {
+    padding: 5,
+    fontSize: 10,
+    color: "white",
+    textAlign: "center",
+    borderRightWidth: 2,
+    borderRightColor: "#fff",
+  },
+  tableHeaderAmountCell: {
+    padding: 5,
+    fontSize: 10,
+    color: "white",
+    textAlign: "center",
+  },
+  tableRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  tableCell: {
+    padding: 5,
+    paddingRight: 10,
+    fontSize: 10,
+    fontWeight: "normal",
+    textAlign: "center",
+    borderRightColor: "#fff",
+    flexDirection: "column",
+    justifyContent: "center",
+  },
+  totalRow: {
+    flexDirection: "row",
+    backgroundColor: "#00a185",
+  },
+  totalLabel: {
+    width: "80%",
+    padding: 5,
+    fontSize: 11,
+    fontWeight: "semibold",
+    color: "white",
+    textAlign: "right",
+  },
+  totalValue: {
+    width: "20%",
+    padding: 5,
+    fontSize: 11,
+    fontWeight: "semibold",
+    color: "white",
+    textAlign: "center"
+  },
+  grayText: {
+    color: "#888",
+  },
+  grayBackground: {
+    backgroundColor: "#f3f3f3",
+  },
 });
 
-export default function GenerateInvoicePage() {
-  const navigate = useNavigate();
-  const [selectedStudents, setSelectedStudents] = useState([]);
-  const [totalAmount, setTotalAmount] = useState(0);
-  const [courses, setCourses] = useState([]);
-  const [institutes, setInstitutes] = useState([]);
-  const [semesters, setSemesters] = useState([
-    '1',
-    '2',
-    '3',
-    '4',
-    '5',
-    '6',
-    '7',
-    '8'
-  ]);
-  const [years, setYears] = useState(['2023', '2024', '2025', '2026']);
-  const [sessions, setSessions] = useState([
-    'Spring',
-    'Summer',
-    'Fall',
-    'Winter'
-  ]);
+interface CreatedBy {
+  name: string;
+  email: string;
+  location: string;
+  imgUrl: string;
+  accountNo?: string;
+  sortCode?: string;
+  beneficiary?: string;
+}
 
-  const form = useForm<z.infer<typeof invoiceSchema>>({
-    resolver: zodResolver(invoiceSchema),
-    defaultValues: {
-      invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
-      invoiceDate: format(new Date(), 'yyyy-MM-dd'),
-      dueDate: format(
-        new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-        'yyyy-MM-dd'
-      ),
-      paymentMethod: '',
-      notes: '',
-      Status: 'due',
-      remitTo: {
-        name: '',
-        email: '',
-        address: ''
-      },
-      paymentInfo: {
-        sortCode: '',
-        accountNo: '',
-        beneficiary: ''
-      },
-      courseDetails: {
-        course: '',
-        institute: '',
-        semester: '',
-        year: '',
-        session: ''
-      }
-    }
-  });
+interface Customer {
+  name: string;
+  email: string;
+  address: string;
+  logo?: string;
+  sortCode?: string;
+  accountNo?: string;
+  beneficiary?: string;
+}
 
-  useEffect(() => {
-    // Fetch courses, institutes and other data (simulated here)
-    const fetchCourseData = async () => {
-      try {
-        // In a real implementation, you would fetch this data from your API
-        // For demonstration, using hardcoded data
-        setCourses([
-          { id: 'cs101', name: 'Computer Science' },
-          { id: 'eng101', name: 'Engineering' },
-          { id: 'bus101', name: 'Business Administration' },
-          { id: 'med101', name: 'Medical Sciences' }
-        ]);
+interface Student {
+  refId: string;
+  collageroll: string;
+  firstName: string;
+  lastName: string;
+  course: string;
+  amount: number;
+}
 
-        setInstitutes([
-          { id: 'inst1', name: 'University of Technology' },
-          { id: 'inst2', name: 'State College' },
-          { id: 'inst3', name: 'Metropolitan University' },
-          { id: 'inst4', name: 'Technical Institute' }
-        ]);
-      } catch (error) {
-        console.error('Error fetching course data:', error);
-      }
-    };
+interface Invoice {
+  createdBy: CreatedBy;
+  customer: Customer;
+  reference: string;
+  date: Date;
+  semester: string;
+  noOfStudents: number;
+  students: Student[];
+  totalAmount: number;
+}
 
-    fetchCourseData();
-  }, []);
-
-  useEffect(() => {
-    // Retrieve selected students from localStorage
-    const storedStudents = localStorage.getItem('selectedStudents');
-    if (storedStudents) {
-      try {
-        const parsedStudents = JSON.parse(storedStudents);
-        // Add a sessionFee property to each student for demo purposes
-        const studentsWithFees = parsedStudents.map((student) => ({
-          ...student,
-          sessionFee:
-            student.sessionFee || Math.floor(Math.random() * 500) + 500, // Random fee between 500-1000 for demo
-          selected: true
-        }));
-        setSelectedStudents(studentsWithFees);
-      } catch (error) {
-        console.error('Error parsing stored students:', error);
-        navigate('/');
-      }
-    } else {
-      // Redirect back if no students were selected
-      navigate('/');
-    }
-  }, [navigate]);
-
-  useEffect(() => {
-    // Calculate total amount whenever selected students change
-    const total = selectedStudents
-      .filter((student) => student.selected)
-      .reduce((sum, student) => sum + (student.sessionFee || 0), 0);
-    setTotalAmount(total);
-
-    // Update form's total amount
-    form.setValue('totalAmount', total);
-  }, [selectedStudents, form]);
-
-  const handleStudentSelect = (studentId) => {
-    setSelectedStudents((prev) =>
-      prev.map((student) =>
-        student._id === studentId
-          ? { ...student, selected: !student.selected }
-          : student
-      )
-    );
-  };
-
-  const handleRemoveStudent = (studentId) => {
-    setSelectedStudents((prev) =>
-      prev.filter((student) => student._id !== studentId)
-    );
-  };
-
-  const onSubmit = (data: z.infer<typeof invoiceSchema>) => {
-    const finalStudents = selectedStudents
-      .filter((student) => student.selected)
-      .map((student) => ({
-        collageroll: student.collageRoll,
-        refId: student._id,
-        name: `${student.firstName} ${student.lastName}`,
-        course: data.courseDetails.course,
-        amount: student.sessionFee
-      }));
-
-    const invoiceData = {
-      ...data,
-      students: finalStudents,
-      totalAmount
-    };
-
-    console.log('Invoice data:', invoiceData);
-    // Here you would typically send this data to your backend
-    // For now, we'll just show an alert
-    alert('Invoice generated successfully!');
-    // Clear localStorage and redirect back to student list
-    localStorage.removeItem('selectedStudents');
-    navigate('/admin/invoice');
-  };
-
-  const goBack = () => {
-    navigate('/admin/invoice/students');
-  };
+const InvoicePDF = ({ invoice = {} as Invoice }) => {
+  const {
+    createdBy = {} as CreatedBy,
+    customer = {} as Customer,
+    reference = "",
+    date = new Date(),
+    semester = "",
+    noOfStudents = 0,
+    students = [],
+    totalAmount = 0,
+  } = invoice;
 
   return (
-    <div className="mx-auto py-1">
-      <Button variant="ghost" onClick={goBack} className="mb-6">
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Student List
-      </Button>
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
 
-      <h1 className="mb-6 text-2xl font-bold">Generate Invoice</h1>
+          <View style={styles.logoContainer}>
+            <Image src={createdBy?.imgUrl} style={styles.logo} />
+          </View>
+        </View>
 
-      <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoice Details</CardTitle>
-            <CardDescription>Enter the invoice information</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form
-                id="invoice-form"
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-6"
-              >
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  {/* Remit To Section */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Remit To</h3>
-                    <FormField
-                      control={form.control}
-                      name="remitTo.name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="remitTo.email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="remitTo.address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Address</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+        <View style={styles.invoiceFromTo}>
+          <View style={styles.fromSection}>
+            <Text style={styles.sectionTitle}>INVOICE FROM</Text>
+            <Text style={styles.label}>{createdBy.name}</Text>
+            <Text style={styles.value}>Email: {createdBy.email}</Text>
+            <Text style={styles.value}>Address: {createdBy.location} {createdBy?.location2} </Text>
+            <Text style={styles.value}>{createdBy?.city}{createdBy?.state} </Text>
+            <Text style={styles.value}>{createdBy?.postCode}{createdBy?.country} </Text>
+          </View>
 
-                    <FormField
-                      control={form.control}
-                      name="paymentInfo.sortCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Sort Code</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="paymentInfo.accountNo"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Account Number</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="paymentInfo.beneficiary"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Beneficiary</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
 
-                  {/* Course Details Section */}
-                  <div className="space-y-4">
-  <h3 className="text-lg font-semibold">Course Details</h3>
+          <View style={{ marginRight: 60 }}>
+            <Text style={styles.sectionTitle}>INVOICE DETAILS</Text>
+            <Text style={styles.value}>Semester: {semester}</Text>
+            <Text style={styles.value}>No of Students: {noOfStudents}</Text>
+            <Text style={styles.value}>Date: {moment(date).format("Do MMM, YYYY")}</Text>
+            <Text style={styles.value}>Reference: {reference}</Text>
+          </View>
 
-  <FormField
-    control={form.control}
-    name="courseDetails.course"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Course</FormLabel>
-        <FormControl>
-          <Input
-            {...field}
-            value={
-              courses.find(
-                (course) =>
-                  course._id === form.watch('courseDetails.course')
-              )?.name || 'No course selected'
-            }
-            readOnly
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )}
-  />
+        </View>
 
-  <FormField
-    control={form.control}
-    name="courseDetails.institute"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Institute</FormLabel>
-        <FormControl>
-          <Input
-            {...field}
-            value={
-              institutes.find(
-                (institute) =>
-                  institute._id === form.watch('courseDetails.institute')
-              )?.name || 'No institute selected'
-            }
-            readOnly
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )}
-  />
+        <View style={styles.twoColumnContainer}>
 
-  <FormField
-    control={form.control}
-    name="courseDetails.semester"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Semester</FormLabel>
-        <FormControl>
-          <Input
-            {...field}
-            value={form.watch('courseDetails.semester') || 'No semester selected'}
-            readOnly
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )}
-  />
 
-  <FormField
-    control={form.control}
-    name="courseDetails.year"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Year</FormLabel>
-        <FormControl>
-          <Input
-            {...field}
-            value={form.watch('courseDetails.year') || 'No year selected'}
-            readOnly
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )}
-  />
+          <View style={styles.toSection}>
+            <Text style={styles.sectionTitle}>INVOICE TO</Text>
+            <Text style={styles.label}>{customer.name}</Text>
+            <Text style={styles.value}>Email: {customer.email}</Text>
+            <Text style={styles.value}>Address: {customer.address}</Text>
+          </View>
 
-  <FormField
-    control={form.control}
-    name="courseDetails.session"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Session</FormLabel>
-        <FormControl>
-          <Input
-            {...field}
-            value={form.watch('courseDetails.session') || 'No session selected'}
-            readOnly
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )}
-  />
 
-  <FormField
-    control={form.control}
-    name="Status"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Status</FormLabel>
-        <FormControl>
-          <Input
-            {...field}
-            value={form.watch('Status') === 'due' ? 'Due' : 'Paid'}
-            readOnly
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )}
-  />
-</div>
+          <View style={{ marginRight: 35 }}>
+            <Text style={styles.sectionTitle}>PAYMENT INFORMATION</Text>
+            <Text style={styles.value}>Sort Code: {createdBy.sortCode}</Text>
+            <Text style={styles.value}>Account No: { createdBy.accountNo}</Text>
+            <Text style={styles.value}>Beneficiary: { createdBy.beneficiary}</Text>
+          </View>
+        </View>
 
-                </div>
+        <View style={styles.table}>
+          <View style={styles.tableHeader}>
+            <Text style={[styles.tableHeaderCell, { width: "5%" }]}>SL</Text>
+            <Text style={[styles.tableHeaderCell, { width: "25%" }]}>REFERENCE</Text>
+            <Text style={[styles.tableHeaderCell, { width: "50%", textAlign: "left" }]}>NAME</Text>
+            <Text style={[styles.tableHeaderAmountCell, { width: "20%" }]}>AMOUNT</Text>
+          </View>
 
-                {/* Students Table */}
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">Include</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>College Roll</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead className="text-right">Session Fee</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedStudents.map((student) => (
-                      <TableRow key={student._id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={student.selected}
-                            onCheckedChange={() =>
-                              handleStudentSelect(student._id)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {student.firstName} {student.lastName}
-                        </TableCell>
-                        <TableCell>{student.collageRoll}</TableCell>
-                        <TableCell>{student.email}</TableCell>
-                        <TableCell className="text-right">
-                          ${student.sessionFee.toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRemoveStudent(student._id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {selectedStudents.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="py-4 text-center">
-                          No students selected
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </form>
-            </Form>
-          </CardContent>
-          <CardFooter className="flex justify-between border-t p-4">
-            <div className="text-lg font-semibold">
-              Total Amount:{' '}
-              <span className="text-xl">${totalAmount.toFixed(2)}</span>
-            </div>
-            <Button
-              type="submit"
-              form="invoice-form"
-              className="bg-supperagent text-white hover:bg-supperagent"
-              disabled={selectedStudents.filter((s) => s.selected).length === 0}
-            >
-              Generate Invoice
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    </div>
+          {students.map((student, index) => {
+            const rowStyle = index % 2 !== 0 ? styles.grayBackground : {};
+            return (
+              <View style={[styles.tableRow, rowStyle]} key={index}>
+                <Text style={[styles.tableCell, { width: "5%" }]}>{index + 1}</Text>
+                <View style={{ width: "25%", display: "flex", justifyContent: "flex-start", alignItems: "flex-start" }}>
+                  <Text style={[styles.tableCell, { fontWeight: 'semibold' }]}>{student.refId} </Text>
+                  <Text style={[styles.tableCell, styles.grayText]}>{student.collageroll}</Text>
+                </View>
+                <View style={{ width: "50%", display: "flex", justifyContent: "flex-start", alignItems: "flex-start" }}>
+                  <Text style={styles.tableCell}>
+                    {student.firstName} {student.lastName}
+                  </Text>
+                  <Text style={[styles.tableCell, styles.grayText]}>{student.course}</Text>
+                </View>
+                <Text style={[styles.tableCell, { width: "20%" }]}>£{student.amount?.toFixed(2)}</Text>
+              </View>
+            );
+          })}
+
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>TOTAL</Text>
+            <Text style={styles.totalValue}>£{totalAmount.toFixed(2)}</Text>
+          </View>
+        </View>
+      </Page>
+    </Document>
   );
-}
+};
+
+export default InvoicePDF;

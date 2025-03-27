@@ -241,7 +241,6 @@ export function AddNoteDialog({ open, onOpenChange, onSubmit }) {
   }));
 
   const handleSubmit = (values) => {
-    console.log(values);
     onSubmit(values);
     form.reset();
     onOpenChange(false);

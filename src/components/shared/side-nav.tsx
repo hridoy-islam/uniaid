@@ -15,7 +15,8 @@ import {
   CircleUser,
   Link2,
   AtSign,
-  DraftingCompass
+  DraftingCompass,
+  ClipboardPaste
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
@@ -45,6 +46,7 @@ const navItems = [
   { icon: UsersIcon, label: 'Students', href: 'students' },
   { icon: UserIcon, label: 'Enrolled', href: '#' },
   { icon: FileTextIcon, label: 'Invoices', href: 'invoice' },
+  { icon: ClipboardPaste, label: 'Remit', href: 'remit' },
   {
     icon: Settings2Icon,
     label: 'Settings',

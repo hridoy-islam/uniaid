@@ -32,7 +32,6 @@ export function NotesPage() {
         status:"pending"
       };
       const response = await axiosInstance.post('/notes', formattedValues);
-      console.log('Note added successfully:', response.data);
       // Handle success (e.g., show a success message or refresh data)
 
       // Close the dialog after successful submission
@@ -61,7 +60,6 @@ export function NotesPage() {
     fetchNotes();
   }, []);
 
-  console.log(notes[0])
   return (
     <div className="space-y-4 rounded-md p-4 shadow-md">
       <div className="flex items-center justify-between">

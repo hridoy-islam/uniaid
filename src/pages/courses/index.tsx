@@ -15,25 +15,29 @@ import axiosInstance from '../../lib/axios';
 import { useToast } from "@/components/ui/use-toast";
 import { BlinkingDots } from "@/components/shared/blinking-dots";
 import { DataTablePagination } from "../students/view/components/data-table-pagination"
+import { Input } from "@/components/ui/input"
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<any>([])
-  const [initialLoading, setInitialLoading] = useState(true); // New state for initial loading
+  const [initialLoading, setInitialLoading] = useState(true); 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingCourse, setEditingCourse] = useState<any>()
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
 
-  const fetchData = async (page, entriesPerPage) => {
+  const fetchData = async (page, entriesPerPage,searchTerm="") => {
     try {
+      
       if (initialLoading) setInitialLoading(true);
       const response = await axiosInstance.get(`/courses`, {
         params: {
           page,
           limit: entriesPerPage,
+          ...(searchTerm ? { searchTerm } : {}),
         },
       });
       setCourses(response.data.data.result);
@@ -93,13 +97,16 @@ export default function CoursesPage() {
     } catch (error) {
       // Display an error toast if the request fails
       toast({
-        title: error.response.data.message || "An error occurred. Please try again.",
+        title:  "An error occurred. Please try again.",
         className: "bg-red-500 border-none text-white",
       });
     }
   };
 
 
+  const handleSearch = () => {
+    fetchData(currentPage, entriesPerPage, searchTerm); 
+  };
 
 
   const handleStatusChange = async (id, status) => {
@@ -124,7 +131,7 @@ export default function CoursesPage() {
   }, [currentPage, entriesPerPage]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold">All Courses</h1>
         <Button className="bg-supperagent text-white hover:bg-supperagent/90 border-none" size={'sm'} onClick={() => setDialogOpen(true)}>
@@ -132,6 +139,25 @@ export default function CoursesPage() {
           New Course
         </Button>
       </div>
+
+
+      <div className="flex items-center space-x-4">
+        <Input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)} 
+          placeholder="Search by Course Name"
+          className='max-w-[400px] h-8'
+        />
+        <Button
+          onClick={handleSearch} 
+          size="sm"
+          className="border-none bg-supperagent min-w-[100px] text-white hover:bg-supperagent/90"
+        >
+          Search
+        </Button>
+      </div>
+      
       <div className="rounded-md bg-white shadow-2xl p-4">
         {initialLoading ? (
           <div className="flex justify-center py-6">

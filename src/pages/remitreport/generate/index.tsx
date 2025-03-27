@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
   twoColumnContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 15,
   },
   label: {
     fontSize: 12,
@@ -48,11 +48,13 @@ const styles = StyleSheet.create({
   tableHeader: {
     flexDirection: "row",
     backgroundColor: "#00a185",
+    
   },
   tableHeaderCell: {
     padding: 5,
     fontSize: 10,
     color: "white",
+    fontWeight: "semibold",
     textAlign: "center",
     borderRightWidth: 2,
     borderRightColor: "#fff",
@@ -62,6 +64,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "white",
     textAlign: "center",
+    fontWeight: "semibold",
   },
   tableRow: {
     flexDirection: "row",
@@ -116,19 +119,17 @@ const InvoicePDF = ({ invoice = {} }) => {
 
 
 
-
   const {
-    remit = {
+    remitTo = {
       name: "N/A",
       email: "N/A",
       address: "N/A",
-      logo: "",
       sortCode: "",
       accountNo: "",
       beneficiaryL: "",
     },
     reference = "",
-    date = new Date(),
+    createdAt = "",
     semester = "",
     noOfStudents = 0,
     students = [],
@@ -139,31 +140,28 @@ const InvoicePDF = ({ invoice = {} }) => {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-      <View style={styles.logoContainer}>
-            <Image src={remit?.logo} style={{ width: "100px", height: "100px",objectFit:"contain" }} />
-             
-              </View>
+      
         <View style={styles.twoColumnContainer}>
           
           <View>
             <Text style={styles.sectionTitle}>REMIT TO</Text>
-            <Text style={styles.label}>{remit.name}</Text>
-            <Text style={styles.value}>Email: {remit.email}</Text>
-            <Text style={styles.value}>Address: {remit.address}</Text>
+            <Text style={styles.label}>{remitTo.name}</Text>
+            <Text style={styles.value}>Email: {remitTo.email}</Text>
+            <Text style={styles.value}>Address: {remitTo.location}</Text>
           </View>
           <View>
             <Text style={styles.sectionTitle}>REMIT REPORT</Text>
             <Text style={styles.value}>Reference: {reference}</Text>
-            <Text style={styles.value}>Date: {moment(date).format("Do MMM, YYYY")}</Text>
+            <Text style={styles.value}>Date: {moment(createdAt).format("Do MMM, YYYY")}</Text>
             <Text style={styles.value}>Semester: {semester}</Text>
             <Text style={styles.value}>No of Students: {noOfStudents}</Text>
           </View>
         </View>
 
         <Text style={styles.sectionTitle}>PAYMENT INFORMATION</Text>
-        <Text style={styles.value}>Sort Code: {remit.sortCode}</Text>
-        <Text style={styles.value}>Account No: {remit.accountNo}</Text>
-        <Text style={styles.value}>Beneficiary: {remit.beneficiary}</Text>
+        <Text style={styles.value}>Sort Code: {remitTo.sortCode}</Text>
+        <Text style={styles.value}>Account No: {remitTo.accountNo}</Text>
+        <Text style={styles.value}>Beneficiary: {remitTo.beneficiary}</Text>
 
         <View style={styles.table}>
           <View style={styles.tableHeader}>

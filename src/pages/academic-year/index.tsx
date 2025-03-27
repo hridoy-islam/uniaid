@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/use-toast"
 import axiosInstance from '../../lib/axios';
 import { BlinkingDots } from "@/components/shared/blinking-dots"
 import { DataTablePagination } from "../students/view/components/data-table-pagination"
+import { Input } from "@/components/ui/input"
 
 export default function AcademicYearPage() {
 
@@ -26,15 +27,19 @@ export default function AcademicYearPage() {
   const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [entriesPerPage, setEntriesPerPage] = useState(10);
+    const [searchTerm, setSearchTerm] = useState("");
 
 
-  const fetchData = async (page, entriesPerPage) => {
+
+  const fetchData = async (page, entriesPerPage, searchTerm="") => {
     try {
+     
       if (initialLoading) setInitialLoading(true);
       const response = await axiosInstance.get(`/academic-years`, {
         params: {
           page,
           limit: entriesPerPage,
+          ...(searchTerm ? { searchTerm } : {}),
         },
       });
       setAcademicYears(response.data.data.result);
@@ -130,7 +135,7 @@ export default function AcademicYearPage() {
       console.error("Error saving Course Relation:", error);
       // Display an error toast if the request fails
       toast({
-        title: error.response.data.message || "An error occurred. Please try again.",
+        title:  "An error occurred. Please try again.",
         className: "bg-red-500 border-none text-white",
       });
     }
@@ -157,8 +162,13 @@ export default function AcademicYearPage() {
     fetchData(currentPage, entriesPerPage); // Refresh data
   }, [currentPage, entriesPerPage]);
 
+
+  const handleSearch = () => {
+    fetchData(currentPage, entriesPerPage, searchTerm); 
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold">All Academic Years</h1>
         <Button className="bg-supperagent text-white hover:bg-supperagent/90" size={'sm'} onClick={() => setDialogOpen(true)}>
@@ -166,6 +176,23 @@ export default function AcademicYearPage() {
           New Academic Year
         </Button>
       </div>
+      <div className="flex items-center space-x-4">
+        <Input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)} 
+          placeholder="Search by Academic Year"
+          className='max-w-[400px] h-8'
+        />
+        <Button
+          onClick={handleSearch} 
+          size="sm"
+          className="border-none bg-supperagent min-w-[100px] text-white hover:bg-supperagent/90"
+        >
+          Search
+        </Button>
+      </div>
+
       <div className="rounded-md bg-white shadow-2xl p-4">
         {initialLoading ? (
           <div className="flex justify-center py-6">

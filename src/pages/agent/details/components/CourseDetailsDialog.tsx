@@ -26,6 +26,7 @@ import {
 import { format } from 'date-fns';
 import axiosInstance from '@/lib/axios';
 import { useParams } from 'react-router-dom';
+import { toast } from '@/components/ui/use-toast';
 
 const CourseDetailsDialog = ({
   isOpen,
@@ -33,9 +34,7 @@ const CourseDetailsDialog = ({
   courseData,
   isEditing,
   onSave,
-  institution,
-  term,
-  acourse
+
 }) => {
   const [editedData, setEditedData] = useState({
     session: [],
@@ -43,7 +42,6 @@ const CourseDetailsDialog = ({
     courseRelationId: {},
     year: []
   });
-  const { id } = useParams();
 
   useEffect(() => {
     if (courseData) {
@@ -64,46 +62,46 @@ const CourseDetailsDialog = ({
   };
 
   const handleSave = async () => {
-    console.log(id);
     try {
       const response = await axiosInstance.patch(
         `/agent-courses/${editedData._id}`,
         {
-          year: editedData.year // Send the updated year array
+          year: editedData.year 
         }
       );
 
       if (response.status === 200) {
-        onSave(editedData); // Update the parent component's state
-        onClose(); // Close the dialog
+        onSave(editedData); 
+        onClose(); 
+
+        toast({
+          title: "Course Detail Update successfully",
+          className: "bg-supperagent border-none text-white",
+        })
       } else {
         console.error('Failed to update sessions');
+        toast({
+          title: "Operation Failed",
+          className: "bg-destructive border-none text-white",
+        })
       }
     } catch (error) {
-      console.error('Error updating sessions:', error);
+      toast({
+        title: "Operation Failed",
+        className: "bg-destructive border-none text-white",
+      })
     }
   };
 
   if (!courseData) return null;
 
-  console.log(editedData.year);
-
-  const courseName =
-    acourse.find((c) => c._id === courseData.courseRelationId?.course)?.name ||
-    'Unknown Course';
-  const instituteName =
-    institution.find((i) => i._id === courseData.courseRelationId?.institute)
-      ?.name || 'Unknown Institution';
-  const termName =
-    term.find((t) => t._id === courseData.courseRelationId?.term)?.term ||
-    'Unknown Term';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>
-            {courseName} - {instituteName} - ({termName})
+            {courseData.courseRelationId.course.name} - {courseData.courseRelationId.institute.name} - ({courseData.courseRelationId.term.term})
           </DialogTitle>
         </DialogHeader>
 
@@ -114,7 +112,7 @@ const CourseDetailsDialog = ({
             <div className="grid grid-cols-2 gap-0">
               <div>
                 <label className="text-sm font-medium">Term</label>
-                <p className="text-gray-800">{termName}</p>
+                <p className="text-gray-800">{courseData.courseRelationId.term.term}</p>
               </div>
               {/* <div>
                 <label className="text-sm font-medium">Academic Year</label>

@@ -15,6 +15,7 @@ import axiosInstance from '../../lib/axios';
 import { toast } from '@/components/ui/use-toast';
 import { DataTablePagination } from '../students/view/components/data-table-pagination';
 import { Link } from 'react-router-dom';
+import { Input } from '@/components/ui/input';
 
 export default function StaffPage() {
   const [staff, setStaff] = useState<any>([]);
@@ -24,15 +25,19 @@ export default function StaffPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
+  
 
-  const fetchData = async (page, entriesPerPage) => {
+  const fetchData = async (page, entriesPerPage,searchTerm="") => {
     try {
+      
       if (initialLoading) setInitialLoading(true);
       const response = await axiosInstance.get(`/users?role=staff`, {
         params: {
           page,
-          limit: entriesPerPage
-        }
+          limit: entriesPerPage,
+          ...(searchTerm ? { searchTerm } : {}),
+        },
       });
       setStaff(response.data.data.result);
       setTotalPages(response.data.data.meta.totalPage);
@@ -100,7 +105,7 @@ export default function StaffPage() {
     } catch (error) {
       toast({
         title:
-          error.response?.data?.message ||
+       
           'An error occurred. Please try again.',
         className: 'bg-red-500 border-none text-white'
       });
@@ -137,9 +142,12 @@ export default function StaffPage() {
       setEditingStaff(null);
     }
   }, [dialogOpen]);
+  const handleSearch = () => {
+    fetchData(currentPage, entriesPerPage, searchTerm); 
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">All Staff</h1>
         <Button
@@ -149,6 +157,22 @@ export default function StaffPage() {
         >
           <Plus className="mr-2 h-4 w-4" />
           New Staff
+        </Button>
+      </div>
+      <div className="flex items-center space-x-4">
+        <Input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)} 
+          placeholder="Search by Name, Email"
+          className='max-w-[400px] h-8'
+        />
+        <Button
+          onClick={handleSearch} 
+          size="sm"
+          className="border-none bg-supperagent min-w-[100px] text-white hover:bg-supperagent/90"
+        >
+          Search
         </Button>
       </div>
       <div className="rounded-md bg-white p-4 shadow-2xl">

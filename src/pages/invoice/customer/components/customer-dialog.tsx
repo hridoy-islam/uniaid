@@ -12,7 +12,7 @@ import ErrorMessage from "@/components/shared/error-message";
 import { useEffect, useState } from "react";
 import axiosInstance from "@/lib/axios";
 
-export function RemitDialog({ open, onOpenChange, onSubmit, initialData }) {
+export function CustomerDialog({ open, onOpenChange, onSubmit, initialData }) {
   const {
     register,
     handleSubmit,
@@ -67,7 +67,7 @@ export function RemitDialog({ open, onOpenChange, onSubmit, initialData }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>{initialData ? "Edit Remit" : "Add New Remit"}</DialogTitle>
+          <DialogTitle>{initialData ? "Edit Customer" : "Add New Customer"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-2">
@@ -82,10 +82,10 @@ export function RemitDialog({ open, onOpenChange, onSubmit, initialData }) {
             </div> */}
 
             <div>
-              <label className="block text-sm font-medium">Remit Name *</label>
+              <label className="block text-sm font-medium">Customer Name *</label>
               <Input
                 {...register("name", { required: "Agent Name is required" })}
-                placeholder="Remit Name"
+                placeholder="Customer Name"
               />
               <ErrorMessage message={errors.name?.message?.toString()} />
             </div>
@@ -131,7 +131,7 @@ export function RemitDialog({ open, onOpenChange, onSubmit, initialData }) {
               Cancel
             </Button>
             <Button type="submit" className="bg-supperagent text-white hover:bg-supperagent/90">
-              {initialData ? "Save Changes" : "Add Remit"}
+              {initialData ? "Save Changes" : "Add Customer"}
             </Button>
           </DialogFooter>
         </form>

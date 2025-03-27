@@ -20,6 +20,7 @@ export function AgentDialog({ open, onOpenChange, onSubmit, initialData }) {
     register,
     handleSubmit,
     control,
+    setValue,
     reset,
     formState: { errors },
   } = useForm({
@@ -73,17 +74,31 @@ export function AgentDialog({ open, onOpenChange, onSubmit, initialData }) {
           value: staff._id,
           label: `${staff.name}`,
         })) ?? [], // Map initial data to react-select format
-        password: initialData.password ?? "",
+        password: "", // Clear password field for editing
       });
     }
   }, [initialData, reset]);
 
   const onSubmitForm = (data) => {
-    if (!data.password) {
-      delete data.password; // Remove password field if it's empty
+    // Check if password is required (for new agents) and missing
+    if (!initialData && !data.password) {
+      // Set an error for the password field
+      errors.password = { message: "Password is required for new agents" };
+      return; // Stop form submission
     }
+
+    // Remove password field if it's empty (for editing)
+    if (!data.password) {
+      delete data.password;
+    }
+
+    // Ensure email is lowercase
+    data.email = data.email.toLowerCase();
+
     // Extract only the IDs from nominatedStaff
     data.nominatedStaffs = data.nominatedStaffs?.map(staff => staff.value) || [];
+
+    // Submit the form data
     onSubmit(data);
     onOpenChange(false);
   };
@@ -149,27 +164,6 @@ export function AgentDialog({ open, onOpenChange, onSubmit, initialData }) {
 
             <div>
               <label className="block text-sm font-medium">Nominated Staff</label>
-              {/*               
-              <Controller
-                name="nominatedStaff"
-                control={control}
-                render={({ field }) => (
-                  <select
-                    {...field}
-                    className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
-                  >
-                    <option value="" disabled>
-                      Select a staff member
-                    </option>
-                    {staffOptions.map((staff) => (
-                      <option key={staff.value} value={staff.value}>
-                        {staff.label}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              /> */}
-
               <Controller
                 name="nominatedStaffs"
                 control={control}
@@ -185,13 +179,17 @@ export function AgentDialog({ open, onOpenChange, onSubmit, initialData }) {
                 )}
               />
               <ErrorMessage message={errors.nominatedStaffs?.message?.toString()} />
-
-
             </div>
 
             <div>
-              <label className="block text-sm font-medium">Password</label>
-              <Input type="password" {...register("password")} />
+              <label className="block text-sm font-medium">Password {!initialData && "*"}</label>
+              <Input
+                type="password"
+                {...register("password", {
+                  required: !initialData ? "Password is required for new agents" : false, // Conditional validation
+                })}
+              />
+              <ErrorMessage message={errors.password?.message?.toString()} />
             </div>
           </div>
 

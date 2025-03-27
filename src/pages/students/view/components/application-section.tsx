@@ -43,7 +43,6 @@ export function ApplicationsSection({ student, onSave }) {
       setApplications(student?.applications || []);
     }
   }, [student?.applications]);
-    console.log(applications)
   return (
     <div className="space-y-4 rounded-md p-4 shadow-md">
       <div className="flex items-center justify-between">
@@ -96,7 +95,7 @@ export function ApplicationsSection({ student, onSave }) {
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell>{course.amount}</TableCell>
+                <TableCell>{!isNaN(Number(course.amount)) ? Number(course.amount).toFixed(2) : '0.00'}</TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1">
                     <Badge

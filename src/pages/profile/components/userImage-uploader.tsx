@@ -14,7 +14,7 @@ export function ImageUploader({
   open,
   onOpenChange,
   onUploadComplete,
-  remitId
+  entityId
 }) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -78,8 +78,8 @@ export function ImageUploader({
       }
 
       const formData = new FormData();
-      formData.append('remitId', remitId);
-      formData.append('file_type', 'logo');
+      formData.append('entityId', entityId);
+      formData.append('file_type', 'userProfile');
       formData.append('file', file);
 
       const response = await axiosInstance.post(
