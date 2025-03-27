@@ -17,12 +17,12 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { mockData } from '@/types';
 import axiosInstance from '@/lib/axios';
+import { useParams } from 'react-router-dom';
 
 export function DocumentDialog({
   open,
   onOpenChange,
   onSubmit,
-  entityId // This could be student ID or any other initial data passed
   entityId // This could be student ID or any other initial data passed
 }) {
   const [file, setFile] = useState<File | null>(null);
@@ -40,7 +40,6 @@ export function DocumentDialog({
     setUploadProgress(0);
 
     const formData = new FormData();
-    formData.append('entityId', entityId); // Assuming inititalData is the student ID
     formData.append('entityId', entityId); // Assuming inititalData is the student ID
     formData.append(
       'file_type',
