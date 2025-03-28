@@ -49,7 +49,7 @@ export function SendEmailComponent({ student}) {
   
     useEffect(() => {
       fetchData();
-    }, [student,id,emailLogs]);
+    }, [student,id]);
 
   return (
     <div className="space-y-4 rounded-md p-4 shadow-md">

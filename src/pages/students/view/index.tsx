@@ -85,7 +85,8 @@ export default function StudentViewPage() {
     }
   }, [student]);
 
-  const handleSave = async (data) => {
+ const handleSave = async (data) => {
+  try {
     const updatedData = { ...data };
 
     // Remove agent field if it's empty or null
@@ -93,13 +94,29 @@ export default function StudentViewPage() {
       delete updatedData.agent;
     }
 
-    await axiosInstance.patch(`/students/${id}`, updatedData);
-    await fetchAllData(); // Refetch data after saving
+    // Sending the patch request to update the data
+   await axiosInstance.patch(`/students/${id}`, updatedData);
+
+    // Refetch the data after saving
+    await fetchAllData();
+
+    // Show success toast message
     toast({
       title: 'Student updated successfully',
       className: 'bg-supperagent border-none text-white'
     });
-  };
+  } catch (error) {
+    console.error('Error updating student:', error);
+    
+    // Show error toast message
+    toast({
+     
+      description: error.response?.data?.message || error.message || 'Duplicate application',
+      className: 'bg-destructive border-none text-white'
+    });
+  }
+};
+
 
   useEffect(() => {
     fetchAllData();

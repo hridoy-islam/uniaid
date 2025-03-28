@@ -124,10 +124,10 @@ export function ApplicationDialog({ open, onOpenChange, onSubmit }) {
     const statusLog = {
       prev_status: null,
       changed_to: 'New',
-      assigned_by: user._id,
-      changed_by: null,
-      assigned_at: new Date(),
-      created_at: null
+      assigned_by:null ,
+      changed_by: user._id,
+      assigned_at:null ,
+      created_at: new Date()
     };
 
     const payload = {

@@ -118,10 +118,10 @@ export default function AccountPage({ student }) {
                                 <Badge
                                   className={
                                     session.status === 'paid'
-                                      ? 'bg-green-500 text-white'
+                                      ? 'bg-green-500 text-white hover:bg-green-500/90'
                                       : session.status === 'due'
-                                        ? 'bg-red-500 text-white'
-                                        : 'bg-red-500 text-white'
+                                        ? 'bg-red-500 text-white hover:bg-red-500/90'
+                                        : 'bg-red-500 text-white hover:bg-gray-500/90'
                                   }
                                 >
                                   {session.status}

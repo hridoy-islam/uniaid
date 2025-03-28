@@ -98,112 +98,38 @@ export default function CourseDetails() {
 
   const handleSave = async () => {
     try {
-      // Ensure application exists before updating
       if (!application) {
         console.error('Application not found.');
         return;
       }
   
-      // Find the last status log entry to get the previous status
-      const previousLog = application.statusLogs?.[application.statusLogs.length - 1];
-  
-      // Create a new status log entry
-      const statusLog = {
-        prev_status: previousLog?.changed_to || application.status || 'New',
-        changed_to: currentStatus,
-        assigned_by: previousLog?.assigned_by || null,
-        changed_by: user._id,
-        assigned_at: previousLog?.assigned_at || null,
-        created_at: moment().toISOString()
+      // Prepare the payload for the backend
+      const payload = {
+        newStatus: currentStatus,
+        changedBy: user._id,
       };
   
-      // Preserve all properties of the existing application
-      const updatedApplication = {
-        ...application,
-        status: currentStatus,
-        statusLogs: [...(application.statusLogs || []), statusLog]
-      };
+      // Send the update to the backend
+      const response = await axiosInstance.patch(
+        `/students/${id}/application/${courseid}`,
+        payload
+      );
   
-      // Prepare the update payload
-      const updatePayload: any = {
-        applications: [updatedApplication]
-      };
-  
-      // If the status is "Enrolled", update accounts and create agent payments
-      if (currentStatus === 'Enrolled') {
-        const courseRelationId = application.courseRelationId._id;
-  
-        // Fetch course relation data
-        const courseRelationResponse = await axiosInstance.get(
-          `/course-relations/${courseRelationId}`
-        );
-        const courseRelation = courseRelationResponse.data.data;
-  
-        // 1. Create accounts data
-        const accountsData = {
-          courseRelationId: courseRelationId,
-          years: courseRelation.years.map((year) => ({
-            id: year._id,
-            year: year.year,
-            sessions: year.sessions.map((session) => ({
-              id: session._id,
-              sessionName: session.sessionName,
-              invoiceDate: session.invoiceDate,
-              status: 'due'
-            }))
-          }))
-        };
-  
-        updatePayload.accounts = [accountsData];
-  
-        // 2. Create agent payments if student has an agent
-        const studentResponse = await axiosInstance.get(`/students/${id}`);
-        const student = studentResponse.data.data;
-        
-        if (student?.agent) {
-          // Find Year 1 from the course relation
-          const year1 = courseRelation.years.find(y => y.year === "Year 1");
-          
-          if (year1) {
-            const agentPaymentData = {
-              courseRelationId: courseRelationId,
-              agent: student.agent._id, // Reference to the agent
-              years: [{
-                year: "Year 1", // Fixed to Year 1
-                sessions: year1.sessions.map(session => ({
-                  id: session._id,
-                  sessionName: session.sessionName,
-                  invoiceDate: session.invoiceDate,
-                  status: "due",
-                  // amount: calculateAgentCommission(session) // Implement this function
-                }))
-              }]
-            };
-  
-            updatePayload.agentPayments = [agentPaymentData];
-          }
-        }
-      }
-  
-      // Send all updates in a single request
-      await axiosInstance.patch(`/students/${id}`, updatePayload);
-  
-      // Refetch data to update the UI
-      fetchData();
-  
-      // Show success notification
-       toast({
-              title: 'Application Updated successful',
-              className: 'bg-supperagent border-none text-white'
-            });
+      // Handle successful update
+      fetchData(); // Refresh the data
+      toast({
+        title: 'Application Updated Successfully',
+        className: 'bg-supperagent border-none text-white'
+      });
   
     } catch (error) {
       console.error('Error updating application status:', error);
-     toast({
-             title: 'Error',
-             description: 'Failed to update the invoice status',
-             variant: 'destructive'
-           });
+      
+      toast({
+      
+        description: error.response?.data?.message || error.message || 'Student already enrolled',
+        className: 'bg-destructive border-none text-white'
+      });
     }
   };
 
@@ -321,7 +247,7 @@ export default function CourseDetails() {
                     <TableCell>
                       {change.assigned_at &&
                       moment(change.assigned_at).isValid()
-                        ? moment(change.assigned_at).format('DD-MM-YYYY')
+                        ? moment(change.assigned_at).format('MM-DD-YYYY')
                         : '---'}
                     </TableCell>
 
@@ -329,7 +255,7 @@ export default function CourseDetails() {
                     <TableCell>{change?.changed_by?.name}</TableCell>
                     <TableCell>
                       {change.created_at && moment(change.created_at).isValid()
-                        ? moment(change.created_at).format('DD-MM-YYYY')
+                        ? moment(change.created_at).format('MM-DD-YYYY')
                         : '---'}
                     </TableCell>
                   </TableRow>

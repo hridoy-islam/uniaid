@@ -43,6 +43,8 @@ import CustomerPage from '@/pages/invoice/customer';
 import CustomerDetailsPage from '@/pages/invoice/customer/details';
 import InvoiceGeneratePage from '@/pages/invoice/createInvoice';
 import InvoiceStatusListPage from '@/pages/invoice/status';
+import EditRemitCreatePage from '@/pages/remitreport/edit-report';
+import EditInvoiceGeneratePage from '@/pages/invoice/editInvoice';
 
 const SignInPage = lazy(() => import('@/pages/auth/signin'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -98,8 +100,8 @@ export default function AppRouter() {
           element: <InvoiceStatusListPage />
         },
         {
-          path: 'invoice/editGenerate/:id',
-          element: <InvoiceGeneratePage />
+          path: 'invoice/edit-generate/:id',
+          element: <EditInvoiceGeneratePage />
         },
      
         {
@@ -111,8 +113,8 @@ export default function AppRouter() {
           element: <RemitCreatePage />
         },
         {
-          path: 'remit/editGenerate/:id',
-          element: <RemitCreatePage />
+          path: 'remit/edit-generate/:id',
+          element: <EditRemitCreatePage />
         },
         {
           path: 'remit/status',

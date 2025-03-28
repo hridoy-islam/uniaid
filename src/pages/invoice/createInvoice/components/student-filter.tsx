@@ -1,12 +1,5 @@
-import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -22,82 +15,64 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import type { UseFormReturn } from 'react-hook-form';
-import axiosInstance from '@/lib/axios'; // Adjust the import based on your project structure
-import { useParams } from 'react-router-dom';
-
 export function StudentFilter({
   filterForm,
   terms,
-  courses,
   institutes,
-  years,
+  hasSearched,
   sessions,
   paymentStatuses,
-  isEditing,
   onFilterSubmit,
   handleYearChange,
   handleSessionChange,
-  
+  handleTermChange,
+  handleInstituteChange,
+  handleCourseRelationChange,
+  filteredInstitutes,
+  filteredCourseRelations
 }) {
-
-  const {id} = useParams();
-  useEffect(() => {
-    if (isEditing && id) {
-      // Fetch the invoice data when editing
-      axiosInstance
-        .get(`/invoice/${id}`)
-        .then((response) => {
-  
-          const invoiceData = response.data.data;
-          filterForm.reset({
-            term: invoiceData.courseRelationId.term?._id ,
-            institute: invoiceData.courseRelationId.institute?._id , 
-            course: invoiceData.courseRelationId.course?._id ,
-            year: invoiceData.year,
-            session: invoiceData.session,
-            paymentStatus: invoiceData.paymentStatus,
-          });
-    
-        })
-        .catch((error) => {
-          console.error("Error fetching invoice data:", error);
-        });
-    }
-  }, [isEditing, id, filterForm]);
-
-  
   return (
     <Card className="rounded-none shadow-md">
-      <div className='px-6 py-2'>
-        <h1 className='font-semibold'>Filter Students</h1>
-        <h2>
-          Search and filter students to add to the invoice
-        </h2>
+      <div className="px-6 py-2">
+        <h1 className="font-semibold">Filter Students</h1>
+        <h2>Search and filter students</h2>
       </div>
       <CardContent>
         <Form {...filterForm}>
-          <form onSubmit={filterForm.handleSubmit(onFilterSubmit)} className="">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              filterForm.handleSubmit(onFilterSubmit)(e);
+            }}
+            className=""
+          >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {/* Term Select */}
+              {/* Term Select - Disabled when editing */}
               <FormField
                 control={filterForm.control}
                 name="term"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Term</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        handleTermChange(value);
+                      }}
+                      value={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Term" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {terms?.filter(
+                        {terms
+                          ?.filter(
                             (term, index, self) =>
                               index ===
                               self.findIndex((t) => t._id === term._id)
-                          ) // Removes duplicate terms
+                          )
                           .map((term) => (
                             <SelectItem key={term._id} value={term._id}>
                               {term.name}
@@ -110,29 +85,36 @@ export function StudentFilter({
                 )}
               />
 
-              {/* Institute Select */}
+              {/* Institute Select - Disabled when editing */}
               <FormField
                 control={filterForm.control}
                 name="institute"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>University</FormLabel>
+                    <FormLabel>Institute</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        handleInstituteChange(value);
+                      }}
                       value={field.value}
-                      disabled={!filterForm.watch('term') || isEditing}
+                      disabled={!filterForm.watch('term')} // Disable when editing
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select University" />
+                          <SelectValue placeholder="Select Institute" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {institutes?.filter(
+                        {(filteredInstitutes.length > 0
+                          ? filteredInstitutes
+                          : institutes
+                        )
+                          ?.filter(
                             (institute, index, self) =>
                               index ===
                               self.findIndex((i) => i._id === institute._id)
-                          ) // Removes duplicate institutes
+                          )
                           .map((institute) => (
                             <SelectItem
                               key={institute._id}
@@ -148,41 +130,44 @@ export function StudentFilter({
                 )}
               />
 
-              {/* Course Select */}
               <FormField
                 control={filterForm.control}
-                name="course"
+                name="courseRelationId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Course</FormLabel>
+
                     <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={!filterForm.watch('institute') || isEditing}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        handleCourseRelationChange(value);
+                      }}
+                      value={field.value || ''}
+                      disabled={!filterForm.watch('institute')}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select Course" />
+                          <SelectValue placeholder="Select Course">
+                            {filteredCourseRelations.find(
+                              (c) => c._id === field.value
+                            )?.name || 'Select Course'}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {courses?.filter(
-                            (course, index, self) =>
-                              index ===
-                              self.findIndex((c) => c._id === course._id)
-                          )?.map((course) => (
-                            <SelectItem key={course._id} value={course._id}>
-                              {course.name}
-                            </SelectItem>
-                          ))}
+                        {filteredCourseRelations.map((option) => (
+                          <SelectItem key={option._id} value={option._id}>
+                            {option.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
+
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              {/* Year Select */}
               <FormField
                 control={filterForm.control}
                 name="year"
@@ -194,8 +179,8 @@ export function StudentFilter({
                         field.onChange(value);
                         handleYearChange(value);
                       }}
-                      value={field.value}
-                      disabled={!filterForm.watch('course') || isEditing}
+                      value={field.value || 'Year 1'}
+                      disabled={!filterForm.watch('courseRelationId')}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -203,18 +188,10 @@ export function StudentFilter({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                      {years
-            ?.sort((a, b) => {
-              // Sort years numerically (e.g., Year 1, Year 2, etc.)
-              const yearA = parseInt(a.split(' ')[1], 10);
-              const yearB = parseInt(b.split(' ')[1], 10);
-              return yearA - yearB;
-            })
-            .map((year) => (
-              <SelectItem key={year} value={year}>
-                {year}
-              </SelectItem>
-            ))}
+                        <SelectItem value="Year 1">Year 1</SelectItem>
+                        <SelectItem value="Year 2">Year 2</SelectItem>
+                        <SelectItem value="Year 3">Year 3</SelectItem>
+                        <SelectItem value="Year 4">Year 4</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -222,7 +199,7 @@ export function StudentFilter({
                 )}
               />
 
-              {/* Session Select */}
+              {/* Session Select - Disabled when editing */}
               <FormField
                 control={filterForm.control}
                 name="session"
@@ -235,7 +212,7 @@ export function StudentFilter({
                         handleSessionChange(value);
                       }}
                       value={field.value}
-                      disabled={!filterForm.watch('year') || isEditing}
+                      disabled={!filterForm.watch('year')} // Disable when editing
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -263,8 +240,8 @@ export function StudentFilter({
                     <FormLabel>Payment Status</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      value={field.value || 'due'} // Default to "due" if no value is set
-                      disabled={isEditing}
+                      value={field.value || 'due'}
+                      disabled={!filterForm.watch('session')}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -284,27 +261,21 @@ export function StudentFilter({
                 )}
               />
 
-<div className="mt-8 flex items-center justify-start ">
-              <Button
-                className="bg-supperagent text-white hover:bg-supperagent/90 min-w-[120px]"
-                type="submit"
-                disabled={
-                  !filterForm.watch('term') ||
-                  !filterForm.watch('institute') ||
-                  !filterForm.watch('course') ||
-                  !filterForm.watch('year') ||
-                  !filterForm.watch('session') ||
-                  isEditing
-                }
-              >
-                Search
-              </Button>
+              <div className="mt-8 flex items-center justify-start">
+                <Button
+                  className="min-w-[120px] bg-supperagent text-white hover:bg-supperagent/90"
+                  type="submit"
+                  disabled={
+                    hasSearched ||
+                    !filterForm.watch('courseRelationId') ||
+                    !filterForm.watch('year') ||
+                    !filterForm.watch('session')
+                  }
+                >
+                  Search
+                </Button>
+              </div>
             </div>
-              
-            </div>
-
-            {/* Search Input */}
-            
           </form>
         </Form>
       </CardContent>

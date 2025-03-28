@@ -92,7 +92,7 @@ export default function AgentPaymentPage({ student }) {
           if (!isOpen) setExpandedCourseId(null); // Close dialog and reset expandedCourseId
         }}
       >
-        <DialogContent className="h-[40vh] max-w-full overflow-y-auto sm:max-w-5xl">
+        <DialogContent className="h-[50vh] max-w-full overflow-y-auto sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle>Agent Payment Details</DialogTitle>
           </DialogHeader>
@@ -140,12 +140,12 @@ export default function AgentPaymentPage({ student }) {
                                 <Badge
                                   className={
                                     session.status === 'paid'
-                                      ? 'bg-green-500 text-white'
+                                      ? 'bg-green-500 text-white hover:bg-green-500/90'
                                       : session.status === 'due'
-                                        ? 'bg-red-500 text-white'
+                                        ? 'bg-red-500 text-white hover:bg-red-500/90'
                                         : session.status === 'available'
-                                          ? 'bg-blue-500 text-white'
-                                          : 'bg-gray-500 text-white'
+                                          ? 'bg-blue-500 text-white hover:bg-blue-500/90'
+                                          : 'bg-gray-500 text-white hover:bg-gray-500/90'
                                   }
                                 >
                                   {session.status}

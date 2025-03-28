@@ -15,6 +15,7 @@ import { toast } from '@/components/ui/use-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { DataTablePagination } from '@/pages/students/view/components/data-table-pagination';
 import { CustomerDialog } from './components/customer-dialog';
+import { Input } from '@/components/ui/input';
 
 export default function CustomerPage() {
   const [customers, setcustomers] = useState<any>([]);
@@ -23,14 +24,16 @@ export default function CustomerPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("")
 
-  const fetchData = async (page, entriesPerPage) => {
+  const fetchData = async (page, entriesPerPage, searchTerm = "") => {
     try {
       if (initialLoading) setInitialLoading(true);
-      const response = await axiosInstance.get(`/customer?limit=all`, {
+      const response = await axiosInstance.get(`/customer`, {
         params: {
           page,
-          limit: entriesPerPage
+          limit: entriesPerPage,
+          ...(searchTerm ? { searchTerm } : {}),
         }
       });
       setcustomers(response.data.data.result);
@@ -79,14 +82,20 @@ export default function CustomerPage() {
   };
 
   useEffect(() => {
-    fetchData(currentPage, entriesPerPage); // Refresh data
+    fetchData(currentPage, entriesPerPage, searchTerm); // Refresh data
   }, [currentPage, entriesPerPage]);
+
+  const handleSearch = () => {
+    fetchData(currentPage, entriesPerPage, searchTerm);
+  };
+
 
   const navigate = useNavigate();
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">All customers</h1>
+
 
         <div className="space-x-4">
           <Button
@@ -110,6 +119,22 @@ export default function CustomerPage() {
             New customer
           </Button>
         </div>
+      </div>
+      <div className="flex items-center space-x-4">
+        <Input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by name, email, address"
+          className="max-w-[400px] h-8"
+        />
+        <Button
+          size='sm'
+          onClick={handleSearch} // Handle search click
+          className="border-none min-w-[100px] bg-supperagent text-white hover:bg-supperagent/90"
+        >
+          Search
+        </Button>
       </div>
       <div className="rounded-md bg-white p-4 shadow-2xl">
         {initialLoading ? (

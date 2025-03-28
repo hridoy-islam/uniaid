@@ -11,7 +11,7 @@ interface Student {
   _id: string
   firstName: string
   lastName: string
-  collageRoll: string
+  collegeRoll: string
   email: string
   refId?: string
   sessionFee?: number
@@ -57,7 +57,7 @@ export function StudentSelection({
                           <TableCell>
                             {student.firstName} {student.lastName}
                           </TableCell>
-                          <TableCell>{student.collageRoll}</TableCell>
+                          <TableCell>{student.collegeRoll}</TableCell>
                           <TableCell>
                             <Button  size="sm" className="bg-supperagent text-white hover:bg-supperagent/90" onClick={() => handleAddStudent(student)}>
                               Add
@@ -107,7 +107,7 @@ export function StudentSelection({
                     <TableCell>
                       {student.firstName} {student.lastName}
                     </TableCell>
-                    <TableCell>{student.collageRoll}</TableCell>
+                    <TableCell>{student.collegeRoll}</TableCell>
                     <TableCell className="text-right">{student.sessionFee?.toFixed(2)}</TableCell>
                     <TableCell>
                       <Button  className="bg-destructive text-white hover:bg-destructive/90" size="icon" onClick={() => handleRemoveStudent(student._id)}>

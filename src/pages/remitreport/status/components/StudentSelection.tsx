@@ -11,7 +11,7 @@ interface Student {
   _id: string
   firstName: string
   lastName: string
-  collageRoll: string
+  collegeRoll: string
   email: string
   refId?: string
   sessionFee?: number
@@ -58,7 +58,7 @@ export function StudentSelection({
                           <TableCell>
                             {student.firstName} {student.lastName}
                           </TableCell>
-                          <TableCell>{student.collageRoll}</TableCell>
+                          <TableCell>{student.collegeRoll}</TableCell>
                           <TableCell>{student.email}</TableCell>
                           <TableCell>{student.phone}</TableCell>
                           {/* <TableCell>

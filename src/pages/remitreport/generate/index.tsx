@@ -180,7 +180,7 @@ const InvoicePDF = ({ invoice = {} }) => {
                 <Text style={[styles.tableCell, { width: "5%" }]}>{index + 1}</Text>
                 <View style={{ width: "25%", display: "flex", justifyContent: "flex-start", alignItems: "flex-start" }}>
                   <Text style={[styles.tableCell, { fontWeight: 'semibold' }]}>{student.refId} </Text>
-                  <Text style={[styles.tableCell, styles.grayText]}>{student.collageroll}</Text>
+                  <Text style={[styles.tableCell, styles.grayText]}>{student.collegeRoll}</Text>
                 </View>
 
                 <View style={{ width: "50%", display: "flex", justifyContent: "flex-start", alignItems: "flex-start" }}>

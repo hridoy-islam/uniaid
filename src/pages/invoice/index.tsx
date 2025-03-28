@@ -88,7 +88,7 @@ export default function InvoicesPage() {
   };
 
   const handleEdit = (invoiceId: string) => {
-    navigate(`/admin/invoice/editGenerate/${invoiceId}`);
+    navigate(`/admin/invoice/edit-generate/${invoiceId}`);
   };
 
   const handleDownload = async (invoiceId: string) => {
@@ -129,7 +129,7 @@ export default function InvoicesPage() {
       );
 
       toast({
-        title: 'Operation successful',
+        title: 'Mark as Paid successfully',
         className: 'bg-supperagent border-none text-white'
       });
     } catch (error) {

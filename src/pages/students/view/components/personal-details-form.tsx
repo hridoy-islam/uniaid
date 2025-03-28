@@ -45,7 +45,7 @@ export function PersonalDetailsForm({ student, onSave }) {
       passportNumber: '',
       passportIssueDate: '',
       passportExpiryDate: '',
-      collageRoll: '',
+      collegeRoll: '',
       agent: '',
       addressLine1: '',
       addressLine2: '',
@@ -105,7 +105,7 @@ export function PersonalDetailsForm({ student, onSave }) {
         passportNumber: student.passportNumber || '',
         passportIssueDate: student.passportIssueDate || '',
         passportExpiryDate: student.passportExpiryDate || '',
-        collageRoll: student.collageRoll || '',
+        collegeRoll: student.collegeRoll || '',
         agent: student.agent?.value || '',
         addressLine1: student.addressLine1 || '',
         addressLine2: student.addressLine2 || '',
@@ -426,8 +426,8 @@ export function PersonalDetailsForm({ student, onSave }) {
 
           {/* Collage Roll */}
           <div className="space-y-2">
-            <Label htmlFor="collageRoll">Collage Roll</Label>
-            <Input id="collageRoll" {...register('collageRoll')} />
+            <Label htmlFor="collegeRoll">College Roll</Label>
+            <Input id="collegeRoll" {...register('collegeRoll')} />
           </div>
 
           {(user.role === 'admin' ||
