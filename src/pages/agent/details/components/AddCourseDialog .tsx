@@ -193,11 +193,18 @@ const AddCourseDialog = ({ onAddCourses }) => {
                     className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   >
                     <option value="">Select institution</option>
-                    {institutions.map((option) => (
-                      <option key={`institute-${option.value}`} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
+                    {institutions
+                      .filter((value, index, self) =>
+                        index === self.findIndex((t) => (
+                          t.value === value.value
+                        ))
+                      )
+                      .map((option) => (
+                        <option key={`institute-${option.value}`} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+
                   </select>
                   <FormMessage />
                 </FormItem>

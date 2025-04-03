@@ -27,6 +27,7 @@ import { format } from 'date-fns';
 import axiosInstance from '@/lib/axios';
 import { useParams } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
+import moment from 'moment';
 
 const CourseDetailsDialog = ({
   isOpen,
@@ -66,13 +67,13 @@ const CourseDetailsDialog = ({
       const response = await axiosInstance.patch(
         `/agent-courses/${editedData._id}`,
         {
-          year: editedData.year 
+          year: editedData.year
         }
       );
 
       if (response.status === 200) {
-        onSave(editedData); 
-        onClose(); 
+        onSave(editedData);
+        onClose();
 
         toast({
           title: "Course Detail Update successfully",
@@ -94,6 +95,9 @@ const CourseDetailsDialog = ({
   };
 
   if (!courseData) return null;
+
+
+ console.log('courseData', courseData);
 
 
   return (
@@ -139,10 +143,9 @@ const CourseDetailsDialog = ({
                     <TableRow key={session._id}>
                       <TableCell>{session?.sessionName || 'N/A'}</TableCell>
                       <TableCell>
-                        {session?.invoiceDate
-                          ? format(new Date(session.invoiceDate), 'dd MMM yyyy') // Format the date as you need
-                          : 'N/A'}
+                        {session?.invoiceDate ? moment(session.invoiceDate).format('DD MMM yyyy') : 'N/A'}
                       </TableCell>
+
 
                       <TableCell>
                         {isEditing ? (
@@ -171,7 +174,7 @@ const CourseDetailsDialog = ({
                             onValueChange={(value) =>
                               handleSessionChange(session._id, 'type', value)
                             }
-                           
+
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select type" />

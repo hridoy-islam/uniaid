@@ -173,7 +173,7 @@ export default function InvoicesPage() {
         description: invoiceData.students
           .map((student: any) => student.refId)
           .join(', '),
-        transactionAmount: invoiceData.totalAmount,
+        amount: invoiceData.totalAmount,
        
 
       };
