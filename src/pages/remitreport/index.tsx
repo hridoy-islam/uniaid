@@ -312,7 +312,7 @@ export default function RemitReportPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Created At</TableHead>
-                  <TableHead>Reference</TableHead>
+                  <TableHead>Remit Number</TableHead>
                   <TableHead>Remit To</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Students</TableHead>
@@ -331,7 +331,7 @@ export default function RemitReportPage() {
                       </TableCell>
                       <TableCell>{invoice.reference}</TableCell>
                       <TableCell>{invoice.remitTo?.name}</TableCell>
-                      <TableCell>{invoice.totalAmount}</TableCell>
+                      <TableCell>{invoice.totalAmount.toFixed(2)}</TableCell>
                       <TableCell>{invoice.noOfStudents}</TableCell>
                       {/* <TableCell>{invoice.status}</TableCell> */}
                       <TableCell>
