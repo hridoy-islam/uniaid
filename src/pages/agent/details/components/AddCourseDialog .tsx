@@ -22,11 +22,12 @@ const formSchema = z.object({
 });
 
 const AddCourseDialog = ({ onAddCourses }) => {
-  const [data, setData] = useState([]);
+  const [courseRelations, setCourseRelations] = useState([]);
   const [institutions, setInstitutions] = useState([]);
   const [courses, setCourses] = useState([]);
   const [selectedCourseRelation, setSelectedCourseRelation] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { id } = useParams();
   const { toast } = useToast();
 
@@ -40,36 +41,53 @@ const AddCourseDialog = ({ onAddCourses }) => {
   });
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCourseRelations = async () => {
       try {
+        setIsLoading(true);
         const response = await axiosInstance.get("/course-relations?limit=all");
-        setData(response.data.data.result);
+        setCourseRelations(response.data.data.result || []);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching course relations:", error);
         toast({
           title: "Error",
           description: "Failed to fetch courses",
           variant: "destructive",
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
     if (isOpen) {
-      fetchData();
+      fetchCourseRelations();
     }
   }, [isOpen]);
 
   const handleTermChange = (termId) => {
-    form.setValue("instituteId", "");
-    form.setValue("courseId", "");
+    form.reset({ 
+      ...form.getValues(),
+      instituteId: "",
+      courseId: ""
+    });
     setSelectedCourseRelation(null);
 
-    const filteredInstitutions = data
+    if (!termId) {
+      setInstitutions([]);
+      setCourses([]);
+      return;
+    }
+
+    // Get unique institutions for selected term
+    const filteredInstitutions = courseRelations
       .filter((item) => item.term._id === termId)
       .map((item) => ({
         value: item.institute._id,
         label: item.institute.name,
-      }));
+      }))
+      .filter((item, index, self) => 
+        index === self.findIndex((i) => i.value === item.value)
+      );
+
     setInstitutions(filteredInstitutions);
   };
 
@@ -77,64 +95,76 @@ const AddCourseDialog = ({ onAddCourses }) => {
     form.setValue("courseId", "");
     setSelectedCourseRelation(null);
 
-  
-    
-      const filteredCourses = data
-        .filter((item) => item.institute._id === institutionId)  
-        .map((item) => ({
-          value: item._id,
-          label: `${item.course.name}`,
-          courseRelation: item,
-        }))
-        .filter((value, index, self) =>
-          index === self.findIndex((t) => t.label === value.label)  
-        );
-    
-      setCourses(filteredCourses);
-    
-    
+    if (!institutionId) {
+      setCourses([]);
+      return;
+    }
+
+    const termId = form.getValues("termId");
+    const filteredCourses = courseRelations
+      .filter(
+        (item) => 
+          item.institute._id === institutionId && 
+          item.term._id === termId
+      )
+      .map((item) => ({
+        value: item._id,
+        label: `${item.course.name} (${item.term.term})`,
+        courseRelation: item,
+      }));
+
+    setCourses(filteredCourses);
   };
 
   const handleCourseChange = (courseRelationId) => {
-    const courseRelation = data.find((item) => item._id === courseRelationId);
-    setSelectedCourseRelation(courseRelation);
+    const selectedCourse = courseRelations.find(
+      (item) => item._id === courseRelationId
+    );
+    setSelectedCourseRelation(selectedCourse);
   };
 
   const handleSubmit = async () => {
     if (!selectedCourseRelation) {
       toast({
         title: "Error",
-        description: "Please select a course",
+        description: "Please select a valid course",
         variant: "destructive",
       });
       return;
     }
 
     try {
+      setIsLoading(true);
       await axiosInstance.post(`/agent-courses`, {
         courseRelationId: selectedCourseRelation._id,
         agentId: id,
       });
 
       toast({
-        title: "Course Added successfully",
+        title: "Success",
+        description: "Course added successfully",
         className: "bg-supperagent border-none text-white",
-      })
+      });
 
       if (onAddCourses) {
         onAddCourses(selectedCourseRelation);
       }
 
+      // Reset form and close dialog
       form.reset();
       setSelectedCourseRelation(null);
       setIsOpen(false);
     } catch (error) {
       console.error("Failed to add course:", error);
-
+      const errorMessage = error.response?.data?.message || "Failed to add course";
+      
       toast({
-        title: "Select Another Course",
-        className: "bg-destructive border-none text-white",
-      })
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -158,6 +188,7 @@ const AddCourseDialog = ({ onAddCourses }) => {
                   <FormLabel>Term</FormLabel>
                   <select
                     {...field}
+                    disabled={isLoading}
                     onChange={(e) => {
                       field.onChange(e);
                       handleTermChange(e.target.value);
@@ -165,7 +196,7 @@ const AddCourseDialog = ({ onAddCourses }) => {
                     className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   >
                     <option value="">Select term</option>
-                    {data
+                    {courseRelations
                       .map((item) => ({
                         value: item.term._id,
                         label: item.term.term,
@@ -194,6 +225,7 @@ const AddCourseDialog = ({ onAddCourses }) => {
                   <FormLabel>Institution</FormLabel>
                   <select
                     {...field}
+                    disabled={isLoading || !form.getValues("termId")}
                     onChange={(e) => {
                       field.onChange(e);
                       handleInstitutionChange(e.target.value);
@@ -201,18 +233,11 @@ const AddCourseDialog = ({ onAddCourses }) => {
                     className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   >
                     <option value="">Select institution</option>
-                    {institutions
-                      .filter((value, index, self) =>
-                        index === self.findIndex((t) => (
-                          t.value === value.value
-                        ))
-                      )
-                      .map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-
+                    {institutions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                   <FormMessage />
                 </FormItem>
@@ -228,6 +253,7 @@ const AddCourseDialog = ({ onAddCourses }) => {
                   <FormLabel>Course</FormLabel>
                   <select
                     {...field}
+                    disabled={isLoading || !form.getValues("instituteId")}
                     onChange={(e) => {
                       field.onChange(e);
                       handleCourseChange(e.target.value);
@@ -235,15 +261,11 @@ const AddCourseDialog = ({ onAddCourses }) => {
                     className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   >
                     <option value="">Select course</option>
-                    {courses
-                      .filter((value, index, self) =>
-                        index === self.findIndex((t) => t.value === value.value)
-                      )
-                      .map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
+                    {courses.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                   <FormMessage />
                 </FormItem>
@@ -255,14 +277,16 @@ const AddCourseDialog = ({ onAddCourses }) => {
                 type="button"
                 variant="outline"
                 onClick={() => setIsOpen(false)}
+                disabled={isLoading}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 className="bg-supperagent text-white hover:bg-supperagent"
+                disabled={isLoading || !selectedCourseRelation}
               >
-                Add Course
+                {isLoading ? "Adding..." : "Add Course"}
               </Button>
             </div>
           </form>
@@ -272,4 +296,4 @@ const AddCourseDialog = ({ onAddCourses }) => {
   );
 };
 
-export default AddCourseDialog
+export default AddCourseDialog;

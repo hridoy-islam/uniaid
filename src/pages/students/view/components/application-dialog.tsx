@@ -18,6 +18,7 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { useSelector } from 'react-redux';
+import { toast } from '@/components/ui/use-toast';
 
 const formSchema = z.object({
   termId: z.string().min(1, 'Term is required'),
@@ -28,7 +29,8 @@ const formSchema = z.object({
 });
 
 export function ApplicationDialog({ open, onOpenChange, onSubmit }) {
-  const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [courseRelations, setCourseRelations] = useState([]);
   const [institutions, setInstitutions] = useState([]);
   const [courses, setCourses] = useState([]);
   const [selectedCourseRelation, setSelectedCourseRelation] = useState(null);
@@ -45,65 +47,86 @@ export function ApplicationDialog({ open, onOpenChange, onSubmit }) {
   });
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCourseRelations = async () => {
       try {
-        const response = await axiosInstance.get('/course-relations?limit=all');
-        setData(response.data.data.result);
+        setIsLoading(true);
+        const response = await axiosInstance.get("/course-relations?limit=all");
+        setCourseRelations(response.data.data.result || []);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching course relations:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch courses",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
       }
     };
 
     if (open) {
-      fetchData();
+      fetchCourseRelations();
     }
   }, [open]);
 
   const handleTermChange = (termId) => {
-    form.setValue('instituteId', '');
-    form.setValue('courseId', '');
-    form.setValue('choice', '');
-    form.setValue('amount', '');
+    form.reset({ 
+      ...form.getValues(),
+      instituteId: "",
+      courseId: ""
+    });
     setSelectedCourseRelation(null);
 
-    const filteredInstitutions = data
+    if (!termId) {
+      setInstitutions([]);
+      setCourses([]);
+      return;
+    }
+
+    // Get unique institutions for selected term
+    const filteredInstitutions = courseRelations
       .filter((item) => item.term._id === termId)
       .map((item) => ({
         value: item.institute._id,
-        label: item.institute.name
-      }));
+        label: item.institute.name,
+      }))
+      .filter((item, index, self) => 
+        index === self.findIndex((i) => i.value === item.value)
+      );
+
     setInstitutions(filteredInstitutions);
   };
 
   const handleInstitutionChange = (institutionId) => {
-    form.setValue('courseId', '');
-    form.setValue('choice', '');
-    form.setValue('amount', '');
+    form.setValue("courseId", "");
     setSelectedCourseRelation(null);
 
-    const filteredCourses = data
-      .filter((item) => item.institute._id === institutionId)
+    if (!institutionId) {
+      setCourses([]);
+      return;
+    }
+
+    const termId = form.getValues("termId");
+    const filteredCourses = courseRelations
+      .filter(
+        (item) => 
+          item.institute._id === institutionId && 
+          item.term._id === termId
+      )
       .map((item) => ({
-        value: item.course._id,
-        label: item.course.name
+        value: item._id, // Now using courseRelation._id as value
+        label: `${item.course.name} (${item.term.term})`,
+        courseRelation: item,
       }));
+
     setCourses(filteredCourses);
   };
 
-  const handleCourseChange = (courseId) => {
-    const termId = form.getValues('termId');
-    const instituteId = form.getValues('instituteId');
-    
-    const courseRelation = data.find(
-      (item) => 
-        item.course._id === courseId &&
-        item.term._id === termId &&
-        item.institute._id === instituteId
+  const handleCourseChange = (courseRelationId) => {
+    const selectedCourse = courseRelations.find(
+      (item) => item._id === courseRelationId
     );
-    
-    setSelectedCourseRelation(courseRelation);
-    form.setValue('choice', '');
-    form.setValue('amount', '');
+    setSelectedCourseRelation(selectedCourse);
   };
 
   const handleChoiceChange = (value) => {
@@ -124,9 +147,9 @@ export function ApplicationDialog({ open, onOpenChange, onSubmit }) {
     const statusLog = {
       prev_status: null,
       changed_to: 'New',
-      assigned_by:null ,
+      assigned_by: null,
       changed_by: user._id,
-      assigned_at:null ,
+      assigned_at: null,
       created_at: new Date()
     };
 
@@ -168,6 +191,7 @@ export function ApplicationDialog({ open, onOpenChange, onSubmit }) {
                   <FormLabel>Term</FormLabel>
                   <select
                     {...field}
+                    disabled={isLoading}
                     onChange={(e) => {
                       field.onChange(e);
                       handleTermChange(e.target.value);
@@ -175,7 +199,7 @@ export function ApplicationDialog({ open, onOpenChange, onSubmit }) {
                     className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   >
                     <option value="">Select term</option>
-                    {data
+                    {courseRelations
                       .map((item) => ({
                         value: item.term._id,
                         label: item.term.term,
@@ -204,6 +228,7 @@ export function ApplicationDialog({ open, onOpenChange, onSubmit }) {
                   <FormLabel>Institution</FormLabel>
                   <select
                     {...field}
+                    disabled={isLoading || !form.getValues('termId')}
                     onChange={(e) => {
                       field.onChange(e);
                       handleInstitutionChange(e.target.value);
@@ -211,16 +236,11 @@ export function ApplicationDialog({ open, onOpenChange, onSubmit }) {
                     className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   >
                     <option value="">Select institution</option>
-                    {institutions
-                      .filter(
-                        (option, index, self) =>
-                          index === self.findIndex((t) => t.value === option.value)
-                      )
-                      .map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
+                    {institutions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                   <FormMessage />
                 </FormItem>
@@ -236,6 +256,7 @@ export function ApplicationDialog({ open, onOpenChange, onSubmit }) {
                   <FormLabel>Course</FormLabel>
                   <select
                     {...field}
+                    disabled={isLoading || !form.getValues('instituteId')}
                     onChange={(e) => {
                       field.onChange(e);
                       handleCourseChange(e.target.value);
@@ -243,16 +264,11 @@ export function ApplicationDialog({ open, onOpenChange, onSubmit }) {
                     className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   >
                     <option value="">Select course</option>
-                    {courses
-                      .filter(
-                        (option, index, self) =>
-                          index === self.findIndex((t) => t.value === option.value)
-                      )
-                      .map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
+                    {courses.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                   <FormMessage />
                 </FormItem>
@@ -332,6 +348,7 @@ export function ApplicationDialog({ open, onOpenChange, onSubmit }) {
               </Button>
               <Button
                 type="submit"
+                disabled={!selectedCourseRelation || !form.getValues('choice')}
                 className="bg-supperagent text-white hover:bg-supperagent"
               >
                 Add Course

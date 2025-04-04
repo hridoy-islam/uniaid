@@ -316,7 +316,7 @@ export default function InvoicesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Created At</TableHead>
-                  <TableHead>Reference</TableHead>
+                  <TableHead>Invoice Number</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Students</TableHead>
@@ -335,7 +335,7 @@ export default function InvoicesPage() {
                       </TableCell>
                       <TableCell>{invoice.reference}</TableCell>
                       <TableCell>{invoice.customer?.name}</TableCell>
-                      <TableCell>{invoice.totalAmount}</TableCell>
+                      <TableCell>{invoice.totalAmount.toFixed(2)}</TableCell>
                       <TableCell>{invoice.noOfStudents}</TableCell>
                       {/* <TableCell>{invoice.status}</TableCell> */}
                       <TableCell>
