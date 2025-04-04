@@ -77,14 +77,22 @@ const AddCourseDialog = ({ onAddCourses }) => {
     form.setValue("courseId", "");
     setSelectedCourseRelation(null);
 
-    const filteredCourses = data
-      .filter((item) => item.institute._id === institutionId)
-      .map((item) => ({
-        value: item._id,
-        label: `${item.course.name} (${item.term.term})`,
-        courseRelation: item,
-      }));
-    setCourses(filteredCourses);
+  
+    
+      const filteredCourses = data
+        .filter((item) => item.institute._id === institutionId)  
+        .map((item) => ({
+          value: item._id,
+          label: `${item.course.name}`,
+          courseRelation: item,
+        }))
+        .filter((value, index, self) =>
+          index === self.findIndex((t) => t.label === value.label)  
+        );
+    
+      setCourses(filteredCourses);
+    
+    
   };
 
   const handleCourseChange = (courseRelationId) => {
@@ -167,7 +175,7 @@ const AddCourseDialog = ({ onAddCourses }) => {
                           index === self.findIndex((t) => t.value === value.value)
                       )
                       .map((option) => (
-                        <option key={`term-${option.value}`} value={option.value}>
+                        <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
                       ))}
@@ -200,7 +208,7 @@ const AddCourseDialog = ({ onAddCourses }) => {
                         ))
                       )
                       .map((option) => (
-                        <option key={`institute-${option.value}`} value={option.value}>
+                        <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
                       ))}
@@ -227,11 +235,15 @@ const AddCourseDialog = ({ onAddCourses }) => {
                     className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   >
                     <option value="">Select course</option>
-                    {courses.map((option) => (
-                      <option key={`course-${option.value}`} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
+                    {courses
+                      .filter((value, index, self) =>
+                        index === self.findIndex((t) => t.value === value.value)
+                      )
+                      .map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                   </select>
                   <FormMessage />
                 </FormItem>

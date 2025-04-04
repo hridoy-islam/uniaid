@@ -317,21 +317,49 @@ export default function InvoiceGeneratePage() {
   const handleSessionChange = (value) => {
     filterForm.setValue('session', value);
   };
+  // const calculateSessionFee = (session, amount) => {
+  //   if (!session || session.rate == null) {
+  //     console.error('Session data is invalid:', session);
+  //     return 0;
+  //   }
+
+  //   const rate = Number(session.rate) || 0;
+  //   const validAmount = Number(amount) || 0;
+  //   if (session.type === 'flat') {
+  //     return rate;
+  //   } else if (session.type === 'percentage') {
+  //     return validAmount * (rate / 100);
+  //   }
+  //   return 0;
+  // };
+
+
   const calculateSessionFee = (session, amount) => {
     if (!session || session.rate == null) {
       console.error('Session data is invalid:', session);
       return 0;
     }
-
+  
     const rate = Number(session.rate) || 0;
     const validAmount = Number(amount) || 0;
+  
     if (session.type === 'flat') {
       return rate;
-    } else if (session.type === 'percentage') {
-      return validAmount * (rate / 100);
     }
+    else if (session.type === 'percentage') {
+      if (session.sessionName === 'Session 1' || session.sessionName === 'Session 2') {
+        return (validAmount * 0.25) * (rate / 100); 
+      }
+      else  {
+        return (validAmount * 0.50) * (rate / 100); 
+      }
+     
+    }
+  
     return 0;
   };
+  
+  
 
   const handleInstituteChange = (instituteId) => {
     filterForm.setValue('course', '');
