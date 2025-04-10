@@ -19,16 +19,6 @@ import {
 } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
 
-// Updated Zod schema to include customerTo, paymentInfo, and course details
-const invoiceSchema = z.object({
-  status: z.enum(['due', 'paid']),
-  customer: z.string(),
-  courseDetails: z.object({
-    semester: z.string(),
-    year: z.string(),
-    session: z.string()
-  })
-});
 
 const filterSchema = z.object({
   term: z.string().optional(),
@@ -51,7 +41,6 @@ export default function InvoiceGeneratePage() {
   const [sessions, setSessions] = useState([]);
   const [courseRelations, setCourseRelations] = useState([]);
   const [selectedCourseRelation, setSelectedCourseRelation] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [students, setStudents] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -59,6 +48,7 @@ export default function InvoiceGeneratePage() {
   const { user } = useSelector((state: any) => state.auth);
   const { toast } = useToast();
   const [customers, setcustomers] = useState([]);
+  const [banks, setBanks] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [filteredInstitutes, setFilteredInstitutes] = useState([]);
   const [filteredCourseRelations, setFilteredCourseRelations] = useState([]);
@@ -66,6 +56,7 @@ export default function InvoiceGeneratePage() {
   const invoiceSchema = z.object({
     status: z.enum(['due', 'paid']),
     customer: z.string().min(1, { message: 'customer is required' }),
+    bank: z.string().min(1, { message: 'Bank is required' }),
     courseDetails: z.object({
       semester: z.string(),
       year: z.string(),
@@ -76,9 +67,8 @@ export default function InvoiceGeneratePage() {
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
       status: 'due',
-
       customer: '',
-
+      bank:'',
       courseDetails: {
         semester: '',
         year: '',
@@ -121,9 +111,23 @@ export default function InvoiceGeneratePage() {
       });
     }
   };
+  const fetchBanks = async () => {
+    try {
+      const response = await axiosInstance.get('/bank?limit=all');
+      setBanks(response?.data?.data?.result); 
+    } catch (error) {
+      console.error('Error fetching banks:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch banks',
+        variant: 'destructive'
+      });
+    }
+  };
 
   useEffect(() => {
     fetchcustomers();
+    fetchBanks();
   }, []);
 
   const fetchCourseRelations = async () => {
@@ -213,7 +217,8 @@ export default function InvoiceGeneratePage() {
         applicationCourse: selectedCourseRelation?._id,
         ...(year && { year }),
         ...(session && { session }),
-        ...(searchQuery && { searchQuery })
+        ...(searchQuery && { searchQuery }),
+        limit:10000
       };
 
       const response = await axiosInstance.get('/students', { params });
@@ -333,33 +338,30 @@ export default function InvoiceGeneratePage() {
   //   return 0;
   // };
 
-
   const calculateSessionFee = (session, amount) => {
     if (!session || session.rate == null) {
       console.error('Session data is invalid:', session);
       return 0;
     }
-  
+
     const rate = Number(session.rate) || 0;
     const validAmount = Number(amount) || 0;
-  
+
     if (session.type === 'flat') {
       return rate;
-    }
-    else if (session.type === 'percentage') {
-      if (session.sessionName === 'Session 1' || session.sessionName === 'Session 2') {
-        return (validAmount * 0.25) * (rate / 100); 
+    } else if (session.type === 'percentage') {
+      if (
+        session.sessionName === 'Session 1' ||
+        session.sessionName === 'Session 2'
+      ) {
+        return validAmount * 0.25 * (rate / 100);
+      } else {
+        return validAmount * 0.5 * (rate / 100);
       }
-      else  {
-        return (validAmount * 0.50) * (rate / 100); 
-      }
-     
     }
-  
+
     return 0;
   };
-  
-  
 
   const handleInstituteChange = (instituteId) => {
     filterForm.setValue('course', '');
@@ -584,6 +586,7 @@ export default function InvoiceGeneratePage() {
       const payload = {
         status: filterValues.paymentStatus,
         customer: form.getValues('customer'),
+        bank: form.getValues('bank'),
         students: selectedStudentsWithRelation.map((student) => ({
           collegeRoll: student.collegeRoll,
           refId: student.refId,
@@ -637,6 +640,8 @@ export default function InvoiceGeneratePage() {
 
       <div className="grid gap-2">
         <Card>
+          <div className='flex flex-row items-center justify-start gap-4'>
+
           <div className="p-4">
             <label
               htmlFor="customer"
@@ -665,7 +670,35 @@ export default function InvoiceGeneratePage() {
               </p>
             )}
           </div>
-
+          <div className="p-4">
+            <label
+              htmlFor="bank"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Select Bank
+            </label>
+            <Select
+              onValueChange={(value) => form.setValue('bank', value)}
+              value={form.watch('bank') || ''}
+            >
+              <SelectTrigger className="min-w-[150px]">
+                <SelectValue placeholder="Select a Bank" />
+              </SelectTrigger>
+              <SelectContent>
+                {banks?.map((bank) => (
+                  <SelectItem key={bank._id} value={bank._id}>
+                    {bank?.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.formState.errors.bank && (
+              <p className="mt-1 text-sm text-red-500">
+                {form.formState.errors.bank.message}
+              </p>
+            )}
+          </div>
+          </div>
           <StudentFilter
             filterForm={filterForm}
             terms={terms}
@@ -704,7 +737,7 @@ export default function InvoiceGeneratePage() {
               disabled={
                 selectedStudents.filter((s) => s.selected).length === 0 ||
                 loading ||
-                !form.watch('customer') // Disable if no customer selected
+                !form.watch('customer') || !form.watch('bank')
               }
               onClick={onSubmit}
             >

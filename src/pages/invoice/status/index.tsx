@@ -192,6 +192,7 @@
          ...(year && { year }),
          ...(session && { session }),
          ...(searchQuery && { searchQuery }),
+         limit:10000
        };
  
  
