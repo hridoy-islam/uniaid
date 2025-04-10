@@ -49,18 +49,6 @@ export default function CoursesPage() {
     }
   };
 
-  // const handleSubmit = async (data) => {
-  //   if (editingCourse) {
-  //     await axiosInstance.put(`/courses/${editingCourse?.id}`, data);
-  //     toast({ title: "Record Updated successfully", className: "bg-supperagent border-none text-white", });
-  //     fetchData(currentPage, entriesPerPage);
-  //     setEditingCourse(undefined)
-  //   } else {
-  //     await axiosInstance.post(`/courses`, data);
-  //     toast({ title: "Record Created successfully", className: "bg-supperagent border-none text-white", });
-  //     fetchData(currentPage, entriesPerPage);
-  //   }
-  // }
 
   const handleSubmit = async (data) => {
     try {

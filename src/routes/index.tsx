@@ -45,6 +45,8 @@ import InvoiceGeneratePage from '@/pages/invoice/createInvoice';
 import InvoiceStatusListPage from '@/pages/invoice/status';
 import EditRemitCreatePage from '@/pages/remitreport/edit-report';
 import EditInvoiceGeneratePage from '@/pages/invoice/editInvoice';
+import BankPage from '@/pages/bank';
+import BankDetailsPage from '@/pages/bank/details';
 
 const SignInPage = lazy(() => import('@/pages/auth/signin'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -102,6 +104,10 @@ export default function AppRouter() {
         {
           path: 'invoice/edit-generate/:id',
           element: <EditInvoiceGeneratePage />
+        },
+        {
+          path: 'invoice/bank-list',
+          element: <BankPage />
         },
      
         {
@@ -171,6 +177,14 @@ export default function AppRouter() {
         {
           path: 'academic-year',
           element: <AcademicYearPage />
+        },
+        {
+          path: 'bank-list',
+          element: <BankPage />
+        },
+        {
+          path: 'bank-list/:id',
+          element: <BankDetailsPage />
         },
         {
           path: 'staff',

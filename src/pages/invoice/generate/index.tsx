@@ -18,12 +18,13 @@ const styles = StyleSheet.create({
   logoContainer: {
     width: "100%",
     alignItems: "flex-start",
-    marginTop:-20
+    paddingVertical: 5
+
     
   },
   logo: {
-    width: "150px",
-    height: "150px",
+    width: "100px",
+    height: "100px",
     objectFit: "contain"
   },
   sectionTitle: {
@@ -143,6 +144,12 @@ interface Customer {
   accountNo?: string;
   beneficiary?: string;
 }
+interface Bank {
+  name: string;
+  sortCode: string;
+  accountNo: string;
+  beneficiary?: string;
+}
 
 interface Student {
   refId: string;
@@ -156,6 +163,7 @@ interface Student {
 interface Invoice {
   createdBy: CreatedBy;
   customer: Customer;
+  bank: Bank;
   reference: string;
   date: Date;
   semester: string;
@@ -165,9 +173,11 @@ interface Invoice {
 }
 
 const InvoicePDF = ({ invoice = {} as Invoice }) => {
+  
   const {
     createdBy = {} as CreatedBy,
     customer = {} as Customer,
+    bank = {} as Bank,
     reference = "",
     date = new Date(),
     semester = "",
@@ -220,9 +230,9 @@ const InvoicePDF = ({ invoice = {} as Invoice }) => {
 
           <View style={{ marginRight: 35 }}>
             <Text style={styles.sectionTitle}>PAYMENT INFORMATION</Text>
-            <Text style={styles.value}>Sort Code: {createdBy.sortCode}</Text>
-            <Text style={styles.value}>Account No: { createdBy.accountNo}</Text>
-            <Text style={styles.value}>Beneficiary: { createdBy.beneficiary}</Text>
+            <Text style={styles.value}>Sort Code: {bank.sortCode}</Text>
+            <Text style={styles.value}>Account No: { bank.accountNo}</Text>
+            <Text style={styles.value}>Beneficiary: { bank.beneficiary}</Text>
           </View>
         </View>
 

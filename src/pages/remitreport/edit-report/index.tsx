@@ -241,6 +241,7 @@ export default function RemitCreatePage() {
             agentYear: year,
             agentSession: session,
             agentPaymentStatus: paymentStatus,
+            limit:10000
           },
         }),
         id ? axiosInstance.get(`/remit-invoice/${id}`) : Promise.resolve({ data: { data: { students: [] } } })

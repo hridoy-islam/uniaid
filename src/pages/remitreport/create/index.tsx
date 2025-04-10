@@ -187,6 +187,8 @@ export default function RemitCreatePage() {
       if (session) {
         params['agentSession'] = session;
       }
+      params['limit'] = 10000;
+
 
       // Make the request to the backend with the filters as params
       const response = await axiosInstance.get('/students', { params });
