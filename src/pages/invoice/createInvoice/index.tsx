@@ -18,7 +18,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
-
+import { Textarea } from '@/components/ui/textarea';
 
 const filterSchema = z.object({
   term: z.string().optional(),
@@ -27,7 +27,9 @@ const filterSchema = z.object({
   paymentStatus: z.string().optional(),
   searchQuery: z.string().optional(),
   year: z.string().optional(),
-  session: z.string().optional()
+  session: z.string().optional(),
+  discountType: z.enum(['percentage', 'flat']).optional(),
+  discountMsg: z.string().optional()
 });
 
 export default function InvoiceGeneratePage() {
@@ -61,14 +63,25 @@ export default function InvoiceGeneratePage() {
       semester: z.string(),
       year: z.string(),
       session: z.string()
-    })
+    }),
+    discountAmount: z
+      .union([z.string(), z.number()])
+      .transform((val) => Number(val)),
+    discountType: z.enum(['percentage', 'flat']).optional(),
+    vat: z.union([z.string(), z.number()]).transform((val) => Number(val)),
+    discountMsg: z.string().optional()
   });
+
   const form = useForm<z.infer<typeof invoiceSchema>>({
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
       status: 'due',
       customer: '',
-      bank:'',
+      bank: '',
+      discountType: 'flat',
+      discountAmount: '0',
+      discountMsg: '',
+      vat: '0',
       courseDetails: {
         semester: '',
         year: '',
@@ -114,7 +127,7 @@ export default function InvoiceGeneratePage() {
   const fetchBanks = async () => {
     try {
       const response = await axiosInstance.get('/bank?limit=all');
-      setBanks(response?.data?.data?.result); 
+      setBanks(response?.data?.data?.result);
     } catch (error) {
       console.error('Error fetching banks:', error);
       toast({
@@ -218,7 +231,7 @@ export default function InvoiceGeneratePage() {
         ...(year && { year }),
         ...(session && { session }),
         ...(searchQuery && { searchQuery }),
-        limit:10000
+        limit: 10000
       };
 
       const response = await axiosInstance.get('/students', { params });
@@ -363,6 +376,31 @@ export default function InvoiceGeneratePage() {
     return 0;
   };
 
+  const calculateFinalAmount = () => {
+    const subtotal = totalAmount;
+    const discountType = form.watch('discountType');
+    // Convert string to number when calculating
+    const discountAmount = Number(form.watch('discountAmount') || 0);
+    const vat = Number(form.watch('vat') || 0);
+
+    let discountValue = 0;
+    if (discountType === 'percentage') {
+      discountValue = subtotal * (discountAmount / 100);
+    } else {
+      discountValue = discountAmount;
+    }
+
+    const amountAfterDiscount = subtotal - discountValue;
+    const vatAmount = subtotal * (vat / 100);
+    const finalAmount = amountAfterDiscount + vatAmount;
+
+    return {
+      subtotal,
+      discountValue,
+      vatAmount,
+      finalAmount
+    };
+  };
   const handleInstituteChange = (instituteId) => {
     filterForm.setValue('course', '');
     filterForm.setValue('courseRelationId', '');
@@ -582,6 +620,7 @@ export default function InvoiceGeneratePage() {
       }
 
       const filterValues = filterForm.getValues();
+      const { finalAmount } = calculateFinalAmount();
 
       const payload = {
         status: filterValues.paymentStatus,
@@ -597,12 +636,16 @@ export default function InvoiceGeneratePage() {
         })),
         noOfStudents: selectedStudentsWithRelation.length,
         courseRelationId: selectedCourseRelation._id,
-        totalAmount,
+        totalAmount: finalAmount,
         createdBy: user._id,
         year: filterValues.year,
         session: filterValues.session,
         semester: selectedCourseRelation?.term?.term,
-        institute: filterValues.institute
+        institute: filterValues.institute,
+        discountType: form.getValues('discountType'),
+        discountAmount: form.getValues('discountAmount'),
+        discountMsg: form.getValues('discountMsg'),
+        vat: form.getValues('vat')
       };
 
       await axiosInstance.post('/invoice', payload);
@@ -622,7 +665,6 @@ export default function InvoiceGeneratePage() {
       setLoading(false);
     }
   };
-
   return (
     <div className="py-1">
       <div className="flex flex-row items-center justify-between">
@@ -640,64 +682,63 @@ export default function InvoiceGeneratePage() {
 
       <div className="grid gap-2">
         <Card>
-          <div className='flex flex-row items-center justify-start gap-4'>
-
-          <div className="p-4">
-            <label
-              htmlFor="customer"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Select customer
-            </label>
-            <Select
-              onValueChange={(value) => form.setValue('customer', value)}
-              value={form.watch('customer') || ''}
-            >
-              <SelectTrigger className="max-w-[250px]">
-                <SelectValue placeholder="Select a customer" />
-              </SelectTrigger>
-              <SelectContent>
-                {customers?.map((customer) => (
-                  <SelectItem key={customer._id} value={customer._id}>
-                    {customer.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {form.formState.errors.customer && (
-              <p className="mt-1 text-sm text-red-500">
-                {form.formState.errors.customer.message}
-              </p>
-            )}
-          </div>
-          <div className="p-4">
-            <label
-              htmlFor="bank"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Select Bank
-            </label>
-            <Select
-              onValueChange={(value) => form.setValue('bank', value)}
-              value={form.watch('bank') || ''}
-            >
-              <SelectTrigger className="min-w-[150px]">
-                <SelectValue placeholder="Select a Bank" />
-              </SelectTrigger>
-              <SelectContent>
-                {banks?.map((bank) => (
-                  <SelectItem key={bank._id} value={bank._id}>
-                    {bank?.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {form.formState.errors.bank && (
-              <p className="mt-1 text-sm text-red-500">
-                {form.formState.errors.bank.message}
-              </p>
-            )}
-          </div>
+          <div className="flex flex-row items-center justify-start gap-4">
+            <div className="p-4">
+              <label
+                htmlFor="customer"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Select customer
+              </label>
+              <Select
+                onValueChange={(value) => form.setValue('customer', value)}
+                value={form.watch('customer') || ''}
+              >
+                <SelectTrigger className="max-w-[250px]">
+                  <SelectValue placeholder="Select a customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers?.map((customer) => (
+                    <SelectItem key={customer._id} value={customer._id}>
+                      {customer.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {form.formState.errors.customer && (
+                <p className="mt-1 text-sm text-red-500">
+                  {form.formState.errors.customer.message}
+                </p>
+              )}
+            </div>
+            <div className="p-4">
+              <label
+                htmlFor="bank"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Select Bank
+              </label>
+              <Select
+                onValueChange={(value) => form.setValue('bank', value)}
+                value={form.watch('bank') || ''}
+              >
+                <SelectTrigger className="min-w-[150px]">
+                  <SelectValue placeholder="Select a Bank" />
+                </SelectTrigger>
+                <SelectContent>
+                  {banks?.map((bank) => (
+                    <SelectItem key={bank._id} value={bank._id}>
+                      {bank?.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {form.formState.errors.bank && (
+                <p className="mt-1 text-sm text-red-500">
+                  {form.formState.errors.bank.message}
+                </p>
+              )}
+            </div>
           </div>
           <StudentFilter
             filterForm={filterForm}
@@ -726,23 +767,116 @@ export default function InvoiceGeneratePage() {
             handleRemoveStudent={handleRemoveStudent}
           />
 
-          <CardFooter className="flex justify-between p-4">
-            <div className="text-lg font-semibold">
-              Total Amount:{' '}
-              <span className="text-xl">{totalAmount.toFixed(2)}</span>
+          <div className="grid grid-cols-1 gap-4  p-4 md:grid-cols-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Discount Type
+              </label>
+              <Select
+                onValueChange={(value) =>
+                  form.setValue('discountType', value as 'percentage' | 'flat')
+                }
+                value={form.watch('discountType')}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select discount type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="flat">Flat Amount</SelectItem>
+                  <SelectItem value="percentage">Percentage</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Button
-              type="submit"
-              className="bg-supperagent text-white hover:bg-supperagent"
-              disabled={
-                selectedStudents.filter((s) => s.selected).length === 0 ||
-                loading ||
-                !form.watch('customer') || !form.watch('bank')
-              }
-              onClick={onSubmit}
-            >
-              {loading ? 'Processing...' : 'Generate Invoice'}
-            </Button>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Discount{' '}
+                {form.watch('discountType') === 'percentage'
+                  ? '(%)'
+                  : '(Amount)'}
+              </label>
+              <input
+                type="text" 
+                className="flex h-9 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                value={form.watch('discountAmount')}
+                onChange={(e) => {
+                  // Allow only numbers and decimal point
+                  const value = e.target.value.replace(/[^0-9.]/g, '');
+                  form.setValue('discountAmount', value);
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                VAT (%)
+              </label>
+              <input
+                type="text" 
+                className="flex h-9 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                value={form.watch('vat')}
+                onChange={(e) => {
+                  // Allow only numbers and decimal point
+                  const value = e.target.value.replace(/[^0-9.]/g, '');
+                  form.setValue('vat', value);
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Discount Message
+              </label>
+              <Textarea
+                className="flex h-10 w-full rounded-md  border-gray-300  px-3 py-2 text-sm "
+                value={form.watch('discountMsg')}
+                onChange={(e) => form.setValue('discountMsg', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <CardFooter className="flex flex-col gap-2 p-4">
+            <div className="flex w-full justify-between">
+              <span className="text-sm">Subtotal:</span>
+              <span className="text-sm">
+                {calculateFinalAmount().subtotal.toFixed(2)}
+              </span>
+            </div>
+            {form.watch('discountAmount') > 0 && (
+              <div className="flex w-full justify-between">
+                <span className="text-sm">Discount:</span>
+                <span className="text-sm">
+                  -{calculateFinalAmount().discountValue.toFixed(2)}
+                </span>
+              </div>
+            )}
+            {form.watch('vat') > 0 && (
+              <div className="flex w-full justify-between">
+                <span className="text-sm">VAT ({form.watch('vat')}%):</span>
+                <span className="text-sm">
+                  {calculateFinalAmount().vatAmount.toFixed(2)}
+                </span>
+              </div>
+            )}
+            <div className="flex w-full justify-between border-t pt-2 text-lg font-semibold">
+              <span>Total Amount:</span>
+              <span>{calculateFinalAmount().finalAmount.toFixed(2)}</span>
+            </div>
+            <div className="mt-2 flex w-full justify-end">
+              <Button
+                type="submit"
+                className="bg-supperagent text-white hover:bg-supperagent"
+                disabled={
+                  selectedStudents.filter((s) => s.selected).length === 0 ||
+                  loading ||
+                  !form.watch('customer') ||
+                  !form.watch('bank')
+                }
+                onClick={onSubmit}
+              >
+                {loading ? 'Processing...' : 'Generate Invoice'}
+              </Button>
+            </div>
           </CardFooter>
         </Card>
       </div>
