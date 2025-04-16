@@ -499,7 +499,7 @@ export default function InvoicePage() {
               <Select
                 onValueChange={(value) => form.setValue('customer', value)}
                 value={form.watch('customer')}
-                disabled={isEditing}
+             
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a customer" />
@@ -521,7 +521,7 @@ export default function InvoicePage() {
               <Select
                 onValueChange={(value) => form.setValue('bank', value)}
                 value={form.watch('bank')}
-                disabled={isEditing}
+           
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a bank" />
@@ -660,9 +660,7 @@ export default function InvoicePage() {
                 onClick={onSubmit}
                 disabled={
                   selectedStudents.filter((s) => s.selected).length === 0 ||
-                  loading ||
-                  !form.watch('customer') ||
-                  !form.watch('bank')
+                  loading 
                 }
               >
                 {loading
