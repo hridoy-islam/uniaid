@@ -12,18 +12,19 @@ import {
 } from '@/components/ui/table';
 import { ApplicationDialog } from './application-dialog';
 import moment from 'moment';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { Switch } from '@/components/ui/switch';
+import axiosInstance from '@/lib/axios';
 
 export function ApplicationsSection({ student, onSave }) {
   const [applications, setApplications] = useState<any>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const { user } = useSelector((state: any) => state.auth);
-
+  const { id } = useParams();
   const handleSubmit = (data) => {
     onSave({ applications: [...applications, data] });
   };
-  
 
   // Get the status badge color
   const getStatusBadgeColor = (status) => {
@@ -43,6 +44,22 @@ export function ApplicationsSection({ student, onSave }) {
       setApplications(student?.applications || []);
     }
   }, [student?.applications]);
+
+  const handleStatusChange = async (appId, checked) => {
+    const updatedApplications = applications.map((app) =>
+      app._id === appId ? { ...app, isActive: checked } : app
+    );
+
+    try {
+      await axiosInstance.patch(`/students/${id}`, {
+        applications: updatedApplications
+      });
+      setApplications(updatedApplications); // Update UI state
+      onSave({ applications: updatedApplications }); // Notify parent if needed
+    } catch (error) {
+      console.error('Failed to update application status:', error);
+    }
+  };
   return (
     <div className="space-y-4 rounded-md p-4 shadow-md">
       <div className="flex items-center justify-between">
@@ -66,6 +83,9 @@ export function ApplicationsSection({ student, onSave }) {
             <TableHead>Amount</TableHead>
             <TableHead>Status</TableHead>
             {user.role !== 'agent' && ( // Hide if user is an agent
+              <TableHead className="text-right">Active</TableHead>
+            )}
+            {user.role !== 'agent' && ( // Hide if user is an agent
               <TableHead className="text-right">Actions</TableHead>
             )}
           </TableRow>
@@ -80,7 +100,9 @@ export function ApplicationsSection({ student, onSave }) {
           ) : (
             applications.map((course) => (
               <TableRow key={course._id}>
-                <TableCell>{course?.courseRelationId?.institute?.name}</TableCell>
+                <TableCell>
+                  {course?.courseRelationId?.institute?.name}
+                </TableCell>
                 <TableCell>{course?.courseRelationId?.course?.name}</TableCell>
                 <TableCell>{course?.courseRelationId?.term?.term}</TableCell>
                 <TableCell>
@@ -95,7 +117,11 @@ export function ApplicationsSection({ student, onSave }) {
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell>{!isNaN(Number(course.amount)) ? Number(course.amount).toFixed(2) : '0.00'}</TableCell>
+                <TableCell>
+                  {!isNaN(Number(course.amount))
+                    ? Number(course.amount).toFixed(2)
+                    : '0.00'}
+                </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1">
                     <Badge
@@ -110,6 +136,20 @@ export function ApplicationsSection({ student, onSave }) {
                       </span>
                     )}
                   </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  {/* Conditionally render Agent dropdown */}
+                  {(user.role === 'admin' ||
+                    (user.role === 'staff' &&
+                      user.privileges?.student?.applicationStatus)) && (
+                    <Switch
+                      checked={course.isActive === true}
+                      onCheckedChange={(checked) =>
+                        handleStatusChange(course._id, checked)
+                      }
+                      className="bg-supperagent"
+                    />
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   {/* Conditionally render Agent dropdown */}

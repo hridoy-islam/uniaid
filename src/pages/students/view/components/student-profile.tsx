@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Camera } from 'lucide-react';
+import { Camera, Check, Copy, ToggleRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ImageUploader } from '@/components/shared/image-uploader';
@@ -19,6 +19,15 @@ export function StudentProfile({ student, fetchStudent }) {
     setUploadOpen(false); // Close the upload dialog
     fetchStudent(); // Re-fetch student data after upload completes
   };
+
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(student.refId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <Card className="border-0 shadow-none">
       <CardContent className="grid grid-cols-[auto,1fr,1fr] gap-6 p-6">
@@ -43,13 +52,34 @@ export function StudentProfile({ student, fetchStudent }) {
         </div>
 
         <div className="space-y-4">
-          <div>
-            <h2 className="text-2xl font-bold">
+          <div className="flex flex-col gap-2 rounded-md sm:flex-row sm:items-center sm:justify-start">
+            <h2 className="text-2xl font-semibold text-gray-800">
               {student?.title} {student?.firstName} {student?.lastName}
             </h2>
+
           </div>
 
           <div className="grid gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Refernce No:</span>
+              <div className="flex items-center gap-2  ">
+                <span className="text-sm text-muted-foreground">
+                  {student?.refId}
+                </span>
+                <button
+                  onClick={handleCopy}
+                  type="button"
+                  className="rounded p-1 transition hover:bg-gray-200"
+                  title="Copy Student ID"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <Copy className="h-4 w-4 text-gray-600" />
+                  )}
+                </button>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Email:</span>
               <span className="text-sm text-muted-foreground">

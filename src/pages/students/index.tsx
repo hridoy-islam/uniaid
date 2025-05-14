@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { DataTablePagination } from './view/components/data-table-pagination';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { useSelector } from 'react-redux';
+import { RefreshCcw } from 'lucide-react';
 
 export default function StudentsPage() {
   const { user } = useSelector((state: any) => state.auth);
@@ -18,14 +19,17 @@ export default function StudentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
-
+  const [total, setTotal] = useState();
   const [filters, setFilters] = useState({
     searchTerm: '',
-    status: '',
-    agent: '',
-    staffId: ''
+    status: [],
+    dob: '',
+    agentSearch: [],
+    staffId: [],
+    institute: [],
+    term: [],
+    academic_year_id: []
   });
-
 
   const fetchData = async (page, entriesPerPage, filters) => {
     try {
@@ -35,7 +39,7 @@ export default function StudentsPage() {
         searchTerm,
         status,
         dob,
-        agent,
+        agentSearch,
         staffId,
         institute,
         term,
@@ -47,16 +51,13 @@ export default function StudentsPage() {
         limit: entriesPerPage,
         ...(searchTerm ? { searchTerm } : {}),
         ...(dob ? { dob } : {}), // Add dob to the params if it exists
-        ...(agent? {agent}:{}),
-        ...(staffId? {staffId}:{}),
-        ...(status? {status}:{}),
-        ...(institute? {institute}:{}),
-        ...(term? {term}:{}),
-        ...(academic_year_id? {academic_year_id}:{})
+        ...(agentSearch ? { agentSearch } : {}),
+        ...(staffId ? { staffId } : {}),
+        ...(status ? { status } : {}),
+        ...(institute ? { institute } : {}),
+        ...(term ? { term } : {}),
+        ...(academic_year_id ? { academic_year_id } : {})
       };
-
-
-   
 
       // Role-based filtering
       if (user.role === 'agent' && !agent) {
@@ -69,8 +70,6 @@ export default function StudentsPage() {
         params.createdBy = user._id;
       }
 
-
-    
       const response = await axiosInstance.get(
         `/students?sort=-refId&fields=firstName,lastName,email,phone,refId`,
         {
@@ -80,6 +79,7 @@ export default function StudentsPage() {
 
       setStudents(response.data.data.result);
       setTotalPages(response.data.data.meta.totalPage);
+      setTotal(response.data.data.meta.total);
     } catch (error) {
       console.error('Error fetching students:', error);
     } finally {
@@ -115,11 +115,26 @@ export default function StudentsPage() {
     <>
       <div className="mb-3 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">All Students</h1>
-        <Button className="bg-supperagent text-white hover:bg-supperagent/90">
-          <Link to="new">New Student</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            className="gap-2 bg-supperagent text-white hover:bg-supperagent/90"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCcw className="w-4" />
+            Refresh
+          </Button>
+          <Button className="bg-supperagent text-white hover:bg-supperagent/90">
+            <Link to="new">New Student</Link>
+          </Button>
+        </div>
       </div>
-      <StudentFilter onSubmit={handleFilterSubmit} />
+      <StudentFilter
+        onSubmit={handleFilterSubmit}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        total={total}
+        students={students}
+      />
       {initialLoading ? (
         <div className="flex justify-center py-6">
           <BlinkingDots size="large" color="bg-supperagent" />
