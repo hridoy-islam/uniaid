@@ -85,38 +85,39 @@ export default function StudentViewPage() {
     }
   }, [student]);
 
- const handleSave = async (data) => {
-  try {
-    const updatedData = { ...data };
+  const handleSave = async (data) => {
+    try {
+      const updatedData = { ...data };
 
-    // Remove agent field if it's empty or null
-    if (!updatedData.agent) {
-      delete updatedData.agent;
+      // Remove agent field if it's empty or null
+      if (!updatedData.agent) {
+        delete updatedData.agent;
+      }
+
+      // Sending the patch request to update the data
+      await axiosInstance.patch(`/students/${id}`, updatedData);
+
+      // Refetch the data after saving
+      await fetchAllData();
+
+      // Show success toast message
+      toast({
+        title: 'Student updated successfully',
+        className: 'bg-supperagent border-none text-white'
+      });
+    } catch (error) {
+      console.error('Error updating student:', error);
+
+      // Show error toast message
+      toast({
+        description:
+          error.response?.data?.message ||
+          error.message ||
+          'Duplicate application',
+        className: 'bg-destructive border-none text-white'
+      });
     }
-
-    // Sending the patch request to update the data
-   await axiosInstance.patch(`/students/${id}`, updatedData);
-
-    // Refetch the data after saving
-    await fetchAllData();
-
-    // Show success toast message
-    toast({
-      title: 'Student updated successfully',
-      className: 'bg-supperagent border-none text-white'
-    });
-  } catch (error) {
-    console.error('Error updating student:', error);
-    
-    // Show error toast message
-    toast({
-     
-      description: error.response?.data?.message || error.message || 'Duplicate application',
-      className: 'bg-destructive border-none text-white'
-    });
-  }
-};
-
+  };
 
   useEffect(() => {
     fetchAllData();
@@ -153,7 +154,7 @@ export default function StudentViewPage() {
         { value: 'staff', label: 'Assigned Staffs' },
         { value: 'communications', label: 'Communications' },
         { value: 'account', label: 'Account' },
-        { value: 'agentPayment', label: 'Agent Payment' },
+        { value: 'agentPayment', label: 'Agent Payment' }
       );
     } else if (isStaff) {
       // Staff sees tabs based on privileges
@@ -268,7 +269,7 @@ export default function StudentViewPage() {
               <AccountPage student={student} />
             </TabsContent>
             <TabsContent value="agentPayment">
-              <AgentPaymentPage student={student}  />
+              <AgentPaymentPage student={student} />
             </TabsContent>
           </>
         )}
