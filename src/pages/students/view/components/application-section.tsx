@@ -45,21 +45,21 @@ export function ApplicationsSection({ student, onSave }) {
     }
   }, [student?.applications]);
 
-const handleStatusChange = async (appId, checked) => {
-  const updatedApplications = applications.map((app) =>
-    app._id === appId ? { ...app, isActive: checked } : app
-  );
+  const handleStatusChange = async (appId, checked) => {
+    const updatedApplications = applications.map((app) =>
+      app._id === appId ? { ...app, isActive: checked } : app
+    );
 
-  try {
-    await axiosInstance.patch(`/students/${id}`, {
-      applications: updatedApplications
-    });
-    setApplications(updatedApplications); // Update UI state
-    onSave({ applications: updatedApplications }); // Notify parent if needed
-  } catch (error) {
-    console.error('Failed to update application status:', error);
-  }
-};
+    try {
+      await axiosInstance.patch(`/students/${id}`, {
+        applications: updatedApplications
+      });
+      setApplications(updatedApplications); // Update UI state
+      onSave({ applications: updatedApplications }); // Notify parent if needed
+    } catch (error) {
+      console.error('Failed to update application status:', error);
+    }
+  };
   return (
     <div className="space-y-4 rounded-md p-4 shadow-md">
       <div className="flex items-center justify-between">
@@ -142,11 +142,13 @@ const handleStatusChange = async (appId, checked) => {
                   {(user.role === 'admin' ||
                     (user.role === 'staff' &&
                       user.privileges?.student?.applicationStatus)) && (
-                   <Switch
-  checked={course.isActive === true}
-  onCheckedChange={(checked) => handleStatusChange(course._id, checked)}
-  className="data-[state=checked]:bg-green-500"
-/>
+                    <Switch
+                      checked={course.isActive === true}
+                      onCheckedChange={(checked) =>
+                        handleStatusChange(course._id, checked)
+                      }
+                      className="bg-supperagent"
+                    />
                   )}
                 </TableCell>
                 <TableCell className="text-right">

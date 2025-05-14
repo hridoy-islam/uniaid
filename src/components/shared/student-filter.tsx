@@ -2,19 +2,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '../ui/button';
 import { Printer, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import axiosInstance from '../../lib/axios';
+import axiosInstance from '@/lib/axios';
 import { useSelector } from 'react-redux';
 import Select, { MultiValue } from 'react-select';
+import * as XLSX from 'xlsx';
 
-export default function StudentFilter({
-  onSubmit,
-  currentPage,
-  totalPages,
-  total
-}) {
+export default function StudentFilter({ onSubmit, total }) {
   const { user } = useSelector((state: any) => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
-  const [status, setStatus] = useState<any[]>([]); // Changed from null to empty array
+  const [status, setStatus] = useState<any[]>([]);
   const [institutes, setInstitutes] = useState<any>([]);
   const [terms, setTerms] = useState<any>([]);
   const [academicYear, setAcademicYear] = useState<any>([]);
@@ -26,8 +22,20 @@ export default function StudentFilter({
   const [selectedInstitute, setSelectedInstitute] = useState<any[]>([]);
   const [selectedTerm, setSelectedTerm] = useState<any[]>([]);
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<any[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
+  const [filters, setFilters] = useState({
+    searchTerm: '',
+    status: [],
+    dob: '',
+    agentSearch: [],
+    staffId: [],
+    institute: [],
+    term: [],
+    academic_year_id: []
+  });
+  const [entriesPerPage, setEntriesPerPage] = useState(10000);
 
-  const fetchData = async () => {
+  const fetchSearchData = async () => {
     try {
       const [
         instituteResponse,
@@ -53,10 +61,57 @@ export default function StudentFilter({
   };
 
   useEffect(() => {
-    fetchData();
+    fetchSearchData();
   }, []);
 
-  const handleSubmit = (e) => {
+  const fetchAllStudentsForExport = async (filters) => {
+    try {
+      const {
+        searchTerm,
+        status,
+        dob,
+        agentSearch,
+        staffId,
+        institute,
+        term,
+        academic_year_id
+      } = filters;
+
+      const params = {
+        limit: entriesPerPage,
+        ...(searchTerm ? { searchTerm } : {}),
+        ...(dob ? { dob } : {}),
+        ...(agentSearch ? { agentSearch } : {}),
+        ...(staffId ? { staffId } : {}),
+        ...(status ? { status } : {}),
+        ...(institute ? { institute } : {}),
+        ...(term ? { term } : {}),
+        ...(academic_year_id ? { academic_year_id } : {})
+      };
+
+      // Role-based filtering
+      if (user.role === 'agent' && !agent) {
+        params.agent = user._id;
+      }
+
+      // Only use user.staff_id if neither staffId nor agentId is provided
+      if (user.role === 'staff' && !staffId && !agent) {
+        params.staffId = user._id;
+        params.createdBy = user._id;
+      }
+
+      const response = await axiosInstance.get(`/students?sort=-refId`, {
+        params
+      });
+
+      return response.data.data.result;
+    } catch (error) {
+      console.error('Error fetching students for export:', error);
+      return [];
+    } 
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const filterData = {
       searchTerm,
@@ -69,17 +124,127 @@ export default function StudentFilter({
     if (user.role === 'agent') {
       filterData.agent = user.agent_id;
     } else {
-      filterData.agent = selectedAgent.map((item) => item.value) || null;
+      filterData.agentSearch = selectedAgent.map((item) => item.value) || null;
       filterData.staffId = selectedStaff.map((item) => item.value) || null;
     }
     onSubmit(filterData);
+  };
+
+  const exportToExcel = async (e) => {
+    e.preventDefault();
+
+    setIsExporting(true);
+    try {
+
+      const filterData = {
+        searchTerm,
+        status: status.length > 0 ? status : null,
+        dob,
+        institute: selectedInstitute.map((item) => item.value) || null,
+        term: selectedTerm.map((item) => item.value) || null,
+        academic_year_id: selectedAcademicYear.map((item) => item.value) || null
+      };
+      if (user.role === 'agent') {
+        filterData.agent = user.agent_id;
+      } else {
+        filterData.agentSearch =
+          selectedAgent.map((item) => item.value) || null;
+        filterData.staffId = selectedStaff.map((item) => item.value) || null;
+      }
+      const studentsForExport = await fetchAllStudentsForExport(filterData);
+
+      const exportData = studentsForExport?.map((student) => {
+        const baseFields = {
+          'Reference No': student.refId || '',
+          'Student Name':
+            `${student?.title || ''} ${student?.firstName || ''} ${student?.lastName || ''}`.trim(),
+          Email: student.email || '',
+          Phone: student.phone || '',
+          DOB: student.dob ? new Date(student.dob).toLocaleDateString() : '',
+          'Marital Status':
+            student.maritalStatus || student.maritualStatus || '',
+          Gender: student.gender || '',
+          Nationality: student.nationality || '',
+          Residence: student.countryResidence || '',
+          'Birth Country': student.countryBirth || '',
+          'Native Language': student.nativeLanguage || '',
+          'Passport Name': student.passportName || '',
+          'Passport Country': student.passportIssueLocation || '',
+          'Passport Number': student.passportNumber || '',
+          'Passport Issue Date': student.passportIssueDate
+            ? new Date(student.passportIssueDate).toLocaleDateString()
+            : '',
+          'Passport Expiry Date': student.passportExpiryDate
+            ? new Date(student.passportExpiryDate).toLocaleDateString()
+            : '',
+          'Address Line 1': student.addressLine1 || '',
+          'Address Line 2': student.addressLine2 || '',
+          City: student.townCity || '',
+          State: student.state || '',
+          'Post Code': student.postCode || '',
+          Country: student.country || '',
+          Agent: student.agent?.name || '',
+          Staff: Array.isArray(student.assignStaff)
+            ? student.assignStaff?.map((staff) => staff?.name || '').join(', ')
+            : '',
+          Type: '', 
+          Status: ''
+        };
+
+        const courseFields = {};
+
+        if (Array.isArray(student?.applications)) {
+          const applications = student?.applications;
+
+          applications.forEach((application, index) => {
+            const courseNum = index + 1;
+            courseFields[`Course ${courseNum} Institution`] =
+              application.courseRelationId?.institute?.name || '';
+            courseFields[`Course ${courseNum}`] =
+              application.courseRelationId?.course?.name || '';
+            courseFields[`Course ${courseNum} Status`] =
+              application.status || '';
+            courseFields[`Course ${courseNum} Terms`] =
+              application.courseRelationId?.term?.term || '';
+            courseFields[`Course ${courseNum} Commission`] =
+              application?.amount || '';
+          });
+
+          // Populate Status and Type based on your logic
+          const activeApp = applications.find((app) => app.isActive === true);
+          const singleApp = applications.length === 1 ? applications[0] : null;
+
+          if (activeApp) {
+            baseFields.Status = activeApp.status || '';
+            baseFields.Type = activeApp.choice || '';
+          } else if (singleApp) {
+            baseFields.Status = singleApp.status || '';
+            baseFields.Type = singleApp.choice || '';
+          }
+        }
+
+        return { ...baseFields, ...courseFields };
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Students');
+      XLSX.writeFile(
+        wb,
+        `Students_Export_${new Date().toISOString().split('T')[0]}.xlsx`
+      );
+    } catch (error) {
+      console.error('Error during export:', error);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
     <div className="flex w-full flex-col">
       <form
         onSubmit={handleSubmit}
-        className="mb-3 grid gap-4 rounded-md p-4 shadow-2xl md:grid-cols-2 lg:grid-cols-4"
+        className="mb-3 grid gap-4 rounded-sm p-4 shadow-lg md:grid-cols-2 lg:grid-cols-4"
       >
         {/* Search Input */}
         <div>
@@ -238,13 +403,9 @@ export default function StudentFilter({
 
         <div className="col-span-full flex justify-between gap-4">
           <div className="flex flex-row items-center text-sm text-gray-700">
-            Showing&nbsp;
-            <span className="font-semibold text-gray-900">{currentPage}</span>
-            &nbsp;of&nbsp;
-            <span className="font-semibold text-gray-900">{totalPages}</span>
-            &nbsp;pages&nbsp;(
-            <span className="font-medium text-gray-800">{total}</span>
-            &nbsp;records)
+            Showing{'  '}
+            {total}
+            &nbsp;records
           </div>
 
           <div className="flex gap-2">
@@ -254,8 +415,13 @@ export default function StudentFilter({
             >
               <Search className="mr-3 h-4 w-4" /> Search
             </Button>
-            <Button className="bg-secondary text-white hover:bg-secondary/90">
-              <Printer className="mr-3 h-4 w-4" /> Export
+            <Button
+              className="bg-secondary text-white hover:bg-secondary/90"
+              onClick={exportToExcel}
+              disabled={isExporting}
+            >
+              <Printer className="mr-3 h-4 w-4" />
+              {isExporting ? 'Exporting...' : 'Export'}
             </Button>
           </div>
         </div>

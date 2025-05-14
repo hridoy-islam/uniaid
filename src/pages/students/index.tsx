@@ -24,7 +24,7 @@ export default function StudentsPage() {
     searchTerm: '',
     status: [],
     dob: '',
-    agent: [],
+    agentSearch: [],
     staffId: [],
     institute: [],
     term: [],
@@ -39,7 +39,7 @@ export default function StudentsPage() {
         searchTerm,
         status,
         dob,
-        agent,
+        agentSearch,
         staffId,
         institute,
         term,
@@ -51,7 +51,7 @@ export default function StudentsPage() {
         limit: entriesPerPage,
         ...(searchTerm ? { searchTerm } : {}),
         ...(dob ? { dob } : {}), // Add dob to the params if it exists
-        ...(agent ? { agent } : {}),
+        ...(agentSearch ? { agentSearch } : {}),
         ...(staffId ? { staffId } : {}),
         ...(status ? { status } : {}),
         ...(institute ? { institute } : {}),
@@ -130,9 +130,10 @@ export default function StudentsPage() {
       </div>
       <StudentFilter
         onSubmit={handleFilterSubmit}
-            currentPage={currentPage}
+        currentPage={currentPage}
         totalPages={totalPages}
         total={total}
+        students={students}
       />
       {initialLoading ? (
         <div className="flex justify-center py-6">
