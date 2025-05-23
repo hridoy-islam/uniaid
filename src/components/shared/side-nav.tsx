@@ -161,7 +161,7 @@ export function SideNav() {
                     (param.label === 'Institution' && management.institution) ||
                     (param.label === 'Courses' && management.course) ||
                     (param.label === 'Terms' && management.term) ||
-                    (param.label === 'Academic Year' && management.academicYear)
+                    (param.label === 'Academic Year' && management.academicYear) ||
                     (param.label === 'Bank List' && management.bank)
                 );
 
