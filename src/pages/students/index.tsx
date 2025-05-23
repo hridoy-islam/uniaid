@@ -60,15 +60,36 @@ export default function StudentsPage() {
       };
 
       // Role-based filtering
-      if (user.role === 'agent' && !agent) {
+      if (user.role === 'agent' ) {
         params.agent = user._id;
       }
 
+      console.log('Role:', user.role);
+
       // Only use user.staff_id if neither staffId nor agentId is provided
-      if (user.role === 'staff' && !staffId && !agent) {
-        params.staffId = user._id;
-        params.createdBy = user._id;
-      }
+      // if (user.role === 'staff') {
+      //   params.staffId = user._id;
+      //   params.createdBy = user._id;
+      // }
+
+      if (user.role === 'staff') {
+  const agentArray = [].concat(agentSearch || []).filter(Boolean);
+  const staffArray = [].concat(staffId || []).filter(Boolean);
+  
+  const isSearchingOthers = 
+    agentArray.length > 0 || staffArray.some(id => id !== user._id);
+
+  if (isSearchingOthers) {
+    const filteredStaff = staffArray.filter(id => id !== user._id);
+    if (filteredStaff.length > 0) params.staffId = filteredStaff;
+    if (agentArray.length > 0) params.agentSearch = agentArray;
+    // Don't include createdBy
+  } else {
+    params.staffId = user._id;
+    params.createdBy = user._id;
+  }
+}
+
 
       const response = await axiosInstance.get(
         `/students?sort=-refId&fields=firstName,lastName,email,phone,refId`,

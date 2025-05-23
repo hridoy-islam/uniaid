@@ -702,7 +702,7 @@ export default function CourseRelationDetails() {
         </h1>
         <h2 className="text-md flex items-center space-x-2 font-medium text-gray-700">
           <BookOpenText className="h-5 w-5 text-supperagent" />
-          <span>{courseRelation?.course?.name}</span>
+          <span>{courseRelation?.course?.name} ({courseRelation?.term?.term})</span>
         </h2>
       </div>
 
