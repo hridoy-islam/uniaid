@@ -7,7 +7,6 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { Eye, Trash2Icon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -28,7 +27,7 @@ export function StudentsTable({ students, handleStatusChange }) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {students.length > 0 &&
+        {students?.length > 0 &&
           students?.map((student, index) => (
             <TableRow key={student._id}>
               <TableCell>

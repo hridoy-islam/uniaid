@@ -58,38 +58,37 @@ export default function StudentsPage() {
         ...(term ? { term } : {}),
         ...(academic_year_id ? { academic_year_id } : {})
       };
+      
 
       // Role-based filtering
-      if (user.role === 'agent' ) {
+      if (user.role === 'agent') {
         params.agent = user._id;
       }
 
-      console.log('Role:', user.role);
-
-      // Only use user.staff_id if neither staffId nor agentId is provided
-      // if (user.role === 'staff') {
-      //   params.staffId = user._id;
-      //   params.createdBy = user._id;
-      // }
-
       if (user.role === 'staff') {
-  const agentArray = [].concat(agentSearch || []).filter(Boolean);
-  const staffArray = [].concat(staffId || []).filter(Boolean);
-  
-  const isSearchingOthers = 
-    agentArray.length > 0 || staffArray.some(id => id !== user._id);
+        const hasSearchPrivileges =
+          user.privileges.student.search.agent &&
+          user.privileges.student.search.staff;
 
-  if (isSearchingOthers) {
-    const filteredStaff = staffArray.filter(id => id !== user._id);
-    if (filteredStaff.length > 0) params.staffId = filteredStaff;
-    if (agentArray.length > 0) params.agentSearch = agentArray;
-    // Don't include createdBy
-  } else {
-    params.staffId = user._id;
-    params.createdBy = user._id;
-  }
-}
+        if (!hasSearchPrivileges) {
+          // Staff has no access to others – restrict to own students
+          params.staffId = user._id;
+          params.createdBy = user._id;
+        } else {
+          // Staff has search privileges – apply filters if selected
+          if (Array.isArray(agentSearch) && agentSearch?.length > 0) {
+            params.agentSearch = agentSearch.filter(Boolean);
+          }
 
+          if (Array.isArray(staffId) && staffId?.length > 0) {
+            params.staffId = staffId.filter(Boolean);
+          }
+
+          // If no filters selected, they can see all students
+        }
+      }
+
+      
 
       const response = await axiosInstance.get(
         `/students?sort=-refId&fields=firstName,lastName,email,phone,refId`,
@@ -160,7 +159,7 @@ export default function StudentsPage() {
         <div className="flex justify-center py-6">
           <BlinkingDots size="large" color="bg-supperagent" />
         </div>
-      ) : students.length === 0 ? (
+      ) : students?.length === 0 ? (
         <div className="flex justify-center py-6 text-gray-500">
           No records found.
         </div>
