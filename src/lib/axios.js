@@ -2,7 +2,6 @@ import axios from 'axios';
 import { logout } from '../redux/features/authSlice';
 import store from '../redux/store';
 
-
 // Create Axios instance
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -12,8 +11,8 @@ const axiosInstance = axios.create({
 // Request interceptor: Attach access token to all outgoing requests
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = JSON.parse(localStorage.getItem('uniaid')); // Access token
-   
+    const token = JSON.parse(localStorage.getItem('raya')); // Access token
+
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -32,17 +31,16 @@ const refreshToken = async () => {
     );
 
     const accessToken = response?.data?.data?.accessToken;
-    
+
     if (accessToken) {
-      localStorage.setItem('uniaid', JSON.stringify(accessToken));
+      localStorage.setItem('raya', JSON.stringify(accessToken));
       return accessToken;
-    
     }
 
     return null;
   } catch (error) {
     // Token refresh failed — clean up and logout
-    localStorage.removeItem('uniaid');
+    localStorage.removeItem('raya');
     store.dispatch(logout());
     return null;
   }
