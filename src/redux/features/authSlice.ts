@@ -208,6 +208,7 @@ const authSlice = createSlice({
     resetError(state) {
       state.error = null; // Reset the error state
     }
+    
   },
   extraReducers: (builder) => {
     builder

@@ -18,15 +18,9 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { emergencyContactRelationships } from '@/types';
 
+import { emergencyContactRelationships } from '@/types';
+import Select from 'react-select';
 // Schema for form validation
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -74,6 +68,27 @@ export function EmergencyContactDialog({
     form.reset();
     onOpenChange(false);
   };
+
+  const relationshipOptions = emergencyContactRelationships.map((rel) => ({
+    value: rel,
+    label: rel
+  }));
+
+  const customSelectStyles = {
+    menu: (provided) => ({
+      ...provided,
+      marginTop: 0 // Ensure menu is positioned directly below the input
+    }),
+    menuList: (provided) => ({
+      ...provided,
+      paddingTop: 0 // Remove any padding at the top of the menu
+    }),
+    control: (provided) => ({
+      ...provided,
+      minHeight: '38px' // Match the input field height
+    })
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -153,20 +168,19 @@ export function EmergencyContactDialog({
                 <FormItem>
                   <FormLabel>Relationship</FormLabel>
                   <FormControl>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select relationship" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {emergencyContactRelationships.map(
-                          (relationship, index) => (
-                            <SelectItem key={index} value={relationship}>
-                              {relationship}
-                            </SelectItem>
-                          )
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <Select
+                      options={relationshipOptions}
+                      value={
+                        field.value
+                          ? { value: field.value, label: field.value }
+                          : null
+                      }
+                      onChange={(selectedOption) => {
+                        field.onChange(selectedOption?.value || ''); // Ensuring default value handling
+                      }}
+                      placeholder="Select relationship"
+                      styles={customSelectStyles}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
