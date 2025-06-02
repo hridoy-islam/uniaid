@@ -58,7 +58,6 @@ export default function StudentsPage() {
         ...(term ? { term } : {}),
         ...(academic_year_id ? { academic_year_id } : {})
       };
-      
 
       // Role-based filtering
       if (user.role === 'agent') {
@@ -67,8 +66,8 @@ export default function StudentsPage() {
 
       if (user.role === 'staff') {
         const hasSearchPrivileges =
-          user.privileges.student.search.agent &&
-          user.privileges.student.search.staff;
+          user?.privileges?.student?.search?.agent &&
+          user?.privileges?.student?.search?.staff;
 
         if (!hasSearchPrivileges) {
           // Staff has no access to others – restrict to own students
@@ -88,8 +87,6 @@ export default function StudentsPage() {
         }
       }
 
-      
-
       const response = await axiosInstance.get(
         `/students?sort=-refId&fields=firstName,lastName,email,phone,refId`,
         {
@@ -106,7 +103,6 @@ export default function StudentsPage() {
       setInitialLoading(false);
     }
   };
-
   const handleStatusChange = async (id, status) => {
     try {
       const updatedStatus = status ? '1' : '0';
