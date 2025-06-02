@@ -95,7 +95,6 @@ export default function StudentsPage() {
       );
 
       setStudents(response.data.data.result);
-      console.log('Fetched students:', response.data.data.result);
       setTotalPages(response.data.data.meta.totalPage);
       setTotal(response.data.data.meta.total);
     } catch (error) {
