@@ -62,8 +62,12 @@ const navItems = [
           { icon: Landmark, label: 'Institution', href: 'institution' },
           { icon: BookOpenCheck, label: 'Courses', href: 'courses' },
           { icon: RefreshCw, label: 'Terms', href: 'terms' },
-          { icon: CalendarCheck, label: 'Academic Year', href: 'academic-year' },
-          { icon: Vault , label: 'Bank List', href: 'bank-list' }
+          {
+            icon: CalendarCheck,
+            label: 'Academic Year',
+            href: 'academic-year'
+          },
+          { icon: Vault, label: 'Bank List', href: 'bank-list' }
         ]
       },
       { icon: CircleUser, label: 'Staffs', href: 'staff' },
@@ -161,7 +165,8 @@ export function SideNav() {
                     (param.label === 'Institution' && management.institution) ||
                     (param.label === 'Courses' && management.course) ||
                     (param.label === 'Terms' && management.term) ||
-                    (param.label === 'Academic Year' && management.academicYear) ||
+                    (param.label === 'Academic Year' &&
+                      management.academicYear) ||
                     (param.label === 'Bank List' && management.bank)
                 );
 
@@ -182,7 +187,10 @@ export function SideNav() {
             : null;
         }
 
-        return item.label === 'Invoices' && !management.invoices ? null : item;
+        if (item.label === 'Invoices' && !management.invoices) return null;
+        if (item.label === 'Remit' && !management.remit) return null;
+
+        return item;
       })
       .filter(Boolean); // Remove null items
   };

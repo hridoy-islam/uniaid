@@ -1,7 +1,7 @@
 import { Layers } from 'lucide-react';
 import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import UserAuthForm from './components/user-auth-form';
 
 export default function SignInPage() {
@@ -24,7 +24,7 @@ export default function SignInPage() {
             <Layers className="h-6 w-6" />
             <span className="text-lg font-semibold">UniAid</span>
           </div>
-          
+
           {/* Main Content */}
           <div className="relative z-10 mb-20">
             <div className="mb-8">
@@ -36,8 +36,7 @@ export default function SignInPage() {
               />
             </div>
             <h1 className="mb-4 text-4xl font-bold text-white">
-              A few more clicks to{" "}
-              <br />
+              A few more clicks to <br />
               sign in to your account.
             </h1>
             <p className="text-lg text-gray-300">
@@ -45,13 +44,16 @@ export default function SignInPage() {
             </p>
           </div>
         </div>
-        
+
         {/* Curved Edge */}
-        <div className="absolute right-0 top-0 h-full w-32 bg-teal-600" 
-             style={{
-               clipPath: 'polygon(100% 0, 0% 0, 0 100%, 100% 100%, 100% 0, 100% 0, 0 100%, 0 100%)',
-               background: 'linear-gradient(to right, #0d9488 0%, transparent 100%)'
-             }} 
+        <div
+          className="absolute right-0 top-0 h-full w-32 bg-teal-600"
+          style={{
+            clipPath:
+              'polygon(100% 0, 0% 0, 0 100%, 100% 100%, 100% 0, 100% 0, 0 100%, 0 100%)',
+            background:
+              'linear-gradient(to right, #0d9488 0%, transparent 100%)'
+          }}
         />
       </div>
 
