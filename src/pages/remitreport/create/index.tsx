@@ -189,7 +189,6 @@ export default function RemitCreatePage() {
       }
       params['limit'] = 10000;
 
-
       // Make the request to the backend with the filters as params
       const response = await axiosInstance.get('/students', { params });
 
@@ -289,23 +288,25 @@ export default function RemitCreatePage() {
       console.error('Session data is invalid:', session);
       return 0;
     }
-  
+
     const rate = Number(session.rate) || 0;
     const validAmount = Number(amount) || 0;
-  
+
     if (session.type === 'flat') {
       return rate;
     } else if (session.type === 'percentage') {
-      if (session.sessionName === 'Session 1' || session.sessionName === 'Session 2') {
-        return (validAmount * 0.25) * (rate / 100); 
+      if (
+        session.sessionName === 'Session 1' ||
+        session.sessionName === 'Session 2'
+      ) {
+        return validAmount * 0.25 * (rate / 100);
       } else {
-        return (validAmount * 0.50) * (rate / 100); 
+        return validAmount * 0.5 * (rate / 100);
       }
     }
-  
+
     return 0;
   };
-  
 
   const handleInstituteChange = (instituteId) => {
     filterForm.setValue('course', '');
@@ -348,7 +349,10 @@ export default function RemitCreatePage() {
     }
   };
 
-  const fetchAgentCourse = async (agentId: string, courseRelationId: string) => {
+  const fetchAgentCourse = async (
+    agentId: string,
+    courseRelationId: string
+  ) => {
     try {
       const response = await axiosInstance.get(
         `/agent-courses?agentId=${agentId}&courseRelationId=${courseRelationId}`
@@ -433,23 +437,22 @@ export default function RemitCreatePage() {
   //   }
   // };
 
-
   const handleAddStudent = async (student) => {
     const isAlreadySelected = selectedStudents.some(
       (s) => s._id === student._id
     );
-  
+
     if (!isAlreadySelected) {
       const filterValues = filterForm.getValues();
       setLoading(true);
-      
+
       try {
         // Fetch the agent course details
         const agentCourse = await fetchAgentCourse(
           filterValues.agent,
           selectedCourseRelation._id
         );
-  
+
         if (!agentCourse) {
           toast({
             title: 'Error',
@@ -458,12 +461,12 @@ export default function RemitCreatePage() {
           });
           return;
         }
-  
+
         // Find the correct session in the year array of agentCourse
         const agentYear = agentCourse.year.find(
           (y) => y.sessionName === filterValues.session // Assuming sessionName matches filterValues.session
         );
-  
+
         if (!agentYear) {
           toast({
             title: 'Error',
@@ -472,19 +475,19 @@ export default function RemitCreatePage() {
           });
           return;
         }
-  
+
         const application = student.applications.find(
           (app) => app.courseRelationId === selectedCourseRelation._id
         );
-  
+
         const studentAmount =
           application.choice === 'Local'
             ? Number.parseFloat(selectedCourseRelation.local_amount)
             : Number.parseFloat(selectedCourseRelation.international_amount);
-  
+
         // Calculate the session fee
         const sessionFee = calculateSessionFee(agentYear, studentAmount);
-  
+
         // Create student object with fee and session details
         const studentWithFee = {
           ...student,
@@ -501,11 +504,13 @@ export default function RemitCreatePage() {
           Session: filterValues.session,
           semester: filterValues.term
         };
-  
+
         // Update selected students and filtered list
         setSelectedStudents((prev) => [...prev, studentWithFee]);
-        setFilteredStudents((prev) => prev.filter((s) => s._id !== student._id));
-  
+        setFilteredStudents((prev) =>
+          prev.filter((s) => s._id !== student._id)
+        );
+
         // Update form values based on the selected course relation and filter values
         if (selectedCourseRelation) {
           updateFormWithCourseDetails(
@@ -525,7 +530,6 @@ export default function RemitCreatePage() {
       });
     }
   };
-  
 
   useEffect(() => {
     fetchCourseRelations();

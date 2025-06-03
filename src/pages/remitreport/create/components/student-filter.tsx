@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
+import { useEffect } from 'react';
+import { useSelector } from 'react-redux';
 
 export function StudentFilter({
   filterForm,
@@ -33,6 +35,12 @@ export function StudentFilter({
   filteredCourseRelations,
   hasSearched
 }) {
+  const { user } = useSelector((state: any) => state.auth);
+  useEffect(() => {
+    if (user?.role === 'agent') {
+      filterForm.setValue('agent', user._id);
+    }
+  }, [user, filterForm]);
   return (
     <Card className="rounded-none shadow-md">
       <div className="px-6 py-2">
@@ -52,7 +60,8 @@ export function StudentFilter({
                     <FormLabel>Remit</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      value={field.value || ''}
+                      value={field.value}
+                      disabled={user?.role === 'agent'} // Disable for agents
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -60,11 +69,17 @@ export function StudentFilter({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {(agents || []).map((agent) => (
-                          <SelectItem key={agent._id} value={agent._id}>
-                            {agent.name}
+                        {user?.role === 'agent' ? (
+                          <SelectItem key={user._id} value={user._id}>
+                            {user.name}
                           </SelectItem>
-                        ))}
+                        ) : (
+                          (agents || []).map((agent) => (
+                            <SelectItem key={agent._id} value={agent._id}>
+                              {agent.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </FormItem>
@@ -84,7 +99,9 @@ export function StudentFilter({
                         handleTermChange(value);
                       }}
                       value={field.value}
-                      disabled={!filterForm.watch('agent')} // Disable when editing
+                      disabled={
+                        !filterForm.watch('agent') && user?.role !== 'agent'
+                      }
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -289,7 +306,7 @@ export function StudentFilter({
                   type="submit"
                   disabled={
                     hasSearched ||
-                    !filterForm.watch('agent') ||
+                    (user?.role !== 'agent' && !filterForm.watch('agent')) ||
                     !filterForm.watch('courseRelationId') ||
                     !filterForm.watch('year') ||
                     !filterForm.watch('session')

@@ -22,6 +22,7 @@ import { AlertModal } from '@/components/shared/alert-modal';
 import axios from 'axios';
 import { pdf } from '@react-pdf/renderer';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
+import { useSelector } from 'react-redux';
 
 export default function RemitReportPage() {
   const [invoices, setInvoices] = useState([]);
@@ -40,6 +41,7 @@ export default function RemitReportPage() {
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const { user } = useSelector((state: any) => state.auth);
 
   const fetchInvoices = async (page, entriesPerPage) => {
     try {
@@ -53,11 +55,25 @@ export default function RemitReportPage() {
       if (searchTerm) params.searchTerm = searchTerm;
       if (fromDate) params.fromDate = fromDate;
       if (toDate) params.toDate = toDate;
-      const response = await axiosInstance.get('/remit-invoice', {
-        params
-      });
-      setInvoices(response.data?.data?.result || []);
-      setTotalPages(response.data.data.meta.totalPage);
+
+      if (user?.role === 'agent') {
+        const response = await axiosInstance.get(
+          `/remit-invoice?remitTo=${user._id}`,
+          {
+            params
+          }
+        );
+        setInvoices(response.data?.data?.result || []);
+        setTotalPages(response.data.data.meta.totalPage);
+      } else {
+        const response = await axiosInstance.get('/remit-invoice', {
+          params
+        });
+        setInvoices(response.data?.data?.result || []);
+        setTotalPages(response.data.data.meta.totalPage);
+      }
+
+     
     } catch (error) {
       console.error('Error fetching invoices:', error);
     } finally {
@@ -206,6 +222,12 @@ export default function RemitReportPage() {
     }
   };
 
+  useEffect(() => {
+    if (user?.role === 'agent') {
+      setRemit(user._id);
+    }
+  }, [user]);
+
   return (
     <div className="mx-auto py-1">
       <div className="flex justify-between">
@@ -267,14 +289,23 @@ export default function RemitReportPage() {
               <select
                 value={remit}
                 onChange={(e) => setRemit(e.target.value)}
+                disabled={user?.role === 'agent'} // ⛔ Prevent changing if agent
                 className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
               >
                 <option value="">All</option>
-                {agents.map((agent) => (
-                  <option key={agent._id} value={agent._id}>
-                    {agent.name}
-                  </option>
-                ))}
+                {user?.role === 'agent'
+                  ? agents
+                      .filter((a) => a._id === user._id)
+                      .map((agent) => (
+                        <option key={agent._id} value={agent._id}>
+                          {agent.name}
+                        </option>
+                      ))
+                  : agents.map((agent) => (
+                      <option key={agent._id} value={agent._id}>
+                        {agent.name}
+                      </option>
+                    ))}
               </select>
             </div>
 
