@@ -370,9 +370,17 @@ export default function InvoicePage() {
       (s) => s.sessionName === filterValues.session
     );
     const application = student.applications?.find(
-      (app) => app.courseRelationId === selectedCourseRelation?._id
+      (app) => app.courseRelationId?._id === selectedCourseRelation?._id
     );
 
+    if (!application) {
+      toast({
+        title: 'Application Not Found',
+        description: 'This student has no application for the selected course.',
+        variant: 'destructive'
+      });
+      return;
+    }
     const studentAmount =
       application?.choice === 'Local'
         ? Number.parseFloat(selectedCourseRelation?.local_amount || 0)
