@@ -490,9 +490,17 @@ export default function InvoiceGeneratePage() {
       }
 
       const application = student.applications.find(
-        (app) => app.courseRelationId === selectedCourseRelation._id
+        (app) => app.courseRelationId._id === selectedCourseRelation._id
       );
-
+      if (!application) {
+        toast({
+          title: 'Application Not Found',
+          description:
+            'This student has no application for the selected course.',
+          variant: 'destructive'
+        });
+        return;
+      }
       // Now use the student's choice from the application (either "Local" or "International")
       const studentAmount =
         application.choice === 'Local'
@@ -694,7 +702,7 @@ export default function InvoiceGeneratePage() {
                 onValueChange={(value) => form.setValue('customer', value)}
                 value={form.watch('customer') || ''}
               >
-                <SelectTrigger className="max-w-[250px]">
+                <SelectTrigger className="min-w-[250px]">
                   <SelectValue placeholder="Select a customer" />
                 </SelectTrigger>
                 <SelectContent>
@@ -722,7 +730,7 @@ export default function InvoiceGeneratePage() {
                 onValueChange={(value) => form.setValue('bank', value)}
                 value={form.watch('bank') || ''}
               >
-                <SelectTrigger className="min-w-[150px]">
+                <SelectTrigger className="min-w-[250px]">
                   <SelectValue placeholder="Select a Bank" />
                 </SelectTrigger>
                 <SelectContent>
@@ -796,7 +804,7 @@ export default function InvoiceGeneratePage() {
                   : '(Amount)'}
               </label>
               <input
-                type="text" 
+                type="text"
                 className="flex h-9 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                 value={form.watch('discountAmount')}
                 onChange={(e) => {
@@ -812,7 +820,7 @@ export default function InvoiceGeneratePage() {
                 VAT (%)
               </label>
               <input
-                type="text" 
+                type="text"
                 className="flex h-9 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                 value={form.watch('vat')}
                 onChange={(e) => {
