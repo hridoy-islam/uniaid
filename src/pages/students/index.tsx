@@ -88,7 +88,7 @@ export default function StudentsPage() {
       }
 
       const response = await axiosInstance.get(
-        `/students?sort=-refId&fields=firstName,lastName,email,phone,refId`,
+        `/students?fields=firstName,lastName,email,phone,refId`,
         {
           params
         }
