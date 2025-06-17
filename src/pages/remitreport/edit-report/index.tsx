@@ -326,8 +326,17 @@ export default function RemitCreatePage() {
 
       // Find the application for this course relation
       const application = student.applications?.find((app) =>
-        app.courseRelationId === selectedCourseRelation?._id
+        app.courseRelationId._id === selectedCourseRelation?._id
       );
+      if (!application) {
+        toast({
+          title: 'Application Not Found',
+          description:
+            'This student has no application for the selected course.',
+          variant: 'destructive'
+        });
+        return;
+      }
 
       // Calculate the student amount based on their choice (Local/International)
       const studentAmount = application?.choice === "Local"
