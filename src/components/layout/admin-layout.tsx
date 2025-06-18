@@ -1,6 +1,6 @@
 import { TopNav } from "@/components/shared/top-nav"
 import { SideNav } from "@/components/shared/side-nav"
-import AutoLogout from "../shared/auto-logout";
+// import AutoLogout from "../shared/auto-logout";
 import { Toaster } from "@/components/ui/toaster";
 
 export default function AdminLayout({
@@ -10,7 +10,7 @@ export default function AdminLayout({
   })  {
   return (
     <div className="min-h-screen bg-gray-50">
-      <AutoLogout inactivityLimit={30 * 60 * 1000} />
+      {/* <AutoLogout inactivityLimit={8 * 60 * 60 * 1000} /> */}
       <TopNav />
       <SideNav />
 

@@ -10,6 +10,8 @@ import ErrorMessage from '@/components/shared/error-message';
 import axiosInstance from '../../../lib/axios';
 import moment from 'moment';
 import { useToast } from '@/components/ui/use-toast';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 import {
   Select,
@@ -43,14 +45,14 @@ export default function NewStudentPage() {
         gender: data.gender,
         maritualStatus: data.maritalStatus,
         country: data.country,
-        createdBy:user._id,
-        email: data.email.toLowerCase(),
+        createdBy: user._id,
+        email: data.email.toLowerCase()
       };
       // Add agentID only if the user is an agent
       if (user.role === 'agent') {
         formattedData.agent = user._id;
       }
-   
+
       const response = await axiosInstance.post(`/students`, formattedData);
 
       // Handle success response
@@ -191,12 +193,26 @@ export default function NewStudentPage() {
           </div>
 
           {/* Date of Birth */}
-          <div>
+          <div className="flex flex-col gap-2">
             <Label htmlFor="dob">Date of Birth *</Label>
-            <Input
-              id="dob"
-              type="date"
-              {...register('dob', { required: 'Date of Birth Requried' })}
+            <Controller
+              name="dob"
+              control={control}
+              rules={{ required: 'Date of Birth is required' }}
+              render={({ field }) => (
+                <DatePicker
+                  selected={field.value ? new Date(field.value) : null}
+                  onChange={(date) => field.onChange(date)}
+                  placeholderText="DD-MM-YYYY"
+                  isClearable
+                  showYearDropdown
+                  showMonthDropdown
+                  scrollableYearDropdown
+                  yearDropdownItemNumber={100}
+                  className="w-full rounded-md border border-gray-300 bg-transparent px-4 py-1.5"
+                  dateFormat="dd-MM-yyyy"
+                />
+              )}
             />
             <ErrorMessage message={errors.dob?.message?.toString()} />
           </div>

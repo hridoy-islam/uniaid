@@ -6,7 +6,8 @@ import axiosInstance from '@/lib/axios';
 import { useSelector } from 'react-redux';
 import Select, { MultiValue } from 'react-select';
 import * as XLSX from 'xlsx';
-
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 export default function StudentFilter({ onSubmit, total }) {
   const { user } = useSelector((state: any) => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
@@ -108,7 +109,7 @@ export default function StudentFilter({ onSubmit, total }) {
     } catch (error) {
       console.error('Error fetching students for export:', error);
       return [];
-    } 
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -135,7 +136,6 @@ export default function StudentFilter({ onSubmit, total }) {
 
     setIsExporting(true);
     try {
-
       const filterData = {
         searchTerm,
         status: status.length > 0 ? status : null,
@@ -187,7 +187,7 @@ export default function StudentFilter({ onSubmit, total }) {
           Staff: Array.isArray(student.assignStaff)
             ? student.assignStaff?.map((staff) => staff?.name || '').join(', ')
             : '',
-          Type: '', 
+          Type: '',
           Status: ''
         };
 
@@ -257,13 +257,33 @@ export default function StudentFilter({ onSubmit, total }) {
         </div>
 
         {/* DOB Input */}
-        <div>
-          <label className="mb-2 block text-sm font-medium">DOB</label>
-          <Input
-            placeholder="DOB"
-            type="date"
-            value={dob}
-            onChange={(e) => setDob(e.target.value)}
+        <div className="flex w-full flex-col">
+          <label className="mb-2 text-sm font-medium">DOB</label>
+          <DatePicker
+            selected={dob ? new Date(dob) : null} // parse ISO string directly
+            onChange={(date: Date | null) => {
+              if (date) {
+                const formattedDate = `${date.getFullYear()}-${(
+                  date.getMonth() + 1
+                )
+                  .toString()
+                  .padStart(
+                    2,
+                    '0'
+                  )}-${date.getDate().toString().padStart(2, '0')}`;
+                setDob(formattedDate); // stored as YYYY-MM-DD
+              } else {
+                setDob('');
+              }
+            }}
+            placeholderText="DD-MM-YYYY"
+            isClearable
+            showYearDropdown
+            showMonthDropdown
+            scrollableYearDropdown
+            yearDropdownItemNumber={100}
+            className="w-full rounded-md border border-gray-300 bg-transparent px-4 py-1.5"
+            dateFormat="dd-MM-yyyy"
           />
         </div>
 
