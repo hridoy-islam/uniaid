@@ -18,7 +18,8 @@ import {
   DraftingCompass,
   ClipboardPaste,
   PiggyBank,
-  Vault
+  Vault,
+  Database
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
@@ -72,7 +73,8 @@ const navItems = [
       },
       { icon: CircleUser, label: 'Staffs', href: 'staff' },
       { icon: AtSign, label: 'Emails', href: 'emails' },
-      { icon: DraftingCompass, label: 'Drafts', href: 'drafts' }
+      { icon: DraftingCompass, label: 'Drafts', href: 'drafts' },
+      { icon: Database , label: 'Bulk Roll Update', href: 'bulk-roll-update' }
     ]
   }
 ];

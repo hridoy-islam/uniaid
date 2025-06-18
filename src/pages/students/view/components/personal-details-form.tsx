@@ -16,6 +16,9 @@ import axiosInstance from '@/lib/axios';
 import { useSelector } from 'react-redux';
 import { Divide } from 'lucide-react';
 import moment from 'moment';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { format } from 'date-fns';
 
 export function PersonalDetailsForm({ student, onSave }) {
   const { user } = useSelector((state: any) => state.auth);
@@ -83,7 +86,6 @@ export function PersonalDetailsForm({ student, onSave }) {
   useEffect(() => {
     fetchAgents();
   }, []);
-
 
   useEffect(() => {
     if (student) {
@@ -202,22 +204,27 @@ export function PersonalDetailsForm({ student, onSave }) {
           </div>
 
           {/* Date of Birth */}
-          <div className="space-y-2">
-  <Label htmlFor="dob">Date of Birth</Label>
-  <Controller
-    name="dob"
-    control={control}
-    render={({ field }) => (
-      <Input
-        id="dob"
-        type="date"
-        {...field}
-        value={field.value ? moment(field.value).format('YYYY-MM-DD') : ''}
-        onChange={(e) => field.onChange(e.target.value)}
-      />
-    )}
-  />
-</div>
+          <div className="flex flex-col gap-2 space-y-2">
+            <Label htmlFor="dob">Date of Birth</Label>
+            <Controller
+              name="dob"
+              control={control}
+              render={({ field }) => (
+                <DatePicker
+                  id="dob"
+                  selected={field.value ? new Date(field.value) : null}
+                  onChange={(date) => field.onChange(date)}
+                  dateFormat="dd-MM-yyyy"
+                  className="input-class w-full rounded-md border border-gray-300 bg-transparent  px-4 py-1.5" // your custom styling
+                  placeholderText="DD-MM-YYYY"
+                  showYearDropdown
+                  showMonthDropdown
+                  scrollableYearDropdown
+                  yearDropdownItemNumber={100}
+                />
+              )}
+            />
+          </div>
 
           {/* Marital Status Dropdown */}
           <div className="space-y-2">

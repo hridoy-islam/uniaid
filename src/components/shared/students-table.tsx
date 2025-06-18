@@ -7,7 +7,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Eye, Trash2Icon } from 'lucide-react';
+import { Eye, Target, Trash2Icon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
@@ -55,11 +55,11 @@ export function StudentsTable({ students, handleStatusChange }) {
               </TableCell> */}
               <TableCell className="text-right">
                 <div className="flex justify-end space-x-2">
-                  <Link to={`${student._id}`}>
+                  <a href={`/admin/students/${student._id}` } target='_blank'>
                     <Button variant="outline" size="icon">
                       <Eye className="h-4 w-4" />
                     </Button>
-                  </Link>
+                  </a>
                   {user.role === 'admin' && (
                     <Button variant="destructive" size="icon">
                       <Trash2Icon className="h-4 w-4" />

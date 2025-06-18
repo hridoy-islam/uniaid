@@ -47,6 +47,7 @@ import EditRemitCreatePage from '@/pages/remitreport/edit-report';
 import EditInvoiceGeneratePage from '@/pages/invoice/editInvoice';
 import BankPage from '@/pages/bank';
 import BankDetailsPage from '@/pages/bank/details';
+import BulkRollPage from '@/pages/bulk-roll-update';
 
 const SignInPage = lazy(() => import('@/pages/auth/signin'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -222,6 +223,10 @@ export default function AppRouter() {
         {
           path: 'drafts',
           element: <DraftsManager />
+        },
+        {
+          path: 'bulk-roll-update',
+          element: <BulkRollPage />
         }
       ]
     }
