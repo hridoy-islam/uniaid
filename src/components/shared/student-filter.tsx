@@ -156,6 +156,7 @@ export default function StudentFilter({ onSubmit, total }) {
       const exportData = studentsForExport?.map((student) => {
         const baseFields = {
           'Reference No': student.refId || '',
+          'College Roll':student.collegeRoll ||'',
           'Student Name':
             `${student?.title || ''} ${student?.firstName || ''} ${student?.lastName || ''}`.trim(),
           Email: student.email || '',
@@ -250,7 +251,7 @@ export default function StudentFilter({ onSubmit, total }) {
         <div>
           <label className="mb-2 block text-sm font-medium">Search</label>
           <Input
-            placeholder="Ref No, Name, Email, Phone"
+            placeholder="Ref No, Name, Email, Phone, College Roll"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

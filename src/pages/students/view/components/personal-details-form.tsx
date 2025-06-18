@@ -199,7 +199,12 @@ export function PersonalDetailsForm({ student, onSave }) {
             <Input
               id="phone"
               type="tel"
-              {...register('phone')} // Register the phone field
+              {...register('phone', {
+                onChange: (e) => {
+                   const cleanedValue = e.target.value.replace(/\s+/g, '');
+                  setValue('phone', cleanedValue);
+                }
+              })}
             />
           </div>
 
