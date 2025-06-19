@@ -30,7 +30,8 @@ export default function NewStudentPage() {
     control,
     handleSubmit,
     register,
-    formState: { errors }
+    formState: { errors },
+    setValue
   } = useForm();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -46,7 +47,8 @@ export default function NewStudentPage() {
         maritualStatus: data.maritalStatus,
         country: data.country,
         createdBy: user._id,
-        email: data.email.toLowerCase()
+        email: data.email.toLowerCase(),
+        phone:data.phone
       };
       // Add agentID only if the user is an agent
       if (user.role === 'agent') {
@@ -187,7 +189,12 @@ export default function NewStudentPage() {
             <Input
               id="phone"
               type="tel"
-              {...register('phone', { required: 'Phone is required' })}
+              {...register('phone', {
+                onChange: (e) => {
+                   const cleanedValue = e.target.value.replace(/\s+/g, '');
+                  setValue('phone', cleanedValue);
+                }
+              })}
             />
             <ErrorMessage message={errors.phone?.message?.toString()} />
           </div>

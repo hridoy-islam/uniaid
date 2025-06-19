@@ -29,7 +29,7 @@ interface CSVRow {
   'Reg No': string;
   Name: string;
   Mobile: string;
-  Email?: string; // Added email field to CSV structure
+  Email?: string;
 }
 
 interface StudentData {
@@ -69,10 +69,10 @@ export default function BulkRollPage() {
   const [uploadError, setUploadError] = useState<string>('');
   const [hasActiveUpload, setHasActiveUpload] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const[count, setCount] =useState(0);
+  const [count, setCount] = useState(0);
 
-const counter = () => {
-    setCount(prev => prev + 1);
+  const counter = () => {
+    setCount((prev) => prev + 1);
   };
 
   const fetchCsvFromDatabase = async () => {
@@ -92,7 +92,6 @@ const counter = () => {
       const phoneMap = new Map<string, number>();
       const emailMap = new Map<string, number>();
 
-      // First pass to count occurrences
       studentList.forEach((item: any) => {
         phoneMap.set(item.phone, (phoneMap.get(item.phone) || 0) + 1);
         if (item.email) {
@@ -110,86 +109,38 @@ const counter = () => {
           csvData: {
             'Reg No': item.regNo,
             Name: item.name,
-            Mobile: item.phone
+            Mobile: item.phone,
+            Email: item.email || ''
           },
+          studentData: item.studentId ? {
+            _id: item.studentId._id,
+            title: item.studentId.title,
+            firstName: item.studentId.firstName,
+            lastName: item.studentId.lastName,
+            email: item.studentId.email,
+            phone: item.studentId.phone,
+            dob: item.studentId.dob,
+            refId: item.studentId.refId
+          } : undefined,
           status:
-            isPhoneDuplicate || isEmailDuplicate ? 'duplicate' : 'pending',
+            isPhoneDuplicate || isEmailDuplicate
+              ? 'duplicate'
+              : item.studentId
+                ? 'found'
+                : 'error',
           error:
             isPhoneDuplicate || isEmailDuplicate
-              ? 'Duplicate student detected based on phone or email'
-              : undefined
+              ? 'Duplicate Found'
+              : !item.studentId
+                ? 'Student data not found'
+                : undefined
         };
       });
 
       setCsvData(processed);
       setHasActiveUpload(true);
-      setIsProcessing(true);
-
-      const updatedRows = [...processed];
-      for (let i = 0; i < updatedRows.length; i++) {
-        const row = updatedRows[i];
-
-        try {
-          row.status = 'processing';
-          setCsvData([...updatedRows]);
-
-          // const studentData = await fetchStudentData(row.csvData.Mobile);
-          // if (studentData) {
-          //   row.studentData = studentData;
-          //   row.status = 'found';
-          // } else  {
-          //   row.status = 'error';
-          //   row.error = 'Student data not found in the provided CSV';
-          // }
-
-          const studentData = await fetchStudentData(row.csvData.Mobile);
-          if (studentData) {
-            // Re-check for duplicate using phone/email from CSV
-            const isPhoneDuplicate = phoneMap.get(row.csvData.Mobile) > 1;
-            const email = studentData.email;
-            const isEmailDuplicate =email &&  emailMap.get(email) > 1;
-
-            if (isPhoneDuplicate || isEmailDuplicate) {
-              row.studentData = studentData;
-              row.status = 'duplicate';
-              row.error = 'Duplicate student detected based on phone or email';
-            } else {
-              row.studentData = studentData;
-              row.status = 'found';
-            }
-          } else {
-            row.status = 'error';
-            row.error = 'Student data not found in the provided CSV';
-          }
-        } catch (error) {
-          row.status = 'error';
-          row.error = 'Error fetching student data';
-        }
-
-        setCsvData([...updatedRows]);
-      }
     } catch (error) {
       console.error('Failed to fetch CSV:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const fetchStudentData = async (
-    mobile: string
-  ): Promise<StudentData | null> => {
-    try {
-      const response = await axiosInstance.get(
-        `/students?fields=firstName,lastName,email,phone,refId,title,dob&limit=all`,
-        {
-          params: { searchTerm: mobile }
-        }
-      );
-      const students = response.data.data.result;
-      return students?.find((s: StudentData) => s.phone === mobile) || null;
-    } catch (error) {
-      console.error('Error fetching student:', error);
-      return null;
     }
   };
 
@@ -201,33 +152,26 @@ const counter = () => {
           name: row.csvData['Name'],
           phone: row.csvData['Mobile'],
           email: row.csvData['Email'] || '',
-          tempId: row.id // Save temporary client-generated ID
+          tempId: row.id
         }))
       });
-
-      // Update the parent CSV ID
-      const newParentCsvId = response.data.data._id;
-      setParentCsvId(newParentCsvId);
-
-      // Update the csvData with the actual MongoDB IDs from the response
+      setParentCsvId(response.data.data._id);
       const savedStudentData = response.data.data.studentData || [];
       setCsvData((prevData) =>
         prevData.map((row) => {
-          // Find the corresponding saved student by matching tempId
           const savedStudent = savedStudentData.find(
             (saved: any) => saved.tempId === row.id
           );
           if (savedStudent) {
             return {
               ...row,
-              originalId: savedStudent._id // Set the actual MongoDB ID
+              originalId: savedStudent._id
             };
           }
           return row;
         })
       );
-
-      return newParentCsvId;
+      return response.data.data._id;
     } catch (error) {
       console.error('Error saving CSV:', error);
       throw error;
@@ -236,23 +180,17 @@ const counter = () => {
 
   const removeFromCsvDatabase = async (csvId: string, row: ProcessedRow) => {
     try {
-      // Use originalId if available (for rows fetched from DB), otherwise use the tempId approach
       const studentIdToRemove = row.originalId || row.id;
-
-      // If we don't have originalId, we need to find the student by tempId
       const patchData = row.originalId
         ? { studentId: studentIdToRemove }
-        : { tempId: row.id }; // Use tempId to identify the student to remove
-
+        : { tempId: row.id };
       const patchResponse = await axiosInstance.patch(
         `/csv/${csvId}`,
         patchData
       );
 
       if (!patchResponse.data.success) {
-        throw new Error(
-          patchResponse.data.message || 'Failed to remove student'
-        );
+        throw new Error(patchResponse.data.message || 'Failed to remove student');
       }
 
       const isLastStudent = csvData.length === 1;
@@ -261,9 +199,7 @@ const counter = () => {
       if (isLastStudent) {
         const deleteResponse = await axiosInstance.delete(`/csv/${csvId}`);
         if (!deleteResponse.data.success) {
-          throw new Error(
-            deleteResponse.data.message || 'Failed to delete document'
-          );
+          throw new Error(deleteResponse.data.message || 'Failed to delete document');
         }
         documentDeleted = true;
       }
@@ -279,14 +215,12 @@ const counter = () => {
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (!file) return;
-
       if (hasActiveUpload) {
         setUploadError(
           'Please complete or clear the current upload before uploading a new file.'
         );
         return;
       }
-
       setIsUploading(true);
       setUploadError('');
 
@@ -323,12 +257,7 @@ const counter = () => {
 
             setCsvData(processedRows);
             setHasActiveUpload(true);
-
-            // Save to database and update the state with actual IDs
             await saveCsvToDatabase(processedRows);
-
-            // Process student data after saving
-            await processStudentData(processedRows);
           } catch (error) {
             console.error('Error processing CSV:', error);
             setUploadError('Error processing CSV file. Please try again.');
@@ -348,265 +277,18 @@ const counter = () => {
     [hasActiveUpload]
   );
 
-  const processStudentData = async (rows: ProcessedRow[]) => {
-    setIsProcessing(true);
-    const updatedRows = [...rows];
-
-    // First check for phone duplicates in the CSV
-    const phoneToRows: Record<string, ProcessedRow[]> = {};
-
-    // Build map of phone to rows
-    updatedRows.forEach((row) => {
-      const phone = row.csvData.Mobile.trim();
-      if (!phoneToRows[phone]) {
-        phoneToRows[phone] = [];
-      }
-      phoneToRows[phone].push(row);
-    });
-
-    // Mark phone duplicates in CSV and check if emails also match
-    updatedRows.forEach((row) => {
-      const phone = row.csvData.Mobile.trim();
-      const phoneDuplicates = phoneToRows[phone] || [];
-
-      // Check if this row is a phone duplicate (not the first occurrence)
-      const isPhoneDuplicate =
-        phoneDuplicates.length > 1 && phoneDuplicates[0].id !== row.id;
-
-      if (isPhoneDuplicate) {
-        // Now check if emails also match
-        const email = row.csvData.Email
-          ? row.csvData.Email.trim().toLowerCase()
-          : '';
-        const firstDuplicateEmail = phoneDuplicates[0].csvData.Email
-          ? phoneDuplicates[0].csvData.Email.trim().toLowerCase()
-          : '';
-
-        row.isDuplicate = true;
-        row.status = 'error';
-
-        if (email && firstDuplicateEmail && email === firstDuplicateEmail) {
-          // Both phone and email match
-          row.duplicateType = 'both';
-          row.error = `Duplicate phone (${phone}) and email (${email}) in CSV`;
-        } else {
-          // Only phone matches
-          row.duplicateType = 'phone';
-          row.error = `Duplicate phone number in CSV: ${phone}`;
-        }
-      }
-    });
-
-    // Then check for email duplicates (only for rows not already marked as phone duplicates)
-    const emailToRows: Record<string, ProcessedRow[]> = {};
-
-    updatedRows
-      .filter((row) => !row.isDuplicate)
-      .forEach((row) => {
-        if (row.csvData.Email && row.csvData.Email.trim()) {
-          const email = row.csvData.Email.trim().toLowerCase();
-          if (!emailToRows[email]) {
-            emailToRows[email] = [];
-          }
-          emailToRows[email].push(row);
-        }
-      });
-
-    // Mark email duplicates in CSV
-    updatedRows.forEach((row) => {
-      if (row.isDuplicate) return; // Skip already marked duplicates
-
-      const email = row.csvData.Email
-        ? row.csvData.Email.trim().toLowerCase()
-        : '';
-      if (!email) return; // Skip if no email
-
-      const emailDuplicates = emailToRows[email] || [];
-      const isEmailDuplicate =
-        emailDuplicates.length > 1 && emailDuplicates[0].id !== row.id;
-
-      if (isEmailDuplicate) {
-        row.isDuplicate = true;
-        row.duplicateType = 'email';
-        row.status = 'error';
-        row.error = `Duplicate email in CSV: ${email}`;
-      }
-    });
-
-    // Now check against database
-    try {
-      // Get all unique mobile numbers and emails from non-duplicate rows
-      const mobilesToCheck = updatedRows
-        .filter((row) => !row.isDuplicate)
-        .map((row) => row.csvData.Mobile);
-
-      const emailsToCheck = updatedRows
-        .filter(
-          (row) =>
-            !row.isDuplicate && row.csvData.Email && row.csvData.Email.trim()
-        )
-        .map((row) => row.csvData.Email!.trim());
-
-      if (mobilesToCheck.length > 0 || emailsToCheck.length > 0) {
-        // Search by phone numbers
-        let phoneResults: StudentData[] = [];
-        if (mobilesToCheck.length > 0) {
-          const phoneResponse = await axiosInstance.get(
-            `/students?fields=firstName,lastName,email,phone,refId,title,dob&limit=all`,
-            {
-              params: {
-                searchTerm: mobilesToCheck.join(','),
-                searchFields: 'phone'
-              }
-            }
-          );
-          phoneResults = phoneResponse.data.data.result || [];
-        }
-
-        // Search by email addresses
-        let emailResults: StudentData[] = [];
-        if (emailsToCheck.length > 0) {
-          const emailResponse = await axiosInstance.get(
-            `/students?fields=firstName,lastName,email,phone,refId,title,dob&limit=all`,
-            {
-              params: {
-                searchTerm: emailsToCheck.join(','),
-                searchFields: 'email'
-              }
-            }
-          );
-          emailResults = emailResponse.data.data.result || [];
-        }
-
-        // Combine and deduplicate results
-        const allStudents = [...phoneResults];
-        emailResults.forEach((emailStudent) => {
-          if (!allStudents.find((s) => s._id === emailStudent._id)) {
-            allStudents.push(emailStudent);
-          }
-        });
-
-        // Create maps for quick lookup
-        const phoneToStudents: Record<string, StudentData[]> = {};
-        const emailToStudents: Record<string, StudentData[]> = {};
-
-        allStudents.forEach((student: StudentData) => {
-          // Group by phone
-          if (!phoneToStudents[student.phone]) {
-            phoneToStudents[student.phone] = [];
-          }
-          phoneToStudents[student.phone].push(student);
-
-          // Group by email
-          const studentEmail = student.email.toLowerCase();
-          if (!emailToStudents[studentEmail]) {
-            emailToStudents[studentEmail] = [];
-          }
-          emailToStudents[studentEmail].push(student);
-        });
-
-        // Process each row
-        for (const row of updatedRows) {
-          if (row.isDuplicate) continue; // Skip already marked duplicates
-
-          try {
-            row.status = 'processing';
-            setCsvData([...updatedRows]);
-
-            const phoneMatches = phoneToStudents[row.csvData.Mobile] || [];
-            const emailMatches =
-              row.csvData.Email && row.csvData.Email.trim()
-                ? emailToStudents[row.csvData.Email.trim().toLowerCase()] || []
-                : [];
-
-            // Check for duplicates by phone first
-            if (phoneMatches.length > 1) {
-              // Multiple phone matches - check if any email also matches
-              if (row.csvData.Email && emailMatches.length > 0) {
-                // Both phone and email have matches
-                row.status = 'error';
-                row.error = `Duplicate in database: ${phoneMatches.length} students with phone ${row.csvData.Mobile} and email also matches`;
-                row.isDuplicate = true;
-                row.duplicateType = 'both';
-              } else {
-                // Only phone has multiple matches
-                row.status = 'error';
-                row.error = `Duplicate in database: ${phoneMatches.length} students with phone ${row.csvData.Mobile}`;
-                row.isDuplicate = true;
-                row.duplicateType = 'phone';
-              }
-            } else if (emailMatches.length > 1) {
-              // Multiple email matches
-              row.status = 'error';
-              row.error = `Duplicate in database: ${emailMatches.length} students with email ${row.csvData.Email}`;
-              row.isDuplicate = true;
-              row.duplicateType = 'email';
-            } else if (phoneMatches.length === 1) {
-              // Single phone match - check if email also matches the same student
-              const phoneStudent = phoneMatches[0];
-              if (row.csvData.Email && emailMatches.length === 1) {
-                const emailStudent = emailMatches[0];
-                if (phoneStudent._id === emailStudent._id) {
-                  // Same student found by both phone and email
-                  row.studentData = phoneStudent;
-                  row.status = 'found';
-                } else {
-                  // Different students found by phone and email
-                  row.status = 'error';
-                  row.error = 'Phone and email belong to different students';
-                  row.isDuplicate = true;
-                  row.duplicateType = 'both';
-                }
-              } else {
-                // Only phone match, no email to check
-                row.studentData = phoneStudent;
-                row.status = 'found';
-              }
-            } else if (emailMatches.length === 1) {
-              // Only email match, no phone match
-              row.studentData = emailMatches[0];
-              row.status = 'found';
-            } else {
-              // No matches found
-              row.status = 'error';
-              row.error = 'Student not found in database';
-            }
-          } catch (error) {
-            row.status = 'error';
-            row.error = 'Error checking student data';
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching student data:', error);
-      updatedRows.forEach((row) => {
-        if (row.status === 'processing') {
-          row.status = 'error';
-          row.error = 'Error fetching student data';
-        }
-      });
-    } finally {
-      setCsvData([...updatedRows]);
-      setIsProcessing(false);
-    }
-  };
-
   const handleApproveStudent = async (row: ProcessedRow) => {
     if (!row.studentData) return;
-
     try {
       setCsvData((prev) =>
         prev.map((r) => (r.id === row.id ? { ...r, status: 'processing' } : r))
       );
-
       await axiosInstance.patch(`/students/${row.studentData._id}`, {
         collegeRoll: row.csvData['Reg No']
       });
-
       const isLastStudent = csvData.length === 1;
       const result = await removeFromCsvDatabase(parentCsvId, row);
       setCsvData((prev) => prev.filter((r) => r.id !== row.id));
-
       if (isLastStudent || result.documentDeleted) {
         setHasActiveUpload(false);
         setParentCsvId('');
@@ -635,11 +317,9 @@ const counter = () => {
       setCsvData((prev) =>
         prev.map((r) => (r.id === row.id ? { ...r, status: 'processing' } : r))
       );
-
       const isLastStudent = csvData.length === 1;
       const result = await removeFromCsvDatabase(parentCsvId, row);
       setCsvData((prev) => prev.filter((r) => r.id !== row.id));
-
       if (isLastStudent || result.documentDeleted) {
         setHasActiveUpload(false);
         setParentCsvId('');
@@ -662,11 +342,6 @@ const counter = () => {
       );
     }
   };
-
-  
-  useEffect(() => {
-    fetchCsvFromDatabase();
-  }, [hasActiveUpload,count]);
 
   const handleRollInputChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -712,16 +387,15 @@ const counter = () => {
 
   const getRowClassName = (row: ProcessedRow) => {
     if (row.status === 'duplicate') {
-      return 'bg-green-50 border-red-200'; // Prioritize duplicate styling
+      return 'bg-green-50 border-red-200';
     } else if (row.status === 'error') {
-      return 'bg-red-50 border-yellow-200'; // Fallback to error
+      return 'bg-red-50 border-yellow-200';
     }
     return '';
   };
 
   const getDuplicateBadge = (row: ProcessedRow) => {
     if (!row.isDuplicate) return null;
-
     let badgeText = 'Duplicate';
     let badgeColor = 'destructive';
 
@@ -745,6 +419,10 @@ const counter = () => {
       </Badge>
     );
   };
+
+  useEffect(() => {
+    fetchCsvFromDatabase();
+  }, [hasActiveUpload, count]);
 
   return (
     <div className="space-y-6">
@@ -787,14 +465,12 @@ const counter = () => {
                   </a>
                 </div>
               </div>
-
               {uploadError && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{uploadError}</AlertDescription>
                 </Alert>
               )}
-
               {isUploading && (
                 <div className="flex items-center space-x-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -809,17 +485,20 @@ const counter = () => {
       {csvData.length > 0 && (
         <Card>
           <CardHeader>
-            <div className='flex flex-row items-center justify-between'>
+            <div className="flex flex-row items-center justify-between">
               <div>
- <CardTitle>Student Data Processing</CardTitle>
-            <CardDescription>Review and approve student data.</CardDescription>
+                <CardTitle>Student Data Processing</CardTitle>
+                <CardDescription>Review and approve student data.</CardDescription>
               </div>
               <div>
-             
-                <Button onClick={counter} className='bg-supperagent text-white hover:bg-supperagent/90 flex flex-row gap-2'>   <RefreshCcw/>Refresh</Button>
+                <Button
+                  onClick={counter}
+                  className="bg-supperagent text-white hover:bg-supperagent/90 flex flex-row gap-2"
+                >
+                  <RefreshCcw /> Refresh
+                </Button>
               </div>
             </div>
-           
           </CardHeader>
           <CardContent>
             {isProcessing ? (
@@ -852,12 +531,10 @@ const counter = () => {
                                 {row.error}
                               </p>
                             )}
-
                             {getDuplicateBadge(row)}
                           </div>
                         </TableCell>
                         <TableCell>
-                          {' '}
                           {row.studentData?.refId || (
                             <span className="text-gray-400">-</span>
                           )}
