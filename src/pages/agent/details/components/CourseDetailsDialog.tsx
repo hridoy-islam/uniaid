@@ -111,19 +111,7 @@ const CourseDetailsDialog = ({
 
         <div className="space-y-2 py-0">
           {/* Term details section */}
-          <div className="space-y-0">
-            <h3 className="text-lg font-medium">Term Details</h3>
-            <div className="grid grid-cols-2 gap-0">
-              <div>
-                <label className="text-sm font-medium">Term</label>
-                <p className="text-gray-800">{courseData.courseRelationId.term.term}</p>
-              </div>
-              {/* <div>
-                <label className="text-sm font-medium">Academic Year</label>
-                <p className="text-gray-800">{editedData?.term?.academic_year || 'N/A'}</p>
-              </div> */}
-            </div>
-          </div>
+         
 
           {/* Sessions table */}
           <div className="space-y-2">
