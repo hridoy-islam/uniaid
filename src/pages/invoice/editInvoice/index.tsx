@@ -145,9 +145,7 @@ export default function InvoicePage() {
           await fetchInvoiceData(id);
         }
       } catch (error) {
-        
-        toast({title:'Failed to load initial data', variant:"destructive"});
-
+        toast({ title: 'Failed to load initial data', variant: 'destructive' });
       } finally {
         setLoading(false);
       }
@@ -161,8 +159,7 @@ export default function InvoicePage() {
       const response = await axiosInstance.get('/customer?limit=all');
       setCustomers(response?.data?.data?.result || []);
     } catch (error) {
-      
-      toast({title:'Failed to fetch customers', variant:"destructive"});
+      toast({ title: 'Failed to fetch customers', variant: 'destructive' });
     }
   };
 
@@ -171,7 +168,7 @@ export default function InvoicePage() {
       const response = await axiosInstance.get('/bank?limit=all');
       setBanks(response?.data?.data?.result || []);
     } catch (error) {
-      toast({title:'Failed to fetch banks', variant:"destructive"});
+      toast({ title: 'Failed to fetch banks', variant: 'destructive' });
     }
   };
 
@@ -207,7 +204,10 @@ export default function InvoicePage() {
       );
       setSessions(uniqueSessions);
     } catch (error) {
-      toast({title:'Failed to fetch course relations', variant:"destructive"});
+      toast({
+        title: 'Failed to fetch course relations',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -218,7 +218,7 @@ export default function InvoicePage() {
       const data = response?.data?.data;
       setInvoiceData(data);
       if (!data) throw new Error('Invoice not found');
-
+      const originalStudentIds = data.students.map((student) => student.refId);
       // Set form values
       form.reset({
         status: data.status || 'due',
@@ -241,7 +241,8 @@ export default function InvoicePage() {
           data.courseRelationId,
           data.year,
           data.session,
-          data.status
+          data.status,
+          originalStudentIds
         );
       }
     } catch (error) {
@@ -259,7 +260,8 @@ export default function InvoicePage() {
     courseRelationId,
     year,
     session,
-    paymentStatus
+    paymentStatus,
+    originalStudentIds = []
   ) => {
     try {
       setLoading(true);
@@ -284,37 +286,52 @@ export default function InvoicePage() {
 
       setSelectedCourseRelation(relationData);
       const allStudents = studentsResponse?.data?.data?.result || [];
-
-      // Set selected students from invoice
-      const selectedStudents = allStudents.map((student) => {
-        const yearObj = relationData.years.find((y) => y.year === year);
-        const sessionObj = yearObj?.sessions.find(
-          (s) => s.sessionName === session
-        );
-        const application = student.applications?.find(
-          (app) => app.courseRelationId === relationData._id
-        );
-
-        const studentAmount =
-          application?.choice === 'Local'
-            ? Number.parseFloat(relationData.local_amount || 0)
-            : Number.parseFloat(relationData.international_amount || 0);
-
-        const sessionFee = sessionObj
-          ? calculateSessionFee(sessionObj, studentAmount)
-          : 0;
-
-        return {
+      // Set filtered students (all students minus selected ones)
+      const filtered = allStudents
+        .filter((student) => !originalStudentIds.includes(student?.refId))
+        .map((student) => ({
           ...student,
-          selected: true,
-          amount: sessionFee,
-          sessionFee,
-          courseRelationId: relationData._id,
-          year,
-          session,
-          semester: relationData.term?.term || ''
-        };
-      });
+          selected: false
+        }));
+
+      setFilteredStudents(filtered);
+      // Set selected students from invoice
+      const selectedStudents = allStudents
+        .filter((student) => originalStudentIds.includes(student?.refId))
+        .map((student) => {
+          const yearObj = relationData.years.find((y) => y.year === year);
+          const sessionObj = yearObj?.sessions.find(
+            (s) => s.sessionName === session
+          );
+          const application = student.applications?.find(
+            (app) => app.courseRelationId?._id === relationData._id
+          );
+
+          const choice = application?.choice?.toLowerCase();
+
+          const localAmount = Number.parseFloat(relationData.local_amount || 0);
+          const internationalAmount = Number.parseFloat(
+            relationData.international_amount || 0
+          );
+
+          const studentAmount =
+            choice === 'local' ? localAmount : internationalAmount;
+
+          const sessionFee = sessionObj
+            ? calculateSessionFee(sessionObj, studentAmount)
+            : 0;
+
+          return {
+            ...student,
+            selected: true,
+            amount: sessionFee,
+            sessionFee,
+            courseRelationId: relationData._id,
+            year,
+            session,
+            semester: relationData.term?.term || ''
+          };
+        });
 
       setSelectedStudents(selectedStudents);
       setHasSearched(true);
@@ -327,7 +344,6 @@ export default function InvoicePage() {
       setLoading(false);
     }
   };
-
   const calculateSessionFee = (session, amount) => {
     if (!session || session.rate == null) {
       console.error('Session data is invalid:', session);
@@ -507,7 +523,6 @@ export default function InvoicePage() {
               <Select
                 onValueChange={(value) => form.setValue('customer', value)}
                 value={form.watch('customer')}
-             
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a customer" />
@@ -529,7 +544,6 @@ export default function InvoicePage() {
               <Select
                 onValueChange={(value) => form.setValue('bank', value)}
                 value={form.watch('bank')}
-           
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a bank" />
@@ -591,7 +605,6 @@ export default function InvoicePage() {
                   form.setValue('discountAmount', value);
                 }}
                 className="flex h-9 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-
               />
             </div>
 
@@ -607,7 +620,6 @@ export default function InvoicePage() {
                   form.setValue('vat', value);
                 }}
                 className="flex h-9 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-
               />
             </div>
 
@@ -620,7 +632,6 @@ export default function InvoicePage() {
                 onChange={(e) => form.setValue('discountMsg', e.target.value)}
                 placeholder="discount message"
                 className="flex h-9 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-
               />
             </div>
           </div>
@@ -656,7 +667,7 @@ export default function InvoicePage() {
               <span>{finalAmountDetails.finalAmount.toFixed(2)}</span>
             </div>
 
-            <div className="mt-4 w-full flex justify-end gap-2">
+            <div className="mt-4 flex w-full justify-end gap-2">
               <Button
                 variant="outline"
                 onClick={() => navigate('/admin/invoice')}
@@ -668,7 +679,7 @@ export default function InvoicePage() {
                 onClick={onSubmit}
                 disabled={
                   selectedStudents.filter((s) => s.selected).length === 0 ||
-                  loading 
+                  loading
                 }
               >
                 {loading

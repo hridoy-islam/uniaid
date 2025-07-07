@@ -450,7 +450,7 @@ export default function RemitCreatePage() {
         // Fetch the agent course details
         const agentCourse = await fetchAgentCourse(
           filterValues.agent,
-          selectedCourseRelation._id
+          selectedCourseRelation?._id
         );
 
         if (!agentCourse) {
