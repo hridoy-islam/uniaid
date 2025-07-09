@@ -19,6 +19,8 @@ import moment from 'moment';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format } from 'date-fns';
+import { LoadScript, Autocomplete } from '@react-google-maps/api';
+import { useRef } from 'react';
 
 export function PersonalDetailsForm({ student, onSave }) {
   const { user } = useSelector((state: any) => state.auth);
@@ -66,6 +68,41 @@ export function PersonalDetailsForm({ student, onSave }) {
   const [staffOptions, setStaffOptions] = useState<any>([]);
 
   const [isLoading, setIsLoading] = useState(true);
+
+  const libraries = ['places'];
+  const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
+
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+
+  const handlePlaceChanged = () => {
+    if (!autocompleteRef.current) return;
+
+    const place = autocompleteRef.current?.getPlace();
+    if (!place?.address_components) return;
+
+    const getComponent = (type) =>
+      place.address_components.find((comp) => comp.types.includes(type))
+        ?.long_name || '';
+
+    const address1 =
+      `${getComponent('street_number')} ${getComponent('route')}`.trim();
+    const address2 = getComponent('sublocality_level_1') || '';
+    const city = getComponent('postal_town') || getComponent('locality') || '';
+    const state = getComponent('administrative_area_level_1') || '';
+    const postcode = getComponent('postal_code') || '';
+    const country = getComponent('country') || '';
+
+    const matchedCountry = countries.find(
+      (c) => c.toLowerCase() === country.toLowerCase()
+    );
+
+    setValue('addressLine1', address1);
+    setValue('addressLine2', address2);
+    setValue('townCity', city);
+    setValue('state', state);
+    setValue('postCode', postcode);
+    setValue('country', matchedCountry);
+  };
 
   const fetchAgents = async () => {
     try {
@@ -201,7 +238,7 @@ export function PersonalDetailsForm({ student, onSave }) {
               type="tel"
               {...register('phone', {
                 onChange: (e) => {
-                   const cleanedValue = e.target.value.replace(/\s+/g, '');
+                  const cleanedValue = e.target.value.replace(/\s+/g, '');
                   setValue('phone', cleanedValue);
                 }
               })}
@@ -471,13 +508,28 @@ export function PersonalDetailsForm({ student, onSave }) {
 
         <div className="grid grid-cols-3 gap-6">
           <div className="space-y-2">
-            <Label htmlFor="addressLine1">Address Line 1*</Label>
-            <Input
-              id="addressLine1"
-              {...register('addressLine1', {
-                required: 'Address Line 1 is required'
-              })}
-            />
+            <Label htmlFor="addressLine1">Address Line 1 *</Label>
+            <LoadScript
+              googleMapsApiKey={GOOGLE_API_KEY}
+              libraries={libraries}
+              onError={(error) =>
+                console.error('Google Maps API load error:', error)
+              }
+            >
+              <Autocomplete
+                onLoad={(ref) => (autocompleteRef.current = ref)}
+                onPlaceChanged={handlePlaceChanged}
+              >
+                <input
+                  type="text"
+                  placeholder="Search Address"
+                  className="w-full rounded-md border border-gray-300 px-4 py-1.5"
+                  {...register('addressLine1', {
+                    required: 'Address Line 1 Required'
+                  })}
+                />
+              </Autocomplete>
+            </LoadScript>
             <ErrorMessage message={errors.addressLine1?.message?.toString()} />
           </div>
           <div className="space-y-2">

@@ -12,6 +12,8 @@ import moment from 'moment';
 import { useToast } from '@/components/ui/use-toast';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { LoadScript, Autocomplete } from '@react-google-maps/api';
+import { useRef } from 'react';
 
 import {
   Select,
@@ -36,6 +38,43 @@ export default function NewStudentPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const libraries = ['places'];
+  const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
+
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+
+  const handlePlaceChanged = () => {
+    if (!autocompleteRef.current) return;
+
+    const place = autocompleteRef.current?.getPlace();
+    if (!place?.address_components) return;
+
+    const getComponent = (type) =>
+      place.address_components.find((comp) => comp.types.includes(type))
+        ?.long_name || '';
+
+    const address1 =
+      `${getComponent('street_number')} ${getComponent('route')}`.trim();
+    const address2 = getComponent('sublocality_level_1') || '';
+    const city = getComponent('postal_town') || getComponent('locality') || '';
+    const state = getComponent('administrative_area_level_1') || '';
+    const postcode = getComponent('postal_code') || '';
+    const country = getComponent('country') || '';
+
+    
+    const matchedCountry = countries.find(
+      (c) => c.toLowerCase() === country.toLowerCase()
+    );
+
+   
+    setValue('addressLine1', address1);
+    setValue('addressLine2', address2);
+    setValue('townCity', city);
+    setValue('state', state);
+    setValue('postCode', postcode);
+    setValue('country', matchedCountry);
+  };
+
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
@@ -48,7 +87,7 @@ export default function NewStudentPage() {
         country: data.country,
         createdBy: user._id,
         email: data.email.toLowerCase(),
-        phone:data.phone
+        phone: data.phone
       };
       // Add agentID only if the user is an agent
       if (user.role === 'agent') {
@@ -191,7 +230,7 @@ export default function NewStudentPage() {
               type="tel"
               {...register('phone', {
                 onChange: (e) => {
-                   const cleanedValue = e.target.value.replace(/\s+/g, '');
+                  const cleanedValue = e.target.value.replace(/\s+/g, '');
                   setValue('phone', cleanedValue);
                 }
               })}
@@ -283,26 +322,41 @@ export default function NewStudentPage() {
 
         <h2 className="text-md font-semibold">Address</h2>
         <div className="grid grid-cols-4 gap-4">
-          {/* Title */}
+          {/* Address Line 1 - Google Autocomplete */}
           <div>
-            <Label htmlFor="title">Address Line 1 *</Label>
-            <Input
-              id="addressLine1"
-              {...register('addressLine1', {
-                required: 'Address Line 1 Required'
-              })}
-            />
+            <Label htmlFor="addressLine1">Address Line 1 *</Label>
+            <LoadScript
+              googleMapsApiKey={GOOGLE_API_KEY}
+              libraries={libraries}
+              onError={(error) =>
+                console.error('Google Maps API load error:', error)
+              }
+            >
+              <Autocomplete
+                onLoad={(ref) => (autocompleteRef.current = ref)}
+                onPlaceChanged={handlePlaceChanged}
+              >
+                <input
+                  type="text"
+                  placeholder="Search Address"
+                  className="w-full rounded-md border border-gray-300 px-4 py-1.5"
+                  {...register('addressLine1', {
+                    required: 'Address Line 1 Required'
+                  })}
+                />
+              </Autocomplete>
+            </LoadScript>
             <ErrorMessage message={errors.addressLine1?.message?.toString()} />
           </div>
 
-          {/* First Name */}
+          {/* Address Line 2 */}
           <div>
             <Label htmlFor="addressLine2">Address Line 2</Label>
             <Input id="addressLine2" {...register('addressLine2')} />
             <ErrorMessage message={errors.addressLine2?.message?.toString()} />
           </div>
 
-          {/* Last Name */}
+          {/* Town / City */}
           <div>
             <Label htmlFor="townCity">Town / City *</Label>
             <Input
@@ -312,14 +366,14 @@ export default function NewStudentPage() {
             <ErrorMessage message={errors.townCity?.message?.toString()} />
           </div>
 
-          {/* Email */}
+          {/* State */}
           <div>
-            <Label htmlFor="state">State </Label>
+            <Label htmlFor="state">State</Label>
             <Input id="state" {...register('state')} />
             <ErrorMessage message={errors.state?.message?.toString()} />
           </div>
 
-          {/* Phone */}
+          {/* Post Code */}
           <div>
             <Label htmlFor="postCode">Post Code *</Label>
             <Input
@@ -329,18 +383,15 @@ export default function NewStudentPage() {
             <ErrorMessage message={errors.postCode?.message?.toString()} />
           </div>
 
-          {/* Phone */}
+          {/* Country */}
           <div>
-            <Label htmlFor="country">Country</Label>
+            <Label htmlFor="country">Country *</Label>
             <Controller
               name="country"
               control={control}
               rules={{ required: 'Country is required' }}
               render={({ field }) => (
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
+                <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Please select" />
                   </SelectTrigger>
@@ -354,9 +405,11 @@ export default function NewStudentPage() {
                 </Select>
               )}
             />
+
             <ErrorMessage message={errors.country?.message?.toString()} />
           </div>
         </div>
+
         <div className="flex justify-end">
           <Button
             type="submit"
