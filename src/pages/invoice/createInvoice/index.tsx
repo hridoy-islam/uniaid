@@ -247,6 +247,19 @@ export default function InvoiceGeneratePage() {
           if (!hasMatchingAccount) return false;
         }
 
+        // Exclude student if the matched year+session has invoice === true
+        const isInvoicedForMatchedPeriod = student.accounts?.some((account) =>
+          account.years?.some(
+            (y) =>
+              (!year || y.year === year) &&
+              y.sessions?.some(
+                (s) =>
+                  (!session || s.sessionName === session) && s.invoice === true
+              )
+          )
+        );
+        if (isInvoicedForMatchedPeriod) return false;
+
         // Verify year and session matches if we filtered by them
         if (year || session) {
           return student.accounts?.some((account) =>

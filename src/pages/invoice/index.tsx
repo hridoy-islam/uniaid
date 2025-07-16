@@ -18,7 +18,13 @@ import { DataTablePagination } from '../students/view/components/data-table-pagi
 import { toast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
 import { AlertModal } from '@/components/shared/alert-modal';
-
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from '@/components/ui/dropdown-menu';
+import { MoreVertical } from 'lucide-react';
 import axios from 'axios';
 import { pdf } from '@react-pdf/renderer';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
@@ -39,12 +45,11 @@ export default function InvoicesPage() {
   const [invoiceToExport, setInvoiceToExport] = useState<string | null>(null);
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true);
 
   const fetchInvoices = async (page, entriesPerPage) => {
     try {
-
-      setLoading(true)
+      setLoading(true);
       const params: any = {
         page,
         limit: entriesPerPage
@@ -63,9 +68,8 @@ export default function InvoicesPage() {
     } catch (error) {
       console.error('Error fetching invoices:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-
   };
 
   // Function to fetch customer options
@@ -145,9 +149,6 @@ export default function InvoicesPage() {
     setInvoiceToMark(null);
   };
 
-  
- 
-
   const companyId = import.meta.env.VITE_COMPANY_ID;
   const account = import.meta.env.VITE_ACCOUNTING;
 
@@ -170,12 +171,17 @@ export default function InvoicesPage() {
         transactionDate: new Date().toISOString(),
         invoiceDate: invoiceData.createdAt,
         invoiceNumber: invoiceData.reference,
-        description: invoiceData.students
+        description: `Students: ${invoiceData.students
           .map((student: any) => student.refId)
-          .join(', '),
-        amount: invoiceData.totalAmount,
-       
+          .join(', ')} |
+Year: ${invoiceData.year} |
+Session: ${invoiceData.session} |
+Term: ${invoiceData.semester} |
+Institute: ${invoiceData.courseRelationId?.institute?.name} |
+Course: ${invoiceData.courseRelationId?.course?.name} |
+${invoiceData.discountMsg ? `Discount Message: ${invoiceData.discountMsg}` : ''}`,
 
+        amount: invoiceData.totalAmount
       };
 
       await axios.post(`${account}`, payload, {
@@ -227,7 +233,6 @@ export default function InvoicesPage() {
               Customer List
             </Button>
           </Link>
-          
         </div>
       </div>
 
@@ -310,21 +315,26 @@ export default function InvoicesPage() {
         </CardHeader>
 
         <CardContent>
-          {loading ? (<div className="flex justify-center py-6">
-            <BlinkingDots size="large" color="bg-supperagent" />
-          </div>) :
-            (<Table>
+          {loading ? (
+            <div className="flex justify-center py-6">
+              <BlinkingDots size="large" color="bg-supperagent" />
+            </div>
+          ) : (
+            <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Created At</TableHead>
                   <TableHead>Invoice Number</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Students</TableHead>
-                  {/* <TableHead>Status</TableHead> */}
+                  <TableHead>Institute</TableHead>
+                  <TableHead>Year</TableHead>
+                  <TableHead>Sesssion</TableHead>
+                  <TableHead>Term</TableHead>
+                  <TableHead>Course</TableHead>
                   <TableHead>Invoice Status</TableHead>
                   <TableHead>Exported</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-4 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -337,24 +347,30 @@ export default function InvoicesPage() {
                       <TableCell>{invoice.reference}</TableCell>
                       <TableCell>{invoice.customer?.name}</TableCell>
                       <TableCell>{invoice.totalAmount.toFixed(2)}</TableCell>
-                      <TableCell>{invoice.noOfStudents}</TableCell>
-                      {/* <TableCell>{invoice.status}</TableCell> */}
+                      <TableCell>
+                        {invoice.courseRelationId?.institute?.name}
+                      </TableCell>
+                      <TableCell>{invoice.year}</TableCell>
+                      <TableCell>{invoice.session}</TableCell>
+                      <TableCell>{invoice.semester}</TableCell>
+                      <TableCell>
+                        {invoice.courseRelationId?.course?.name}
+                      </TableCell>
                       <TableCell>
                         {invoice.status === 'due' ? (
                           <div className="flex flex-row items-center justify-start gap-2">
                             <span className="text-xs font-semibold text-red-500">
                               Due
                             </span>
-                            <Button
-                              size="sm"
-                              className="max-w-[100px] bg-supperagent text-white hover:bg-supperagent"
+                            <button
+                              className="rounded-sm bg-supperagent px-1 py-1 text-[10px] font-medium text-white hover:bg-supperagent"
                               onClick={() => {
                                 setInvoiceToMark(invoice._id);
                                 setIsModalOpen(true);
                               }}
                             >
                               Mark as Paid
-                            </Button>
+                            </button>
                           </div>
                         ) : (
                           <span className="text-xs font-semibold text-green-500">
@@ -378,24 +394,38 @@ export default function InvoicesPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end space-x-2">
-                          {invoice.status !== 'paid' && (
-                            <Button
-                              className="bg-supperagent text-white hover:bg-supperagent"
-                              size="sm"
-                              onClick={() => handleEdit(invoice._id)}
-                            >
-                              Edit
-                            </Button>
-                          )}
+                        <div className="flex justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="border border-gray-200 hover:bg-supperagent"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
 
-                          <Button
-                            size="sm"
-                            className="bg-supperagent text-white hover:bg-supperagent"
-                            onClick={() => handleDownload(invoice._id)}
-                          >
-                            Download
-                          </Button>
+                            <DropdownMenuContent
+                              align="end"
+                              className="border-gray-300 bg-white text-black "
+                            >
+                              {invoice?.status !== 'paid' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleEdit(invoice._id)}
+                                  className="hover:bg-supperagent focus:bg-supperagent"
+                                >
+                                  Edit
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                onClick={() => handleDownload(invoice._id)}
+                                className="hover:bg-supperagent focus:bg-supperagent"
+                              >
+                                Download
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -409,8 +439,7 @@ export default function InvoicesPage() {
                 )}
               </TableBody>
             </Table>
-            )}
-
+          )}
 
           <DataTablePagination
             pageSize={entriesPerPage}
