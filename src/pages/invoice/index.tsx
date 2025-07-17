@@ -179,7 +179,7 @@ Session: ${invoiceData.session} |
 Term: ${invoiceData.semester} |
 Institute: ${invoiceData.courseRelationId?.institute?.name} |
 Course: ${invoiceData.courseRelationId?.course?.name} |
-${invoiceData.discountMsg ? `Discount Message: ${invoiceData.discountMsg}` : ''}`,
+${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`,
 
         amount: invoiceData.totalAmount
       };
