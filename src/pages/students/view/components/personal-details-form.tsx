@@ -33,6 +33,7 @@ export function PersonalDetailsForm({ student, onSave }) {
     formState: { errors }
   } = useForm({
     defaultValues: {
+      // refId:'',
       title: '',
       firstName: '',
       lastName: '',
@@ -127,6 +128,7 @@ export function PersonalDetailsForm({ student, onSave }) {
   useEffect(() => {
     if (student) {
       reset({
+        // refId:student.refId || '',
         title: student.title || '',
         firstName: student.firstName || '',
         lastName: student.lastName || '',
@@ -180,6 +182,22 @@ export function PersonalDetailsForm({ student, onSave }) {
         onSubmit={handleSubmit(onSubmit)}
         className="mb-2 space-y-4 rounded-md p-4 shadow-md"
       >
+         {/* <div className="space-y-2">
+            <Label htmlFor="firstName">refId</Label>
+            <Input
+              id="refId"
+              {...register('refId', { required: 'First Name is required' })}
+            />
+            <ErrorMessage message={errors.firstName?.message?.toString()} />
+          </div>
+          <div className="flex justify-end">
+          <Button
+            variant={'outline'}
+            className="border-none bg-supperagent text-white hover:bg-supperagent/90"
+          >
+            Save Changes
+          </Button>
+        </div> */}
         <div className="grid grid-cols-3 gap-4">
           {/* Title Dropdown */}
           <div className="space-y-2">
