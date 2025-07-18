@@ -193,11 +193,46 @@ export default function RemitCreatePage() {
       const response = await axiosInstance.get('/students', { params });
 
       const studentsData = response?.data?.data.result || [];
+      const filteredStudentsData = studentsData.filter((student) => {
+        // Verify course relation match if we filtered by it
+        if (courseRelationId) {
+          const hasMatchingAccount = student.agentPayments?.some(
+            (agentPayment) => agentPayment.courseRelationId === courseRelationId
+          );
+          if (!hasMatchingAccount) return false;
+        }
 
-      // Now filter the students based on the query you built above
+        // Exclude student if the matched year+session has remit === true
+        const isRemitForMatchedPeriod = student.agentPayments?.some(
+          (agentPayment) =>
+            agentPayment.years?.some(
+              (y) =>
+                (!year || y.year === year) &&
+                y.sessions?.some(
+                  (s) =>
+                    (!session || s.sessionName === session) && s.remit === true
+                )
+            )
+        );
+        if (isRemitForMatchedPeriod) return false;
 
-      setStudents(studentsData);
-      setFilteredStudents(studentsData);
+        // Verify year and session matches if we filtered by them
+        if (year || session) {
+          return student.agentPayments?.some((agentPayment) =>
+            agentPayment.years?.some(
+              (y) =>
+                (!year || y.year === year) &&
+                (!session || y.sessions?.some((s) => s.sessionName === session))
+            )
+          );
+        }
+
+        return true;
+      });
+
+      
+      setStudents(filteredStudentsData);
+      setFilteredStudents(filteredStudentsData);
     } catch (error) {
       console.error('Error fetching students:', error);
       toast({
@@ -267,6 +302,7 @@ export default function RemitCreatePage() {
   const handleSessionChange = (value) => {
     filterForm.setValue('session', value);
   };
+  
   // const calculateSessionFee = (session, amount) => {
   //   if (!session || session.rate == null) {
   //     console.error('Session data is invalid:', session);
@@ -275,38 +311,40 @@ export default function RemitCreatePage() {
 
   //   const rate = Number(session.rate) || 0;
   //   const validAmount = Number(amount) || 0;
+
   //   if (session.type === 'flat') {
   //     return rate;
   //   } else if (session.type === 'percentage') {
-  //     return validAmount * (rate / 100);
+  //     if (
+  //       session.sessionName === 'Session 1' ||
+  //       session.sessionName === 'Session 2'
+  //     ) {
+  //       return validAmount * 0.25 * (rate / 100);
+  //     } else {
+  //       return validAmount * 0.5 * (rate / 100);
+  //     }
   //   }
+
   //   return 0;
   // };
 
+   // Calculate session fee
   const calculateSessionFee = (session, amount) => {
-    if (!session || session.rate == null) {
-      console.error('Session data is invalid:', session);
-      return 0;
+    if (!session || session.rate == null) return 0
+console.log(session,amount)
+
+    const rate = Number(session.rate) || 0
+    const validAmount = Number(amount) || 0
+
+    switch (session.type) {
+      case "flat":
+        return rate
+      case "percentage":
+        return validAmount * (rate / 100)
+      default:
+        return 0
     }
-
-    const rate = Number(session.rate) || 0;
-    const validAmount = Number(amount) || 0;
-
-    if (session.type === 'flat') {
-      return rate;
-    } else if (session.type === 'percentage') {
-      if (
-        session.sessionName === 'Session 1' ||
-        session.sessionName === 'Session 2'
-      ) {
-        return validAmount * 0.25 * (rate / 100);
-      } else {
-        return validAmount * 0.5 * (rate / 100);
-      }
-    }
-
-    return 0;
-  };
+  }
 
   const handleInstituteChange = (instituteId) => {
     filterForm.setValue('course', '');
@@ -369,84 +407,19 @@ export default function RemitCreatePage() {
     }
   };
 
-  // const handleAddStudent = (student) => {
-  //   const isAlreadySelected = selectedStudents.some(
-  //     (s) => s._id === student._id
-  //   );
-
-  //   if (!isAlreadySelected) {
-  //     const filterValues = filterForm.getValues();
-  //     setLoading(true);
-  //     // Find the session details from the selected course relation
-  //     const yearObj = selectedCourseRelation.years.find(
-  //       (y) => y.year === filterValues.year
-  //     );
-  //     const sessionObj = yearObj.sessions.find(
-  //       (s) => s.sessionName === filterValues.session
-  //     );
-
-  //     const application = student.applications.find(
-  //       (app) => app.courseRelationId === selectedCourseRelation._id
-  //     );
-
-  //     // Now use the student's choice from the application (either "Local" or "International")
-  //     const studentAmount =
-  //       application.choice === 'Local'
-  //         ? Number.parseFloat(selectedCourseRelation.local_amount)
-  //         : Number.parseFloat(selectedCourseRelation.international_amount);
-
-  //     // console.log('Selected Amount:', studentAmount); // Log the amount for debugging
-
-  //     const sessionFee = calculateSessionFee(sessionObj, studentAmount);
-
-  //     const studentWithFee = {
-  //       ...student,
-  //       collegeRoll: student.collegeRoll,
-  //       refId: student.refId,
-  //       firstName: student.firstName,
-  //       lastName: student.lastName,
-  //       course: selectedCourseRelation?.course?.name || '',
-  //       amount: sessionFee,
-  //       sessionFee, // Keep this for internal calculations
-  //       selected: true,
-  //       courseRelationId: selectedCourseRelation?._id,
-  //       Year: filterValues.year,
-  //       Session: filterValues.session,
-  //       semester: filterValues.term
-  //     };
-
-  //     setSelectedStudents((prev) => [...prev, studentWithFee]);
-
-  //     setFilteredStudents((prev) => prev.filter((s) => s._id !== student._id));
-
-  //     setLoading(false);
-  //     // Update form values based on the selected course relation and filter values
-  //     if (selectedCourseRelation) {
-  //       updateFormWithCourseDetails(
-  //         selectedCourseRelation,
-  //         filterValues.year,
-  //         filterValues.session
-  //       );
-  //     }
-  //   } else {
-  //     toast({
-  //       title: 'Student already added',
-  //       description: 'This student is already in your selection.',
-  //       variant: 'destructive'
-  //     });
-  //   }
-  // };
 
   const handleAddStudent = async (student) => {
+     if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
     const isAlreadySelected = selectedStudents.some(
       (s) => s._id === student._id
     );
 
     if (!isAlreadySelected) {
       const filterValues = filterForm.getValues();
-      setLoading(true);
-
-      try {
+      
         // Fetch the agent course details
         const agentCourse = await fetchAgentCourse(
           filterValues.agent,
@@ -529,9 +502,7 @@ export default function RemitCreatePage() {
             filterValues.session
           );
         }
-      } finally {
-        setLoading(false);
-      }
+      
     } else {
       toast({
         title: 'Student already added',
@@ -558,15 +529,15 @@ export default function RemitCreatePage() {
     form.setValue('totalAmount', total);
   }, [selectedStudents, form]);
 
-  const handleStudentSelect = (studentId) => {
-    setSelectedStudents((prev) =>
-      prev.map((student) =>
-        student._id === studentId
-          ? { ...student, selected: !student.selected }
-          : student
-      )
-    );
-  };
+  // const handleStudentSelect = (studentId) => {
+  //   setSelectedStudents((prev) =>
+  //     prev.map((student) =>
+  //       student._id === studentId
+  //         ? { ...student, selected: !student.selected }
+  //         : student
+  //     )
+  //   );
+  // };
 
   const handleRemoveStudent = (studentId) => {
     const studentToRemove = selectedStudents.find((s) => s._id === studentId);

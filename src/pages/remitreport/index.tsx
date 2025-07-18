@@ -23,7 +23,13 @@ import axios from 'axios';
 import { pdf } from '@react-pdf/renderer';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { useSelector } from 'react-redux';
-
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from '@/components/ui/dropdown-menu';
+import { MoreVertical } from 'lucide-react';
 export default function RemitReportPage() {
   const [invoices, setInvoices] = useState([]);
   const [agents, setAgents] = useState([]);
@@ -346,8 +352,10 @@ export default function RemitReportPage() {
                   <TableHead>Remit Number</TableHead>
                   <TableHead>Remit To</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Students</TableHead>
-                  {/* <TableHead>Status</TableHead> */}
+                  <TableHead>Institute</TableHead>
+                  <TableHead>Term</TableHead>
+                  <TableHead>Session</TableHead>
+                  <TableHead>Course</TableHead>
                   <TableHead>Remit Status</TableHead>
                   <TableHead>Exported</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -363,7 +371,14 @@ export default function RemitReportPage() {
                       <TableCell>{invoice.reference}</TableCell>
                       <TableCell>{invoice.remitTo?.name}</TableCell>
                       <TableCell>{invoice.totalAmount.toFixed(2)}</TableCell>
-                      <TableCell>{invoice.noOfStudents}</TableCell>
+                      <TableCell>
+                        {invoice.courseRelationId?.institute?.name}
+                      </TableCell>
+                      <TableCell>{invoice.semester}</TableCell>
+                      <TableCell>{invoice.session}</TableCell>
+                      <TableCell>
+                        {invoice.courseRelationId?.course?.name}
+                      </TableCell>
                       {/* <TableCell>{invoice.status}</TableCell> */}
                       <TableCell>
                         {invoice.status === 'due' ? (
@@ -403,24 +418,38 @@ export default function RemitReportPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end space-x-2">
-                          {invoice.status !== 'paid' && (
-                            <Button
-                              className="bg-supperagent text-white hover:bg-supperagent"
-                              size="sm"
-                              onClick={() => handleEdit(invoice._id)}
-                            >
-                              Edit
-                            </Button>
-                          )}
+                       <div className="flex justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="border border-gray-200 hover:bg-supperagent"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
 
-                          <Button
-                            size="sm"
-                            className="bg-supperagent text-white hover:bg-supperagent"
-                            onClick={() => handleDownload(invoice._id)}
-                          >
-                            Download
-                          </Button>
+                            <DropdownMenuContent
+                              align="end"
+                              className="border-gray-300 bg-white text-black "
+                            >
+                              {invoice?.status !== 'paid' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleEdit(invoice._id)}
+                                  className="hover:bg-supperagent focus:bg-supperagent"
+                                >
+                                  Edit
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                onClick={() => handleDownload(invoice._id)}
+                                className="hover:bg-supperagent focus:bg-supperagent"
+                              >
+                                Download
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
