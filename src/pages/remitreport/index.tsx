@@ -11,7 +11,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import moment from 'moment';
-import { Send } from 'lucide-react';
+import { RefreshCcw, Send } from 'lucide-react';
 import InvoicePDF from './generate';
 import { Link, useNavigate } from 'react-router-dom';
 import { DataTablePagination } from '../students/view/components/data-table-pagination';
@@ -23,7 +23,13 @@ import axios from 'axios';
 import { pdf } from '@react-pdf/renderer';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { useSelector } from 'react-redux';
-
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from '@/components/ui/dropdown-menu';
+import { MoreVertical } from 'lucide-react';
 export default function RemitReportPage() {
   const [invoices, setInvoices] = useState([]);
   const [agents, setAgents] = useState([]);
@@ -41,6 +47,7 @@ export default function RemitReportPage() {
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState();
   const { user } = useSelector((state: any) => state.auth);
 
   const fetchInvoices = async (page, entriesPerPage) => {
@@ -65,15 +72,15 @@ export default function RemitReportPage() {
         );
         setInvoices(response.data?.data?.result || []);
         setTotalPages(response.data.data.meta.totalPage);
+        setTotal(response.data.data.meta.total);
       } else {
         const response = await axiosInstance.get('/remit-invoice', {
           params
         });
         setInvoices(response.data?.data?.result || []);
         setTotalPages(response.data.data.meta.totalPage);
+        setTotal(response.data.data.meta.total);
       }
-
-     
     } catch (error) {
       console.error('Error fetching invoices:', error);
     } finally {
@@ -187,9 +194,15 @@ export default function RemitReportPage() {
         transactionDate: new Date().toISOString(),
         invoiceDate: invoiceData.createdAt,
         invoiceNumber: invoiceData.reference,
-        description: invoiceData.students
+        description: `Students: ${invoiceData.students
           .map((student: any) => student.refId)
-          .join(', '),
+          .join(', ')} |
+Year: ${invoiceData.year} |
+Session: ${invoiceData.session} |
+Term: ${invoiceData.semester} |
+Institute: ${invoiceData.courseRelationId?.institute?.name} |
+Course: ${invoiceData.courseRelationId?.course?.name} |
+${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`,
         amount: invoiceData.totalAmount
       };
 
@@ -232,7 +245,14 @@ export default function RemitReportPage() {
     <div className="mx-auto py-1">
       <div className="flex justify-between">
         <h1 className="mb-6 text-2xl font-bold">Remit Reports</h1>
-        <div className="space-x-4">
+        <div className="flex flex-row items-center space-x-4">
+          <Button
+            className="gap-2 bg-supperagent text-white hover:bg-supperagent/90"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCcw className="w-4" />
+            Refresh
+          </Button>
           <Link to="generate">
             <Button className="bg-supperagent text-white hover:bg-supperagent">
               Create Remit
@@ -331,6 +351,11 @@ export default function RemitReportPage() {
               </Button>
             </div>
           </div>
+          <div className="flex flex-row items-center text-sm text-gray-700">
+            Showing{'  '}
+            {total}
+            &nbsp;records
+          </div>
         </CardHeader>
 
         <CardContent>
@@ -343,11 +368,13 @@ export default function RemitReportPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Created At</TableHead>
-                  <TableHead>Remit Number</TableHead>
+                  {/* <TableHead>Remit Number</TableHead> */}
                   <TableHead>Remit To</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Students</TableHead>
-                  {/* <TableHead>Status</TableHead> */}
+                  <TableHead>Institute</TableHead>
+                  <TableHead>Term</TableHead>
+                  <TableHead>Session</TableHead>
+                  <TableHead>Course</TableHead>
                   <TableHead>Remit Status</TableHead>
                   <TableHead>Exported</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -360,10 +387,17 @@ export default function RemitReportPage() {
                       <TableCell>
                         {moment(invoice.date).format('DD MMM YYYY')}
                       </TableCell>
-                      <TableCell>{invoice.reference}</TableCell>
+                      {/* <TableCell>{invoice.reference}</TableCell> */}
                       <TableCell>{invoice.remitTo?.name}</TableCell>
                       <TableCell>{invoice.totalAmount.toFixed(2)}</TableCell>
-                      <TableCell>{invoice.noOfStudents}</TableCell>
+                      <TableCell>
+                        {invoice.courseRelationId?.institute?.name}
+                      </TableCell>
+                      <TableCell>{invoice.semester}</TableCell>
+                      <TableCell>{invoice.session}</TableCell>
+                      <TableCell>
+                        {invoice.courseRelationId?.course?.name}
+                      </TableCell>
                       {/* <TableCell>{invoice.status}</TableCell> */}
                       <TableCell>
                         {invoice.status === 'due' ? (
@@ -403,24 +437,38 @@ export default function RemitReportPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end space-x-2">
-                          {invoice.status !== 'paid' && (
-                            <Button
-                              className="bg-supperagent text-white hover:bg-supperagent"
-                              size="sm"
-                              onClick={() => handleEdit(invoice._id)}
-                            >
-                              Edit
-                            </Button>
-                          )}
+                        <div className="flex justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="border border-gray-200 hover:bg-supperagent"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
 
-                          <Button
-                            size="sm"
-                            className="bg-supperagent text-white hover:bg-supperagent"
-                            onClick={() => handleDownload(invoice._id)}
-                          >
-                            Download
-                          </Button>
+                            <DropdownMenuContent
+                              align="end"
+                              className="border-gray-300 bg-white text-black "
+                            >
+                              {invoice?.status !== 'paid' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleEdit(invoice._id)}
+                                  className="hover:bg-supperagent focus:bg-supperagent"
+                                >
+                                  Edit
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                onClick={() => handleDownload(invoice._id)}
+                                className="hover:bg-supperagent focus:bg-supperagent"
+                              >
+                                Download
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
