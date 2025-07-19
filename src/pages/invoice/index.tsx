@@ -11,7 +11,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import moment from 'moment';
-import { Send } from 'lucide-react';
+import { RefreshCcw, Send } from 'lucide-react';
 import InvoicePDF from './generate';
 import { Link, useNavigate } from 'react-router-dom';
 import { DataTablePagination } from '../students/view/components/data-table-pagination';
@@ -46,6 +46,7 @@ export default function InvoicesPage() {
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState();
 
   const fetchInvoices = async (page, entriesPerPage) => {
     try {
@@ -65,6 +66,8 @@ export default function InvoicesPage() {
       });
       setInvoices(response.data?.data?.result || []);
       setTotalPages(response.data.data.meta.totalPage);
+              setTotal(response.data.data.meta.total);
+
     } catch (error) {
       console.error('Error fetching invoices:', error);
     } finally {
@@ -217,7 +220,14 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
     <div className="mx-auto py-1">
       <div className="flex justify-between">
         <h1 className="mb-6 text-2xl font-bold">Invoices</h1>
-        <div className="space-x-4">
+        <div className="space-x-4 flex flex-row items-center">
+           <Button
+                      className="gap-2 bg-supperagent text-white hover:bg-supperagent/90"
+                      onClick={() => window.location.reload()}
+                    >
+                      <RefreshCcw className="w-4" />
+                      Refresh
+                    </Button>
           <Link to="generate">
             <Button className="bg-supperagent text-white hover:bg-supperagent">
               Create Invoice
@@ -312,6 +322,11 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
               </Button>
             </div>
           </div>
+          <div className="flex flex-row items-center text-sm text-gray-700">
+            Showing{'  '}
+            {total}
+            &nbsp;records
+          </div>
         </CardHeader>
 
         <CardContent>
@@ -324,7 +339,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
               <TableHeader>
                 <TableRow>
                   <TableHead>Created At</TableHead>
-                  <TableHead>Invoice Number</TableHead>
+                  {/* <TableHead>Invoice Number</TableHead> */}
                   <TableHead>Customer</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Institute</TableHead>
@@ -344,7 +359,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                       <TableCell>
                         {moment(invoice.createdAt).format('DD MMM YYYY')}
                       </TableCell>
-                      <TableCell>{invoice.reference}</TableCell>
+                      {/* <TableCell>{invoice.reference}</TableCell> */}
                       <TableCell>{invoice.customer?.name}</TableCell>
                       <TableCell>{invoice.totalAmount.toFixed(2)}</TableCell>
                       <TableCell>
