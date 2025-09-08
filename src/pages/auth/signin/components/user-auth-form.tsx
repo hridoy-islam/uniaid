@@ -109,18 +109,18 @@ export default function UserAuthForm() {
               </label>
             </div>
 
-            <Link
+            {/* <Link
               to="/forgot-password"
               className="text-sm text-supperagent hover:text-supperagent"
             >
               Forgot Password?
-            </Link>
+            </Link> */}
           </div>
 
           <Button
             disabled={loading}
             type="submit"
-            className="w-full bg-supperagent text-white hover:bg-supperagent/90"
+            className="w-full bg-[#CF4927] text-white hover:bg-[#CF4927]/90"
           >
             Login
           </Button>
@@ -128,14 +128,14 @@ export default function UserAuthForm() {
           <p className="text-center text-sm text-gray-600">
             By signin up, you agree to our{' '}
             <Link
-              to="/terms"
+              to="#"
               className="text-supperagent hover:text-supperagent"
             >
               Terms and Conditions
             </Link>{' '}
             &{' '}
             <Link
-              to="/privacy"
+              to="#"
               className="text-supperagent hover:text-supperagent"
             >
               Privacy Policy

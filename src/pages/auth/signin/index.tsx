@@ -1,4 +1,4 @@
-import { Layers } from 'lucide-react';
+import { GraduationCap, Layers } from 'lucide-react';
 import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -21,8 +21,13 @@ export default function SignInPage() {
         <div className="flex h-full flex-col gap-60 p-8">
           {/* Logo */}
           <div className="flex items-center gap-2 text-white">
-            <Layers className="h-6 w-6" />
-            <span className="text-lg font-semibold">Recruitment</span>
+           <img
+                src="/logo.png"
+                alt="Desk illustration"
+                width={35}
+                height={20}
+              />
+            <span className="text-2xl font-semibold">i Apply Portal</span>
           </div>
 
           {/* Main Content */}
@@ -36,7 +41,7 @@ export default function SignInPage() {
               />
             </div>
             <h1 className="mb-4 text-4xl font-bold text-white">
-              A few more clicks to <br />
+ 
               A few more clicks to <br />
               sign in to your account.
             </h1>

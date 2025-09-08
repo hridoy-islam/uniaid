@@ -1,4 +1,4 @@
-import { Layers } from 'lucide-react';
+import { GraduationCap, Layers } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,8 +14,8 @@ export default function LoginPage() {
         <div className="flex h-full flex-col gap-60 p-8">
           {/* Logo */}
           <div className="flex items-center gap-2 text-white">
-            <Layers className="h-6 w-6" />
-            <span className="text-lg font-semibold">Recruitment</span>
+            <GraduationCap className="h-6 w-6" />
+            <span className="text-lg font-semibold">i Apply</span>
           </div>
 
           {/* Main Content */}

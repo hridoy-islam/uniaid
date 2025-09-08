@@ -1,4 +1,4 @@
-import { Layers } from 'lucide-react';
+import { GraduationCap, Layers } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { UserNav } from './user-nav';
 
@@ -7,8 +7,13 @@ export function TopNav() {
     <div className="flex h-16 items-center justify-between bg-supperagent px-4">
       <div className="flex items-center space-x-4">
         <Link to="/" className="flex items-center space-x-2 text-white">
-          <Layers className="h-6 w-6" />
-          <span className="text-lg font-semibold">Recruitment</span>
+           <img
+                src="/logo.png"
+                alt="Desk illustration"
+                width={25}
+                height={20}
+              />
+            <span className="text-lg font-semibold">i Apply Portal</span>
         </Link>
       </div>
       <div className="flex items-center space-x-4">
