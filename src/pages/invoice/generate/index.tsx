@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: 'semibold',
-    color: '#00a185'
+    color: '#27245c'
   },
   value: {
     fontSize: 10,
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#00a185'
+    backgroundColor: '#27245c'
   },
   tableHeaderCell: {
     padding: 5,
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   },
   grandTotalRow: {
     flexDirection: 'row',
-    backgroundColor: '#00a185',
+    backgroundColor: '#27245c',
     padding: 5,
     marginTop: 5
   },

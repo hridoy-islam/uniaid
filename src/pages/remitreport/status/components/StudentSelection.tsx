@@ -1,4 +1,3 @@
-"use client"
 
 import { BlinkingDots } from "@/components/shared/blinking-dots"
 import { Button } from "@/components/ui/button"

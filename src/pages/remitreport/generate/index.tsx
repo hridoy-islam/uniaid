@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: "semibold",
-    color: "#00a185",
+    color: "#27245c",
     marginBottom: 5,
   },
   value: {
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#00a185",
+    backgroundColor: "#27245c",
     
   },
   tableHeaderCell: {
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   },
   totalRow: {
     flexDirection: "row",
-    backgroundColor: "#00a185",
+    backgroundColor: "#27245c",
   },
   totalLabel: {
     width: "80%",
