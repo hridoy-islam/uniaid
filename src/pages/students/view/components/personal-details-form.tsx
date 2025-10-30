@@ -542,13 +542,11 @@ export function PersonalDetailsForm({ student, onSave }) {
                   type="text"
                   placeholder="Search Address"
                   className="w-full rounded-md border border-gray-300 px-4 py-1.5"
-                  {...register('addressLine1', {
-                    required: 'Address Line 1 Required'
-                  })}
+                  {...register('addressLine1')}
                 />
               </Autocomplete>
             </LoadScript>
-            <ErrorMessage message={errors.addressLine1?.message?.toString()} />
+            {/* <ErrorMessage message={errors.addressLine1?.message?.toString()} /> */}
           </div>
           <div className="space-y-2">
             <Label htmlFor="addressLine2">Address Line 2</Label>
@@ -559,9 +557,9 @@ export function PersonalDetailsForm({ student, onSave }) {
             <Label htmlFor="townCity">Town / City</Label>
             <Input
               id="townCity"
-              {...register('townCity', { required: 'Town / City is required' })}
+              {...register('townCity')}
             />
-            <ErrorMessage message={errors.townCity?.message?.toString()} />
+            {/* <ErrorMessage message={errors.townCity?.message?.toString()} /> */}
           </div>
           <div className="space-y-2">
             <Label htmlFor="state">State</Label>
@@ -571,7 +569,7 @@ export function PersonalDetailsForm({ student, onSave }) {
             <Label htmlFor="postCode">Post Code</Label>
             <Input
               id="postCode"
-              {...register('postCode', { required: 'Post Code is required' })}
+              {...register('postCode')}
             />
             <ErrorMessage message={errors.postCode?.message?.toString()} />
           </div>
@@ -579,7 +577,7 @@ export function PersonalDetailsForm({ student, onSave }) {
             <Label htmlFor="country">Country</Label>
             <Input
               id="country"
-              {...register('country', { required: 'Country is required' })}
+              {...register('country')}
             />
             <ErrorMessage message={errors.country?.message?.toString()} />
           </div>

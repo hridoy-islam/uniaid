@@ -61,12 +61,10 @@ export default function NewStudentPage() {
     const postcode = getComponent('postal_code') || '';
     const country = getComponent('country') || '';
 
-    
     const matchedCountry = countries.find(
       (c) => c.toLowerCase() === country.toLowerCase()
     );
 
-   
     setValue('addressLine1', address1);
     setValue('addressLine2', address2);
     setValue('townCity', city);
@@ -158,11 +156,11 @@ export default function NewStudentPage() {
         <div className="grid grid-cols-4 gap-4">
           {/* Title */}
           <div>
-            <Label htmlFor="title">Title *</Label>
+            <Label htmlFor="title">Title </Label>
             <Controller
               name="title"
               control={control}
-              rules={{ required: 'Title is required' }}
+              // rules={{ required: 'Title is required' }}
               render={({ field }) => (
                 <Select
                   onValueChange={field.onChange}
@@ -182,7 +180,7 @@ export default function NewStudentPage() {
               )}
             />
 
-            <ErrorMessage message={errors.title?.message?.toString()} />
+            {/* <ErrorMessage message={errors.title?.message?.toString()} /> */}
           </div>
 
           {/* First Name */}
@@ -229,12 +227,14 @@ export default function NewStudentPage() {
               id="phone"
               type="tel"
               {...register('phone', {
+                required: 'Phone is required',
                 onChange: (e) => {
                   const cleanedValue = e.target.value.replace(/\s+/g, '');
                   setValue('phone', cleanedValue);
                 }
               })}
             />
+
             <ErrorMessage message={errors.phone?.message?.toString()} />
           </div>
 
@@ -265,11 +265,11 @@ export default function NewStudentPage() {
 
           {/* Gender */}
           <div>
-            <Label htmlFor="gender">Gender *</Label>
+            <Label htmlFor="gender">Gender </Label>
             <Controller
               name="gender"
               control={control}
-              rules={{ required: 'Gender is required' }}
+              // rules={{ required: 'Gender is required' }}
               render={({ field }) => (
                 <Select
                   onValueChange={field.onChange}
@@ -288,16 +288,16 @@ export default function NewStudentPage() {
                 </Select>
               )}
             />
-            <ErrorMessage message={errors.gender?.message?.toString()} />
+            {/* <ErrorMessage message={errors.gender?.message?.toString()} /> */}
           </div>
 
           {/* Marital Status */}
           <div>
-            <Label htmlFor="maritualStatus">Maritual Status *</Label>
+            <Label htmlFor="maritualStatus">Maritual Status</Label>
             <Controller
               name="maritalStatus"
               control={control}
-              rules={{ required: 'Marital Status is required' }}
+              // rules={{ required: 'Marital Status is required' }}
               render={({ field }) => (
                 <Select
                   onValueChange={field.onChange}
@@ -316,7 +316,7 @@ export default function NewStudentPage() {
                 </Select>
               )}
             />
-            <ErrorMessage message={errors.maritalStatus?.message?.toString()} />
+            {/* <ErrorMessage message={errors.maritalStatus?.message?.toString()} /> */}
           </div>
         </div>
 
@@ -324,7 +324,7 @@ export default function NewStudentPage() {
         <div className="grid grid-cols-4 gap-4">
           {/* Address Line 1 - Google Autocomplete */}
           <div>
-            <Label htmlFor="addressLine1">Address Line 1 *</Label>
+            <Label htmlFor="addressLine1">Address Line 1 </Label>
             <LoadScript
               googleMapsApiKey={GOOGLE_API_KEY}
               libraries={libraries}
@@ -340,30 +340,29 @@ export default function NewStudentPage() {
                   type="text"
                   placeholder="Search Address"
                   className="w-full rounded-md border border-gray-300 px-4 py-1.5"
-                  {...register('addressLine1', {
-                    required: 'Address Line 1 Required'
-                  })}
+                  {...register('addressLine1')}
                 />
               </Autocomplete>
             </LoadScript>
-            <ErrorMessage message={errors.addressLine1?.message?.toString()} />
+            {/* <ErrorMessage message={errors.addressLine1?.message?.toString()} /> */}
           </div>
 
           {/* Address Line 2 */}
           <div>
             <Label htmlFor="addressLine2">Address Line 2</Label>
             <Input id="addressLine2" {...register('addressLine2')} />
-            <ErrorMessage message={errors.addressLine2?.message?.toString()} />
+            {/* <ErrorMessage message={errors.addressLine2?.message?.toString()} /> */}
           </div>
 
           {/* Town / City */}
           <div>
-            <Label htmlFor="townCity">Town / City *</Label>
+            <Label htmlFor="townCity">Town / City </Label>
             <Input
               id="townCity"
-              {...register('townCity', { required: 'Town / City is Required' })}
+              // {...register('townCity', { required: 'Town / City is Required' })}
+              {...register('townCity')}
             />
-            <ErrorMessage message={errors.townCity?.message?.toString()} />
+            {/* <ErrorMessage message={errors.townCity?.message?.toString()} /> */}
           </div>
 
           {/* State */}
@@ -375,21 +374,18 @@ export default function NewStudentPage() {
 
           {/* Post Code */}
           <div>
-            <Label htmlFor="postCode">Post Code *</Label>
-            <Input
-              id="postCode"
-              {...register('postCode', { required: 'Post Code is Required' })}
-            />
-            <ErrorMessage message={errors.postCode?.message?.toString()} />
+            <Label htmlFor="postCode">Post Code </Label>
+            <Input id="postCode" {...register('postCode')} />
+            {/* <ErrorMessage message={errors.postCode?.message?.toString()} /> */}
           </div>
 
           {/* Country */}
           <div>
-            <Label htmlFor="country">Country *</Label>
+            <Label htmlFor="country">Country </Label>
             <Controller
               name="country"
               control={control}
-              rules={{ required: 'Country is required' }}
+              // rules={{ required: 'Country is required' }}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger>
@@ -406,7 +402,7 @@ export default function NewStudentPage() {
               )}
             />
 
-            <ErrorMessage message={errors.country?.message?.toString()} />
+            {/* <ErrorMessage message={errors.country?.message?.toString()} /> */}
           </div>
         </div>
 
