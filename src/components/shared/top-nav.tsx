@@ -8,7 +8,7 @@ export function TopNav() {
       <div className="flex items-center space-x-4">
         <Link to="/" className="flex items-center space-x-2 text-white">
           <Layers className="h-6 w-6" />
-          <span className="text-lg font-semibold">Recruitment</span>
+          <span className="text-lg font-semibold">Allied Nexus</span>
         </Link>
       </div>
       <div className="flex items-center space-x-4">
