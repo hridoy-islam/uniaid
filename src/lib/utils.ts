@@ -13,27 +13,27 @@ export const isStudentDataComplete = (student, hasRequiredDocuments) => {
   if (!student) return false; // If student is null or undefined, return false
 
   const requiredFields = [
-    'title',
+    // 'title',
     'firstName',
     'lastName',
     'dob',
     'phone',
     'email',
-    'gender',
-    'maritualStatus',
-    'nationality',
-    'countryResidence',
-    'countryBirth',
-    'nativeLanguage',
-    'addressLine1',
-    'townCity',
-    'postCode',
-    'country',
-    'disabilities',
-    'ethnicity',
-    'genderIdentity',
-    'sexualOrientation',
-    'religion'
+    // 'gender',
+    // 'maritualStatus',
+    // 'nationality',
+    // 'countryResidence',
+    // 'countryBirth',
+    // 'nativeLanguage',
+    // 'addressLine1',
+    // 'townCity',
+    // 'postCode',
+    // 'country',
+    // 'disabilities',
+    // 'ethnicity',
+    // 'genderIdentity',
+    // 'sexualOrientation',
+    // 'religion'
   ];
 
   // Check if all required fields have a value
@@ -89,21 +89,21 @@ export const isPersonalInfoComplete = (student) => {
     'dob',
     'phone',
     'email',
-    'gender',
+    // 'gender',
     // 'maritualStatus',
-    'nationality',
-    'countryResidence',
-    'countryBirth',
-    'nativeLanguage',
-    'addressLine1',
-    'townCity',
+    // 'nationality',
+    // 'countryResidence',
+    // 'countryBirth',
+    // 'nativeLanguage',
+    // 'addressLine1',
+    // 'townCity',
     // 'postCode',
     // 'country',
-    'disabilities',
-    'ethnicity',
-    'genderIdentity',
-    'sexualOrientation',
-    'religion'
+    // 'disabilities',
+    // 'ethnicity',
+    // 'genderIdentity',
+    // 'sexualOrientation',
+    // 'religion'
   ];
 
   // Check if all required fields are filled
