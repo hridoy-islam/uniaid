@@ -70,7 +70,7 @@ export const isStudentDataComplete = (student, hasRequiredDocuments) => {
   // Return the final result, checking all conditions
   return (
     allFieldsFilled &&
-    hasEmergencyContact &&
+    // hasEmergencyContact &&
     hasAcademicHistory &&
     hasEnglishLanguageExam &&
     hasWorkExperience &&
