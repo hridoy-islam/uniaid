@@ -83,22 +83,22 @@ export const isPersonalInfoComplete = (student) => {
   if (!student) return false; // Ensure student exists
 
   const requiredFields = [
-    'title',
+    // 'title',
     'firstName',
     'lastName',
     'dob',
     'phone',
     'email',
     'gender',
-    'maritualStatus',
+    // 'maritualStatus',
     'nationality',
     'countryResidence',
     'countryBirth',
     'nativeLanguage',
     'addressLine1',
     'townCity',
-    'postCode',
-    'country',
+    // 'postCode',
+    // 'country',
     'disabilities',
     'ethnicity',
     'genderIdentity',
@@ -114,7 +114,7 @@ export const isPersonalInfoComplete = (student) => {
     Array.isArray(student.emergencyContact) &&
     student.emergencyContact.length > 0;
 
-  return hasAllFields && hasEmergencyContact; // Ensure both conditions are met
+  return hasAllFields ; // Ensure both conditions are met
 };
 
 // Function to check if academic history and English language exam requirements are met
