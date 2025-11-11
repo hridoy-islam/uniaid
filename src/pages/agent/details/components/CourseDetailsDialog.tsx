@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -23,9 +24,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { format } from 'date-fns';
 import axiosInstance from '@/lib/axios';
-import { useParams } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import moment from 'moment';
 
@@ -35,85 +34,92 @@ const CourseDetailsDialog = ({
   courseData,
   isEditing,
   onSave,
-
 }) => {
   const [editedData, setEditedData] = useState({
     session: [],
-
     courseRelationId: {},
     year: []
   });
 
+  // ✅ Deep clone to avoid shared object references
   useEffect(() => {
     if (courseData) {
       setEditedData({
         ...courseData,
-        session: courseData.session || []
+        session: courseData.session ? [...courseData.session] : [],
+        year: courseData.year
+          ? courseData.year.map((s) => ({
+              ...s,
+              // Ensure invoiceDate is always a Date object
+              invoiceDate: s.invoiceDate ? new Date(s.invoiceDate) : null
+            }))
+          : []
       });
     }
   }, [courseData]);
 
-  const handleSessionChange = (sessionId, field, value) => {
+  // ✅ Update one session at a time by index
+  const handleSessionChange = (sessionIndex, field, value) => {
     setEditedData((prevData) => ({
       ...prevData,
-      year: prevData.year.map((session) =>
-        session._id === sessionId ? { ...session, [field]: value } : session
+      year: prevData.year.map((session, index) =>
+        index === sessionIndex ? { ...session, [field]: value } : session
       )
     }));
   };
 
+  // ✅ Ensure invoiceDate is serialized correctly before saving
   const handleSave = async () => {
     try {
+      const formattedYear = editedData.year.map((session) => ({
+        ...session,
+        // Convert Date objects back to ISO strings for API
+        invoiceDate: session.invoiceDate
+          ? new Date(session.invoiceDate).toISOString()
+          : null
+      }));
+
       const response = await axiosInstance.patch(
         `/agent-courses/${editedData._id}`,
-        {
-          year: editedData.year
-        }
+        { year: formattedYear }
       );
 
       if (response.status === 200) {
         onSave(editedData);
         onClose();
-
         toast({
-          title: "Course Detail Update successfully",
+          title: "Course details updated successfully",
           className: "bg-supperagent border-none text-white",
-        })
+        });
       } else {
-        console.error('Failed to update sessions');
         toast({
-          title: "Operation Failed",
+          title: "Operation failed",
           className: "bg-destructive border-none text-white",
-        })
+        });
       }
     } catch (error) {
       toast({
-        title: "Operation Failed",
+        title: "Operation failed",
         className: "bg-destructive border-none text-white",
-      })
+      });
+      console.error("Save error:", error);
     }
   };
 
   if (!courseData) return null;
-
-
- console.log('courseData', courseData);
-
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>
-            {courseData.courseRelationId.course.name} - {courseData.courseRelationId.institute.name} - ({courseData.courseRelationId.term.term})
+            {courseData.courseRelationId.course.name} -{" "}
+            {courseData.courseRelationId.institute.name} - (
+            {courseData.courseRelationId.term.term})
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-2 py-0">
-          {/* Term details section */}
-         
-
-          {/* Sessions table */}
           <div className="space-y-2">
             <h3 className="text-lg font-medium">Sessions</h3>
             <Table>
@@ -127,42 +133,39 @@ const CourseDetailsDialog = ({
               </TableHeader>
               <TableBody>
                 {editedData?.year?.length > 0 ? (
-                  editedData.year.map((session) => (
-                    <TableRow key={session._id}>
-                      <TableCell>{session?.sessionName || 'N/A'}</TableCell>
+                  editedData.year.map((session, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{session?.sessionName || "N/A"}</TableCell>
                       <TableCell>
-                        {session?.invoiceDate ? moment(session.invoiceDate).format('DD MMM yyyy') : 'N/A'}
+                        {session?.invoiceDate
+                          ? moment(session.invoiceDate).format("DD MMM yyyy")
+                          : "N/A"}
                       </TableCell>
-
 
                       <TableCell>
                         {isEditing ? (
                           <Input
                             type="number"
-                            value={session?.rate && parseFloat(session.rate)} // Ensures two decimal points without leading zeros
+                            step="0.01"
+                            value={session?.rate || ""}
                             onChange={(e) =>
-                              handleSessionChange(
-                                session._id,
-                                'rate',
-                                parseFloat(e.target.value).toFixed(2) // Apply toFixed(2) on change as well
-                              )
+                              handleSessionChange(index, "rate", e.target.value)
                             }
                           />
                         ) : session?.rate ? (
                           parseFloat(session.rate).toFixed(2)
                         ) : (
-                          '0'
-                        ) // Show rate with two decimal points if available, otherwise 'N/A'
-                        }
+                          "0"
+                        )}
                       </TableCell>
+
                       <TableCell>
                         {isEditing ? (
                           <Select
-                            value={session?.type || ''}
+                            value={session?.type || ""}
                             onValueChange={(value) =>
-                              handleSessionChange(session._id, 'type', value)
+                              handleSessionChange(index, "type", value)
                             }
-
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select type" />
@@ -176,7 +179,7 @@ const CourseDetailsDialog = ({
                           </Select>
                         ) : (
                           <span className="capitalize">
-                            {session?.type || 'N/A'}
+                            {session?.type || "N/A"}
                           </span>
                         )}
                       </TableCell>
@@ -199,7 +202,7 @@ const CourseDetailsDialog = ({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            {isEditing ? 'Cancel' : 'Close'}
+            {isEditing ? "Cancel" : "Close"}
           </Button>
           {isEditing && (
             <Button
