@@ -22,8 +22,12 @@ export function ApplicationsSection({ student, onSave }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { user } = useSelector((state: any) => state.auth);
   const { id } = useParams();
-  const handleSubmit = (data) => {
-    onSave({ applications: [...applications, data] });
+  // const handleSubmit = (data) => {
+  //   onSave({ applications: [...applications, data] });
+  // };
+
+    const handleSubmit = (data) => {
+    onSave({ applications: [data] });
   };
 
   // Get the status badge color
