@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link2, Pen, Plus } from 'lucide-react';
+import { Link2, Pen, Plus, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -17,7 +17,13 @@ import { Badge } from '@/components/ui/badge';
 import { DataTablePagination } from '../students/view/components/data-table-pagination';
 import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 export default function CourseRelationPage() {
   const [courseRelations, setCourseRelations] = useState<any>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -27,16 +33,75 @@ export default function CourseRelationPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
 
+  // --- FILTER STATES ---
+  // 1. Options for the dropdowns
+  const [institutes, setInstitutes] = useState<any[]>([]);
+  const [terms, setTerms] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
 
+  // 2. Selected inputs (What the user sees in the box)
+  const [selectedInstitute, setSelectedInstitute] = useState('');
+  const [selectedTerm, setSelectedTerm] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('');
+
+  // 3. Applied filters (What is actually sent to the API)
+  const [appliedFilters, setAppliedFilters] = useState({
+    instituteId: '',
+    termId: '',
+    courseId: ''
+  });
+
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        const [institutesResponse, termsResponse, coursesResponse] =
+          await Promise.all([
+            axiosInstance.get('/institutions?limit=all&status=1'),
+            axiosInstance.get('/terms?limit=all&status=1'),
+            axiosInstance.get('/courses?limit=all&status=1')
+          ]);
+
+        setInstitutes(
+          institutesResponse.data.data.result.map((institute: any) => ({
+            value: institute._id,
+            label: institute.name
+          }))
+        );
+        setTerms(
+          termsResponse.data.data.result.map((term: any) => ({
+            value: term._id,
+            label: term.term
+          }))
+        );
+        setCourses(
+          coursesResponse.data.data.result.map((course: any) => ({
+            value: course._id,
+            label: course.name
+          }))
+        );
+      } catch (error) {
+        console.error('Error fetching filter options:', error);
+      }
+    };
+
+    fetchFilterOptions();
+  }, []);
 
   const fetchData = async (page, entriesPerPage) => {
     try {
       if (initialLoading) setInitialLoading(true);
+      const params: any = {
+        page,
+        limit: entriesPerPage
+      };
+
+      if (appliedFilters.instituteId)
+        params.institute = appliedFilters.instituteId;
+      if (appliedFilters.termId) params.term = appliedFilters.termId;
+      if (appliedFilters.courseId) params.course = appliedFilters.courseId;
+
       const response = await axiosInstance.get(`/course-relations`, {
-        params: {
-          page,
-          limit: entriesPerPage,
-        }
+        params
       });
       setCourseRelations(response.data.data.result);
       setTotalPages(response.data.data.meta.totalPage);
@@ -46,6 +111,28 @@ export default function CourseRelationPage() {
       setInitialLoading(false);
     }
   };
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+
+    setAppliedFilters({
+      instituteId: selectedInstitute,
+      termId: selectedTerm,
+      courseId: selectedCourse
+    });
+  };
+
+  const handleClear = () => {
+    setSelectedInstitute('');
+    setSelectedTerm('');
+    setSelectedCourse('');
+    setCurrentPage(1);
+    setAppliedFilters({ instituteId: '', termId: '', courseId: '' });
+  };
+
+  useEffect(() => {
+    fetchData(currentPage, entriesPerPage);
+  }, [currentPage, entriesPerPage, appliedFilters]);
 
   const handleSubmit = async (data) => {
     try {
@@ -61,7 +148,9 @@ export default function CourseRelationPage() {
 
       if (response.data && response.data.success === true) {
         toast({
-          title: editingCourseRelation ? 'Record Updated successfully' : 'Record Created successfully',
+          title: editingCourseRelation
+            ? 'Record Updated successfully'
+            : 'Record Created successfully',
           className: 'bg-supperagent border-none text-white'
         });
       } else if (response.data && response.data.success === false) {
@@ -118,10 +207,9 @@ export default function CourseRelationPage() {
     setDialogOpen(open);
   };
 
-
   useEffect(() => {
-    fetchData(currentPage, entriesPerPage);  
-  }, [currentPage, entriesPerPage, ]);
+    fetchData(currentPage, entriesPerPage);
+  }, [currentPage, entriesPerPage]);
 
   return (
     <div className="space-y-3">
@@ -139,8 +227,59 @@ export default function CourseRelationPage() {
           New Course
         </Button>
       </div>
-      
-      <div className="rounded-md bg-white p-4 shadow-2xl">
+      <div className="grid grid-cols-1 gap-4 rounded-md bg-white p-4 shadow-sm md:grid-cols-4">
+        <Select value={selectedInstitute} onValueChange={setSelectedInstitute}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select Institute" />
+          </SelectTrigger>
+          <SelectContent>
+            {institutes.map((inst) => (
+              <SelectItem key={inst.value} value={inst.value}>
+                {inst.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select Course" />
+          </SelectTrigger>
+          <SelectContent>
+            {courses.map((course) => (
+              <SelectItem key={course.value} value={course.value}>
+                {course.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={selectedTerm} onValueChange={setSelectedTerm}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select Term" />
+          </SelectTrigger>
+          <SelectContent>
+            {terms.map((term) => (
+              <SelectItem key={term.value} value={term.value}>
+                {term.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="flex gap-2">
+          <Button
+            onClick={handleSearch}
+            className=" bg-supperagent hover:bg-supperagent/90 text-white w-full"
+          >
+            <Search className="mr-2 h-4 w-4" /> Search
+          </Button>
+          <Button onClick={handleClear} variant="outline" className="px-3 w-full">
+            Clear Filter
+          </Button>
+        </div>
+      </div>
+      <div className="rounded-md shadow-sm bg-white p-4 ">
         <Table>
           <TableHeader>
             <TableRow>
@@ -187,10 +326,10 @@ export default function CourseRelationPage() {
                   <Link to={`${relation._id}`}>
                     <Button
                       variant="ghost"
-                      className="bg-blue-500 text-white hover:bg-blue-500 border-none"
+                      className="border-none bg-blue-500 text-white hover:bg-blue-500"
                       size="icon"
                     >
-                      <Link2 className="w-4 h-4" />
+                      <Link2 className="h-4 w-4" />
                     </Button>
                   </Link>
                   <Button

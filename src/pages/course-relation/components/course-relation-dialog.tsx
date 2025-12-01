@@ -107,6 +107,19 @@ export function CourseRelationDialog({
     }
   }, [initialData, form]);
 
+  useEffect(() => {
+  if (open && !initialData) {
+    form.reset({
+      institute: "",
+      course: "",
+      term: "",
+      local: false,
+      local_amount: "",
+      international: false,
+      international_amount: "",
+    });
+  }
+}, [open, initialData, form]);
   const onSubmitForm = (data: z.infer<typeof schema>) => {
     onSubmit(data);
     onOpenChange(false);
@@ -191,7 +204,7 @@ export function CourseRelationDialog({
                           <FormControl>
                             <div className="relative">
                               <span className="absolute left-3 top-1/2 -translate-y-1/2">£</span>
-                              <Input className="pl-7" placeholder="Amount" {...field} />
+                              <Input className="pl-7"type="number"  placeholder="Amount" {...field} />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -224,7 +237,7 @@ export function CourseRelationDialog({
                           <FormControl>
                             <div className="relative">
                               <span className="absolute left-3 top-1/2 -translate-y-1/2">£</span>
-                              <Input className="pl-7" placeholder="Amount" {...field} />
+                              <Input className="pl-7" type="number" placeholder="Amount" {...field} />
                             </div>
                           </FormControl>
                           <FormMessage />
