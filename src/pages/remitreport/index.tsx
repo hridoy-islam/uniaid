@@ -385,7 +385,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                   invoices.map((invoice) => (
                     <TableRow key={invoice._id}>
                       <TableCell>
-                        {moment(invoice.date).format('DD MMM YYYY')}
+                        {moment(invoice.createdAt).format('DD MMM YYYY')}
                       </TableCell>
                       {/* <TableCell>{invoice.reference}</TableCell> */}
                       <TableCell>{invoice.remitTo?.name}</TableCell>
