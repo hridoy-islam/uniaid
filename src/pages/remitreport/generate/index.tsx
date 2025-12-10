@@ -1,8 +1,5 @@
-
-
 import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 import moment from "moment";
-
 
 // Define styles
 const styles = StyleSheet.create({
@@ -15,10 +12,8 @@ const styles = StyleSheet.create({
   logoContainer: {
     flexDirection: "row",
     justifyContent: "flex-start",
-    marginTop:"-30px",
-    // marginLeft:"-20px"
+    marginTop: "-30px",
   },
-  
   sectionTitle: {
     fontSize: 11,
     fontWeight: "semibold",
@@ -37,7 +32,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: "Bold",
+    fontWeight: "bold", // React-pdf uses lowercase 'bold'
     paddingBottom: 2,
   },
   table: {
@@ -48,7 +43,6 @@ const styles = StyleSheet.create({
   tableHeader: {
     flexDirection: "row",
     backgroundColor: "#00a185",
-    
   },
   tableHeaderCell: {
     padding: 5,
@@ -68,23 +62,45 @@ const styles = StyleSheet.create({
   },
   tableRow: {
     flexDirection: "row",
-    justifyContent: "center", // Center the content horizontally
-    alignItems: "center", // Align content vertically in the center
+    justifyContent: "center",
+    alignItems: "center",
   },
   tableCell: {
     padding: 5,
-    paddingRight:10,
+    paddingRight: 10,
     fontSize: 10,
     fontWeight: "normal",
-    textAlign: "center", // Center-align content in table cells
-    // borderRightWidth: 2,
+    textAlign: "center",
     borderRightColor: "#fff",
     flexDirection: "column",
     justifyContent: "center",
   },
+  // --- New Styles for Adjustment Section ---
+  summaryRow: {
+    flexDirection: "row",
+   
+    paddingVertical: 4,
+  },
+  summaryLabel: {
+    width: "80%",
+    paddingRight: 10,
+    fontSize: 10,
+    fontWeight: "bold",
+    textAlign: "right",
+    color: "#333",
+  },
+  summaryValue: {
+    width: "20%",
+    paddingLeft: 5,
+    fontSize: 10,
+    textAlign: "center",
+    color: "#333",
+  },
+  // ----------------------------------------
   totalRow: {
     flexDirection: "row",
     backgroundColor: "#00a185",
+    marginTop: 2, // slight separation from summary rows
   },
   totalLabel: {
     width: "80%",
@@ -100,25 +116,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "semibold",
     color: "white",
-    textAlign: "center"
+    textAlign: "center",
   },
   grayText: {
     color: "#888",
   },
   grayBackground: {
-    backgroundColor: "#f3f3f3", // Light gray color for alternate rows
+    backgroundColor: "#f3f3f3",
   },
 });
 
 const InvoicePDF = ({ invoice = {} }) => {
-
-
-  
-
-
-
-
-
   const {
     remitTo = {
       name: "N/A",
@@ -134,15 +142,22 @@ const InvoicePDF = ({ invoice = {} }) => {
     noOfStudents = 0,
     students = [],
     totalAmount = 0,
+    // Add adjustment fields
+    adjustmentType = null, 
+    adjustmentBalance = 0,
   } = invoice;
 
+  // Calculate Subtotal (Sum of all students before discount)
+  const subTotal = students.reduce((sum, student) => sum + (student.amount || 0), 0);
+  
+  // Calculate discount amount for display
+  const hasAdjustment = adjustmentBalance > 0;
+  const discountAmount = subTotal - totalAmount;
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-      
         <View style={styles.twoColumnContainer}>
-          
           <View>
             <Text style={styles.sectionTitle}>REMIT TO</Text>
             <Text style={styles.label}>{remitTo.name}</Text>
@@ -152,7 +167,9 @@ const InvoicePDF = ({ invoice = {} }) => {
           <View>
             <Text style={styles.sectionTitle}>REMIT REPORT</Text>
             <Text style={styles.value}>Reference: {reference}</Text>
-            <Text style={styles.value}>Date: {moment(createdAt).format("Do MMM, YYYY")}</Text>
+            <Text style={styles.value}>
+              Date: {moment(createdAt).format("Do MMM, YYYY")}
+            </Text>
             <Text style={styles.value}>Semester: {semester}</Text>
             <Text style={styles.value}>No of Students: {noOfStudents}</Text>
           </View>
@@ -164,41 +181,89 @@ const InvoicePDF = ({ invoice = {} }) => {
         <Text style={styles.value}>Beneficiary: {remitTo.beneficiary}</Text>
 
         <View style={styles.table}>
+          {/* Table Header */}
           <View style={styles.tableHeader}>
             <Text style={[styles.tableHeaderCell, { width: "5%" }]}>SL</Text>
             <Text style={[styles.tableHeaderCell, { width: "25%" }]}>REFERENCE</Text>
-            <Text style={[styles.tableHeaderCell, { width: "50%", textAlign: "left" }]}>NAME</Text>  
-
-            <Text style={[ styles.tableHeaderAmountCell,{ width: "20%" }]}>AMOUNT</Text>
+            <Text style={[styles.tableHeaderCell, { width: "50%", textAlign: "left" }]}>
+              NAME
+            </Text>
+            <Text style={[styles.tableHeaderAmountCell, { width: "20%" }]}>AMOUNT</Text>
           </View>
 
+          {/* Student Rows */}
           {students.map((student, index) => {
-            // Apply light gray background for every odd row (index % 2 === 0 means even index, which is 1st, 3rd, etc.)
             const rowStyle = index % 2 !== 0 ? styles.grayBackground : {};
             return (
               <View style={[styles.tableRow, rowStyle]} key={index}>
                 <Text style={[styles.tableCell, { width: "5%" }]}>{index + 1}</Text>
-                <View style={{ width: "25%", display: "flex", justifyContent: "flex-start", alignItems: "flex-start" }}>
-                  <Text style={[styles.tableCell, { fontWeight: 'semibold' }]}>{student.refId} </Text>
-                  <Text style={[styles.tableCell, styles.grayText]}>{student.collegeRoll}</Text>
+                <View
+                  style={{
+                    width: "25%",
+                    display: "flex",
+                    justifyContent: "flex-start",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <Text style={[styles.tableCell, { fontWeight: "bold" }]}>
+                    {student.refId}{" "}
+                  </Text>
+                  <Text style={[styles.tableCell, styles.grayText]}>
+                    {student.collegeRoll}
+                  </Text>
                 </View>
 
-                <View style={{ width: "50%", display: "flex", justifyContent: "flex-start", alignItems: "flex-start" }}>
+                <View
+                  style={{
+                    width: "50%",
+                    display: "flex",
+                    justifyContent: "flex-start",
+                    alignItems: "flex-start",
+                  }}
+                >
                   <Text style={styles.tableCell}>
                     {student.firstName} {student.lastName}
                   </Text>
-                  <Text style={[styles.tableCell, styles.grayText]}>{student.course}</Text>
+                  <Text style={[styles.tableCell, styles.grayText]}>
+                    {student.course}
+                  </Text>
                 </View>
 
-                <Text style={[styles.tableCell, { width: "20%" }]}>£{student.amount?.toFixed(2)}</Text>
+                <Text style={[styles.tableCell, { width: "20%" }]}>
+                  £{student.amount?.toFixed(2)}
+                </Text>
               </View>
             );
           })}
 
+          {/* Logic for Totals */}
+          
+          {/* 1. Subtotal (Only show if there is an adjustment) */}
+          {hasAdjustment && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Subtotal</Text>
+              <Text style={styles.summaryValue}>£{subTotal.toFixed(2)}</Text>
+            </View>
+          )}
+
+          {/* 2. Adjustment/Discount Row */}
+          {hasAdjustment && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>
+                Adjustment {adjustmentType === 'percentage' ? `(${adjustmentBalance}%)` : ''}
+              </Text>
+              <Text style={[styles.summaryValue,]}>
+                -£{discountAmount.toFixed(2)}
+              </Text>
+            </View>
+          )}
+
+          {/* 3. Final Total (Always visible) */}
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>TOTAL</Text>
             <Text style={styles.totalValue}>£{totalAmount.toFixed(2)}</Text>
           </View>
+
         </View>
       </Page>
     </Document>

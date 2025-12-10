@@ -5,14 +5,21 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter } from '@/components/ui/card';
+import { Input } from '@/components/ui/input'; // Imported Input
 import axiosInstance from '@/lib/axios';
 import { useToast } from '@/components/ui/use-toast';
 import { StudentFilter } from './components/student-filter';
 import { StudentSelection } from './components/StudentSelection';
 import { useSelector } from 'react-redux';
-import { ArrowLeft } from 'lucide-react';
-
-// Updated Zod schema to include remitTo, paymentInfo, and course details
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+// Updated Zod schema
 const invoiceSchema = z.object({
   status: z.enum(['due', 'paid', 'available']),
   remitTo: z.string(),
@@ -53,6 +60,13 @@ export default function RemitCreatePage() {
   const [filteredInstitutes, setFilteredInstitutes] = useState([]);
   const [filteredCourseRelations, setFilteredCourseRelations] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // --- NEW STATE FOR ADJUSTMENT ---
+  const [adjustmentType, setAdjustmentType] = useState('percentage'); // 'percentage' | 'flat'
+  const [adjustmentValue, setAdjustmentValue] = useState('');
+  const [subTotal, setSubTotal] = useState(0);
+  const [discountAmount, setDiscountAmount] = useState(0);
 
   const [paymentStatuses, setPaymentStatuses] = useState([
     'paid',
@@ -62,6 +76,7 @@ export default function RemitCreatePage() {
   const { user } = useSelector((state: any) => state.auth);
   const { toast } = useToast();
   const [agents, setAgents] = useState([]);
+
   const form = useForm<z.infer<typeof invoiceSchema>>({
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
@@ -85,7 +100,7 @@ export default function RemitCreatePage() {
       year: 'Year 1',
       session: '',
       searchQuery: '',
-      courseRelationId: '' // Add default value for courseRelationId
+      courseRelationId: ''
     }
   });
 
@@ -94,7 +109,7 @@ export default function RemitCreatePage() {
       const response = await axiosInstance.get(
         '/users?role=agent&limit=all&fields=name'
       );
-      setAgents(response?.data?.data?.result); // Assuming the response contains an array of remits
+      setAgents(response?.data?.data?.result);
     } catch (error) {
       console.error('Error fetching agents:', error);
       toast({
@@ -167,34 +182,17 @@ export default function RemitCreatePage() {
 
       const params: Record<string, unknown> = {};
 
-      // Build the query parameters to match backend expectations
-      if (agent) {
-        params['agentid'] = agent;
-      }
-
-      if (courseRelationId) {
-        params['agentCourseRelationId'] = courseRelationId;
-      }
-
-      if (paymentStatus) {
-        params['agentPaymentStatus'] = paymentStatus;
-      }
-
-      if (year) {
-        params['agentYear'] = year;
-      }
-
-      if (session) {
-        params['agentSession'] = session;
-      }
+      if (agent) params['agentid'] = agent;
+      if (courseRelationId) params['agentCourseRelationId'] = courseRelationId;
+      if (paymentStatus) params['agentPaymentStatus'] = paymentStatus;
+      if (year) params['agentYear'] = year;
+      if (session) params['agentSession'] = session;
       params['limit'] = 10000;
 
-      // Make the request to the backend with the filters as params
       const response = await axiosInstance.get('/students', { params });
 
       const studentsData = response?.data?.data.result || [];
       const filteredStudentsData = studentsData.filter((student) => {
-        // Verify course relation match if we filtered by it
         if (courseRelationId) {
           const hasMatchingAccount = student.agentPayments?.some(
             (agentPayment) => agentPayment.courseRelationId === courseRelationId
@@ -202,21 +200,26 @@ export default function RemitCreatePage() {
           if (!hasMatchingAccount) return false;
         }
 
-        // Exclude student if the matched year+session has remit === true
-        const isRemitForMatchedPeriod = student.agentPayments?.some(
-          (agentPayment) =>
-            agentPayment.years?.some(
-              (y) =>
-                (!year || y.year === year) &&
-                y.sessions?.some(
-                  (s) =>
-                    (!session || s.sessionName === session) && s.remit === true
-                )
-            )
-        );
-        if (isRemitForMatchedPeriod) return false;
+        // --- FIX START ---
+        // Only filter out students who already have a remit if we are looking for 'available' students.
+        // If we are looking for 'paid' or 'due', we WANT to see students who might have remits.
+        if (paymentStatus === 'available') {
+          const isRemitForMatchedPeriod = student.agentPayments?.some(
+            (agentPayment) =>
+              agentPayment.years?.some(
+                (y) =>
+                  (!year || y.year === year) &&
+                  y.sessions?.some(
+                    (s) =>
+                      (!session || s.sessionName === session) &&
+                      s.remit === true
+                  )
+              )
+          );
+          if (isRemitForMatchedPeriod) return false;
+        }
+        // --- FIX END ---
 
-        // Verify year and session matches if we filtered by them
         if (year || session) {
           return student.agentPayments?.some((agentPayment) =>
             agentPayment.years?.some(
@@ -230,7 +233,6 @@ export default function RemitCreatePage() {
         return true;
       });
 
-      
       setStudents(filteredStudentsData);
       setFilteredStudents(filteredStudentsData);
     } catch (error) {
@@ -281,7 +283,6 @@ export default function RemitCreatePage() {
   const handleYearChange = (value) => {
     filterForm.setValue('year', value);
 
-    // If we have a selected course relation, update the available sessions for this year
     if (selectedCourseRelation) {
       const yearObj = selectedCourseRelation.years.find(
         (y) => y.year === value
@@ -290,7 +291,6 @@ export default function RemitCreatePage() {
         const yearSessions = yearObj.sessions.map((s) => s.sessionName);
         setSessions(yearSessions);
 
-        // Reset session if the current one isn't available for this year
         const currentSession = filterForm.getValues('session');
         if (currentSession && !yearSessions.includes(currentSession)) {
           filterForm.setValue('session', '');
@@ -302,49 +302,22 @@ export default function RemitCreatePage() {
   const handleSessionChange = (value) => {
     filterForm.setValue('session', value);
   };
-  
-  // const calculateSessionFee = (session, amount) => {
-  //   if (!session || session.rate == null) {
-  //     console.error('Session data is invalid:', session);
-  //     return 0;
-  //   }
 
-  //   const rate = Number(session.rate) || 0;
-  //   const validAmount = Number(amount) || 0;
-
-  //   if (session.type === 'flat') {
-  //     return rate;
-  //   } else if (session.type === 'percentage') {
-  //     if (
-  //       session.sessionName === 'Session 1' ||
-  //       session.sessionName === 'Session 2'
-  //     ) {
-  //       return validAmount * 0.25 * (rate / 100);
-  //     } else {
-  //       return validAmount * 0.5 * (rate / 100);
-  //     }
-  //   }
-
-  //   return 0;
-  // };
-
-   // Calculate session fee
   const calculateSessionFee = (session, amount) => {
-    if (!session || session.rate == null) return 0
-console.log(session,amount)
+    if (!session || session.rate == null) return 0;
 
-    const rate = Number(session.rate) || 0
-    const validAmount = Number(amount) || 0
+    const rate = Number(session.rate) || 0;
+    const validAmount = Number(amount) || 0;
 
     switch (session.type) {
-      case "flat":
-        return rate
-      case "percentage":
-        return validAmount * (rate / 100)
+      case 'flat':
+        return rate;
+      case 'percentage':
+        return validAmount * (rate / 100);
       default:
-        return 0
+        return 0;
     }
-  }
+  };
 
   const handleInstituteChange = (instituteId) => {
     filterForm.setValue('course', '');
@@ -363,7 +336,7 @@ console.log(session,amount)
       )
       .map((item) => ({
         _id: item._id,
-        name: `${item.course.name} `, // More descriptive name
+        name: `${item.course.name} `,
         courseRelation: item
       }));
 
@@ -382,7 +355,6 @@ console.log(session,amount)
       courseRelation.years.length > 0
     ) {
       filterForm.setValue('year', 'Year 1');
-
       handleYearChange('Year 1');
     }
   };
@@ -407,102 +379,92 @@ console.log(session,amount)
     }
   };
 
-
   const handleAddStudent = async (student) => {
-     if (event) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     const isAlreadySelected = selectedStudents.some(
       (s) => s._id === student._id
     );
 
     if (!isAlreadySelected) {
       const filterValues = filterForm.getValues();
-      
-        // Fetch the agent course details
-        const agentCourse = await fetchAgentCourse(
-          filterValues.agent,
-          selectedCourseRelation?._id
+
+      const agentCourse = await fetchAgentCourse(
+        filterValues.agent,
+        selectedCourseRelation?._id
+      );
+
+      if (!agentCourse) {
+        toast({
+          title: 'Error',
+          description: 'Agent course configuration not found',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const agentYear = agentCourse.year.find(
+        (y) => y.sessionName === filterValues.session
+      );
+
+      if (!agentYear) {
+        toast({
+          title: 'Error',
+          description: 'Session configuration not found for this year',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const application = student.applications.find(
+        (app) => app.courseRelationId._id === selectedCourseRelation._id
+      );
+
+      if (!application) {
+        toast({
+          title: 'Application Not Found',
+          description:
+            'This student has no application for the selected course.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const studentAmount =
+        application.choice === 'Local'
+          ? Number.parseFloat(selectedCourseRelation.local_amount)
+          : Number.parseFloat(selectedCourseRelation.international_amount);
+
+      const sessionFee = calculateSessionFee(agentYear, studentAmount);
+
+      const studentWithFee = {
+        ...student,
+        collegeRoll: student.collegeRoll,
+        refId: student.refId,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        course: selectedCourseRelation?.course?.name || '',
+        amount: sessionFee,
+        sessionFee,
+        selected: true,
+        courseRelationId: selectedCourseRelation?._id,
+        Year: filterValues.year,
+        Session: filterValues.session,
+        semester: filterValues.term
+      };
+
+      setSelectedStudents((prev) => [...prev, studentWithFee]);
+      setFilteredStudents((prev) => prev.filter((s) => s._id !== student._id));
+
+      if (selectedCourseRelation) {
+        updateFormWithCourseDetails(
+          selectedCourseRelation,
+          filterValues.year,
+          filterValues.session
         );
-
-        if (!agentCourse) {
-          toast({
-            title: 'Error',
-            description: 'Agent course configuration not found',
-            variant: 'destructive'
-          });
-          return;
-        }
-
-        // Find the correct session in the year array of agentCourse
-        const agentYear = agentCourse.year.find(
-          (y) => y.sessionName === filterValues.session // Assuming sessionName matches filterValues.session
-        );
-
-        if (!agentYear) {
-          toast({
-            title: 'Error',
-            description: 'Session configuration not found for this year',
-            variant: 'destructive'
-          });
-          return;
-        }
-
-        const application = student.applications.find(
-          (app) => app.courseRelationId._id === selectedCourseRelation._id
-        );
-
-        if (!application) {
-          toast({
-            title: 'Application Not Found',
-            description:
-              'This student has no application for the selected course.',
-            variant: 'destructive'
-          });
-          return;
-        }
-
-        const studentAmount =
-          application.choice === 'Local'
-            ? Number.parseFloat(selectedCourseRelation.local_amount)
-            : Number.parseFloat(selectedCourseRelation.international_amount);
-
-        // Calculate the session fee
-        const sessionFee = calculateSessionFee(agentYear, studentAmount);
-
-        // Create student object with fee and session details
-        const studentWithFee = {
-          ...student,
-          collegeRoll: student.collegeRoll,
-          refId: student.refId,
-          firstName: student.firstName,
-          lastName: student.lastName,
-          course: selectedCourseRelation?.course?.name || '',
-          amount: sessionFee,
-          sessionFee,
-          selected: true,
-          courseRelationId: selectedCourseRelation?._id,
-          Year: filterValues.year,
-          Session: filterValues.session,
-          semester: filterValues.term
-        };
-
-        // Update selected students and filtered list
-        setSelectedStudents((prev) => [...prev, studentWithFee]);
-        setFilteredStudents((prev) =>
-          prev.filter((s) => s._id !== student._id)
-        );
-
-        // Update form values based on the selected course relation and filter values
-        if (selectedCourseRelation) {
-          updateFormWithCourseDetails(
-            selectedCourseRelation,
-            filterValues.year,
-            filterValues.session
-          );
-        }
-      
+      }
     } else {
       toast({
         title: 'Student already added',
@@ -514,42 +476,49 @@ console.log(session,amount)
 
   useEffect(() => {
     fetchCourseRelations();
-
     setPaymentStatuses(['paid', 'due', 'available']);
     setSelectedStudents([]);
   }, []);
 
+  // --- UPDATED useEffect for Total Amount Calculation with Adjustment ---
   useEffect(() => {
-    const total = selectedStudents
+    // 1. Calculate Sum of Students (Subtotal)
+    const calculatedSubTotal = selectedStudents
       .filter((student) => student.selected)
       .reduce((sum, student) => sum + (student.amount || 0), 0);
-    setTotalAmount(total);
+
+    // 2. Calculate Discount Amount
+    let calculatedDiscount = 0;
+    const val = parseFloat(adjustmentValue) || 0;
+
+    if (adjustmentType === 'percentage') {
+      calculatedDiscount = calculatedSubTotal * (val / 100);
+    } else {
+      calculatedDiscount = val;
+    }
+
+    // 3. Calculate Final Total (ensure it doesn't go below 0)
+    const finalTotal = Math.max(0, calculatedSubTotal - calculatedDiscount);
+
+    // 4. Update States
+    setSubTotal(calculatedSubTotal);
+    setDiscountAmount(calculatedDiscount);
+    setTotalAmount(finalTotal);
 
     // Update form's total amount
-    form.setValue('totalAmount', total);
-  }, [selectedStudents, form]);
-
-  // const handleStudentSelect = (studentId) => {
-  //   setSelectedStudents((prev) =>
-  //     prev.map((student) =>
-  //       student._id === studentId
-  //         ? { ...student, selected: !student.selected }
-  //         : student
-  //     )
-  //   );
-  // };
+    form.setValue('totalAmount', finalTotal);
+  }, [selectedStudents, form, adjustmentType, adjustmentValue]);
+  // -------------------------------------------------------------------
 
   const handleRemoveStudent = (studentId) => {
     const studentToRemove = selectedStudents.find((s) => s._id === studentId);
 
     if (studentToRemove) {
-      // Remove the student from the selected list
       setSelectedStudents((prev) =>
         prev.filter((student) => student._id !== studentId)
       );
 
       setLoading(true);
-
       setFilteredStudents((prev) => {
         const isAlreadyInList = prev.some((s) => s._id === studentToRemove._id);
         if (!isAlreadyInList) {
@@ -565,6 +534,8 @@ console.log(session,amount)
     }
   };
 
+  const currentPaymentStatus = filterForm.watch('paymentStatus');
+
   const onSubmit = async (data: z.infer<typeof invoiceSchema>) => {
     const selectedStudentsWithRelation = selectedStudents.filter(
       (student) => student.selected
@@ -575,7 +546,6 @@ console.log(session,amount)
       return;
     }
 
-    // Get agent ID from filterForm instead of main form
     const agentId = filterForm.getValues('agent');
     if (!agentId) {
       toast({
@@ -602,8 +572,13 @@ console.log(session,amount)
       ...restData,
       noOfStudents: selectedStudentsWithRelation.length,
       courseRelationId,
-      remitTo: agentId, // Use the agentId from filterForm
-      totalAmount,
+      remitTo: agentId,
+      totalAmount, // This uses the state which includes the adjustment calculation
+
+      adjustmentType: adjustmentType,
+
+      adjustmentBalance: Number(adjustmentValue) || 0,
+
       createdBy: user._id,
       year: courseDetails.year,
       session: courseDetails.session,
@@ -614,8 +589,10 @@ console.log(session,amount)
     };
 
     try {
+      setIsSubmitting(true);
       await axiosInstance.post('/remit-invoice', invoiceData);
       navigate('/admin/remit');
+      console.log('Remit Invoice Data:', invoiceData);
       toast({
         title: 'Remit Report created successfully',
         className: 'bg-supperagent border-none text-white'
@@ -627,6 +604,8 @@ console.log(session,amount)
         description: 'Failed to generate Remit',
         variant: 'destructive'
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -643,7 +622,6 @@ console.log(session,amount)
         name: item.institute.name
       }));
 
-    // Remove duplicates
     const uniqueInstitutes = filteredInsts.filter(
       (institute, index, self) =>
         index === self.findIndex((i) => i._id === institute._id)
@@ -677,7 +655,6 @@ console.log(session,amount)
 
       <div className="grid gap-2">
         <Card>
-          {/* Student Filter Component */}
           <StudentFilter
             filterForm={filterForm}
             terms={terms}
@@ -696,7 +673,6 @@ console.log(session,amount)
             hasSearched={hasSearched}
           />
 
-          {/* Student Selection Component */}
           <StudentSelection
             filteredStudents={filteredStudents}
             selectedStudents={selectedStudents}
@@ -704,23 +680,95 @@ console.log(session,amount)
             handleAddStudent={handleAddStudent}
             handleRemoveStudent={handleRemoveStudent}
             hasSearched={hasSearched}
+            paymentStatus={currentPaymentStatus}
           />
 
-          <CardFooter className="flex justify-between p-4">
-            <div className="text-lg font-semibold">
-              Total Amount:{' '}
-              <span className="text-xl">{totalAmount.toFixed(2)}</span>
+          <CardFooter className="flex flex-col gap-4 p-4">
+            {/* --- Adjustment Section --- */}
+            <div className="flex w-full items-center justify-between">
+              <div className="mb-2 flex items-center">
+                <span className="mr-4 w-28 font-medium">Adjustment</span>
+                <div className="flex w-full items-center gap-2">
+                  <Select
+                    onValueChange={setAdjustmentType}
+                    value={adjustmentType}
+                  >
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentage</SelectItem>
+                      <SelectItem value="flat">Flat</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="ml-auto">
+                    <Input
+                      type="text"
+                      min="0"
+                      value={adjustmentValue}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                        if ((value.match(/\./g) || []).length <= 1) {
+                          setAdjustmentValue(value);
+                        }
+                      }}
+                      className="w-32 text-center"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* --- UPDATED TOTAL DISPLAY LOGIC --- */}
+              <div className="flex flex-col items-end gap-1">
+                {discountAmount > 0 && (
+                  <>
+                    <div className=" ">
+                      Subtotal:{' '}
+                      <span className="font-semibold ">
+                        {subTotal.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="">
+                      Adjustment: -
+                      <span className="font-semibold">
+                        {discountAmount.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="my-1 h-[1px] w-full bg-border"></div>
+                  </>
+                )}
+                <div className="text-lg font-bold">
+                  Total Amount:{' '}
+                  <span className="text-xl ">{totalAmount.toFixed(2)}</span>
+                </div>
+              </div>
             </div>
 
-            <Button
-              type="submit"
-              form="invoice-form"
-              className="bg-supperagent text-white hover:bg-supperagent"
-              disabled={selectedStudents.filter((s) => s.selected).length === 0}
-              onClick={form.handleSubmit(onSubmit)}
-            >
-              Generate Remit Report
-            </Button>
+            <div className="flex w-full items-center justify-end">
+              <Button
+                type="submit"
+                form="invoice-form"
+                className="bg-supperagent text-white hover:bg-supperagent"
+                disabled={
+                  selectedStudents.filter((s) => s.selected).length === 0 ||
+                  currentPaymentStatus === 'paid' ||
+                  currentPaymentStatus === 'due' ||
+                  isSubmitting
+                }
+                onClick={form.handleSubmit(onSubmit)}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  'Generate Remit Report'
+                )}
+              </Button>
+            </div>
           </CardFooter>
         </Card>
       </div>

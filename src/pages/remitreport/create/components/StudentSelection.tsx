@@ -1,4 +1,4 @@
-"use client"
+
 
 import { BlinkingDots } from "@/components/shared/blinking-dots"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ interface StudentSelectionProps {
   hasSearched: boolean
   handleAddStudent: (student: Student) => void
   handleRemoveStudent: (id: string) => void
+  paymentStatus: any
 }
 
 export function StudentSelection({
@@ -33,6 +34,7 @@ export function StudentSelection({
   hasSearched,
   handleAddStudent,
   handleRemoveStudent,
+  paymentStatus
 }: StudentSelectionProps) {
 
   return (
@@ -73,6 +75,7 @@ export function StudentSelection({
                               className="bg-supperagent text-white hover:bg-supperagent/90"
                               size="sm"
                               onClick={() => handleAddStudent(student)}
+                              disabled={paymentStatus === 'paid'|| paymentStatus === 'due'}
                             >
                               Add
                             </Button>
