@@ -77,6 +77,10 @@ export default function AppRouter() {
           element: <ProfilePage />
         },
         {
+          path: 'company-details',
+          element: <ProfilePage />
+        },
+        {
           path: 'notifications',
           element: <NotificationsPage />
         },
@@ -110,7 +114,7 @@ export default function AppRouter() {
           path: 'invoice/bank-list',
           element: <BankPage />
         },
-     
+
         {
           path: 'remit',
           element: <RemitReportPage />

@@ -37,10 +37,11 @@ const profileFormSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   postCode: z.string().optional(),
+  vatNo: z.string().optional(),
   country: z.string().nonempty('Country is required'),
   sortCode: z.string().nonempty('Sort Code is required'),
   accountNo: z.string().nonempty('Account Number is required'),
-  beneficiary: z.string().nonempty('Beneficiary is required'),
+  beneficiary: z.string().nonempty('Beneficiary is required')
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -65,7 +66,8 @@ export default function ProfilePage() {
     country: profileData?.country || '',
     sortCode: profileData?.sortCode || '',
     accountNo: profileData?.accountNo || '',
-    beneficiary: profileData?.beneficiary || ''
+    beneficiary: profileData?.beneficiary || '',
+    vatNo: profileData?.vatNo || ''
   };
 
   const form = useForm<ProfileFormValues>({
@@ -313,6 +315,20 @@ export default function ProfilePage() {
                     <FormLabel>Beneficiary *</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter Beneficiary" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="vatNo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>VAT Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter VAT Number" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

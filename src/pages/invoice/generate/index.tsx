@@ -209,6 +209,13 @@ interface Invoice {
   discountMsg?: string;
   vat?: number;
   totalAmount: number;
+  companyName?: string;
+  companyAddress?: string;
+  companyEmail?: string;
+  companyVatNo?: string;
+  companyCountry?: string;
+  companyCity?: string;
+  companyPostalCode?: string;
 }
 
 const InvoicePDF = ({ invoice = {} as Invoice }) => {
@@ -225,7 +232,14 @@ const InvoicePDF = ({ invoice = {} as Invoice }) => {
     discountType = 'flat',
     discountAmount = 0,
     discountMsg = '',
-    vat = 0
+    vat = 0,
+    companyName = '',
+    companyAddress = '',
+    companyEmail = '',
+    companyVatNo = '',
+    companyCountry = '',
+    companyCity = '',
+    companyPostalCode = ''
     // totalAmount = 0,
   } = invoice;
 
@@ -256,19 +270,36 @@ const InvoicePDF = ({ invoice = {} as Invoice }) => {
         <View style={styles.invoiceFromTo}>
           <View style={styles.fromSection}>
             <Text style={styles.sectionTitle}>INVOICE FROM</Text>
-            <Text style={styles.label}>{createdBy.name}</Text>
-            <Text style={styles.value}>Email: {createdBy.email}</Text>
-            <Text style={styles.value}>
-              Address: {createdBy.location} {createdBy?.location2}{' '}
-            </Text>
-            <Text style={styles.value}>
-              {createdBy?.city}
-              {createdBy?.state}{' '}
-            </Text>
-            <Text style={styles.value}>
-              {createdBy?.postCode}
-              {createdBy?.country}{' '}
-            </Text>
+
+            {/* Name */}
+            <Text style={styles.label}>{companyName}</Text>
+
+            {/* Email */}
+            {companyEmail ? (
+              <Text style={styles.value}>Email: {companyEmail}</Text>
+            ) : null}
+
+            {/* Address */}
+            {companyAddress ? (
+              <Text style={styles.value}>Address: {companyAddress}</Text>
+            ) : null}
+
+            {/* City & Postal Code (Combined to prevent empty lines) */}
+            {companyCity || companyPostalCode ? (
+              <Text style={styles.value}>
+                {[companyCity, companyPostalCode].filter(Boolean).join(', ')}
+              </Text>
+            ) : null}
+
+            {/* Country */}
+            {companyCountry ? (
+              <Text style={styles.value}>{companyCountry}</Text>
+            ) : null}
+
+            {/* VAT Number (New Field) */}
+            {companyVatNo ? (
+              <Text style={styles.value}>VAT No: {companyVatNo}</Text>
+            ) : null}
           </View>
 
           <View style={{ marginRight: 60 }}>

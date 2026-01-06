@@ -19,7 +19,8 @@ import {
   ClipboardPaste,
   PiggyBank,
   Vault,
-  Database
+  Database,
+  Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
@@ -68,13 +69,14 @@ const navItems = [
             label: 'Academic Year',
             href: 'academic-year'
           },
-          { icon: Vault, label: 'Bank List', href: 'bank-list' }
+          { icon: Vault, label: 'Bank List', href: 'bank-list' },
+          { icon: Building2, label: 'Company Details', href: 'company-details' }
         ]
       },
       { icon: CircleUser, label: 'Staffs', href: 'staff' },
       { icon: AtSign, label: 'Emails', href: 'emails' },
       { icon: DraftingCompass, label: 'Drafts', href: 'drafts' },
-      { icon: Database , label: 'Bulk Roll Update', href: 'bulk-roll-update' }
+      { icon: Database, label: 'Bulk Roll Update', href: 'bulk-roll-update' }
     ]
   }
 ];
