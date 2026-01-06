@@ -26,9 +26,11 @@ export function ApplicationsSection({ student, onSave }) {
   //   onSave({ applications: [...applications, data] });
   // };
 
-    const handleSubmit = (data) => {
-    onSave({ applications: [data] });
-  };
+ const handleSubmit = (data) => {
+ 
+   const newApplicationList = [...applications, data];
+   onSave({ applications: newApplicationList });
+ };
 
   // Get the status badge color
   const getStatusBadgeColor = (status) => {
