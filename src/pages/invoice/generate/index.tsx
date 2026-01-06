@@ -216,6 +216,7 @@ interface Invoice {
   companyCountry?: string;
   companyCity?: string;
   companyPostalCode?: string;
+  companyState?: string;
 }
 
 const InvoicePDF = ({ invoice = {} as Invoice }) => {
@@ -239,7 +240,8 @@ const InvoicePDF = ({ invoice = {} as Invoice }) => {
     companyVatNo = '',
     companyCountry = '',
     companyCity = '',
-    companyPostalCode = ''
+    companyPostalCode = '',
+    companyState = '',
     // totalAmount = 0,
   } = invoice;
 
@@ -285,9 +287,9 @@ const InvoicePDF = ({ invoice = {} as Invoice }) => {
             ) : null}
 
             {/* City & Postal Code (Combined to prevent empty lines) */}
-            {companyCity || companyPostalCode ? (
+            {companyCity || companyState || companyPostalCode ? (
               <Text style={styles.value}>
-                {[companyCity, companyPostalCode].filter(Boolean).join(', ')}
+                {[companyCity,companyState, companyPostalCode].filter(Boolean).join(', ')}
               </Text>
             ) : null}
 
@@ -298,7 +300,7 @@ const InvoicePDF = ({ invoice = {} as Invoice }) => {
 
             {/* VAT Number (New Field) */}
             {companyVatNo ? (
-              <Text style={styles.value}>VAT No: {companyVatNo}</Text>
+              <Text style={styles.value}>VAT reg no: {companyVatNo}</Text>
             ) : null}
           </View>
 
