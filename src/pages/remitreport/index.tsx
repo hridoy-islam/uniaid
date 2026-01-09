@@ -11,7 +11,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import moment from 'moment';
-import { RefreshCcw, Send } from 'lucide-react';
+import { RefreshCcw, Send, Loader2, MoreVertical } from 'lucide-react'; // Added Loader2
 import InvoicePDF from './generate';
 import { Link, useNavigate } from 'react-router-dom';
 import { DataTablePagination } from '../students/view/components/data-table-pagination';
@@ -29,8 +29,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem
 } from '@/components/ui/dropdown-menu';
-import { MoreVertical } from 'lucide-react';
 import { InvoicePreviewModal } from './components/invoice-preview-modal';
+
 export default function RemitReportPage() {
   const [invoices, setInvoices] = useState([]);
   const [agents, setAgents] = useState([]);
@@ -50,13 +50,13 @@ export default function RemitReportPage() {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState();
   const { user } = useSelector((state: any) => state.auth);
+  
   // Preview States
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewInvoiceData, setPreviewInvoiceData] = useState<any>(null);
-  const [previewLoading, setPreviewLoading] = useState(false); // New Loading State
-
-
-
+  
+  // CHANGED: Track specific ID instead of boolean
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
 
   const fetchInvoices = async (page, entriesPerPage) => {
     try {
@@ -249,10 +249,10 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
     }
   }, [user]);
 
-
+  // --- UPDATED PREVIEW FUNCTION ---
   const handlePreview = async (invoiceId: string) => {
       try {
-        setPreviewLoading(true); // Start loading
+        setPreviewLoadingId(invoiceId); // Set specific ID
         
         const response = await axiosInstance.get(`/remit-invoice/${invoiceId}`);
         
@@ -271,12 +271,10 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
           variant: 'destructive'
         });
       } finally {
-        setPreviewLoading(false); // Stop loading
+        setPreviewLoadingId(null); // Reset ID
       }
     };
   
-
-
 
   return (
     <div className="mx-auto py-1">
@@ -405,7 +403,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
               <TableHeader>
                 <TableRow>
                   <TableHead>Created At</TableHead>
-                  {/* <TableHead>Remit Number</TableHead> */}
                   <TableHead>Remit To</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Institute</TableHead>
@@ -424,7 +421,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                       <TableCell>
                         {moment(invoice.createdAt).format('DD MMM YYYY')}
                       </TableCell>
-                      {/* <TableCell>{invoice.reference}</TableCell> */}
                       <TableCell>{invoice.remitTo?.name}</TableCell>
                       <TableCell>{invoice.totalAmount.toFixed(2)}</TableCell>
                       <TableCell>
@@ -435,7 +431,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                       <TableCell>
                         {invoice.courseRelationId?.course?.name}
                       </TableCell>
-                      {/* <TableCell>{invoice.status}</TableCell> */}
                       <TableCell>
                         {invoice.status === 'due' ? (
                           <div className="flex flex-row items-center justify-start gap-2">
@@ -475,12 +470,23 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-4">
+                          
+                          {/* --- UPDATED PREVIEW BUTTON WITH LOADING STATE --- */}
                           <Button 
-                          className='bg-supperagent text-white hover:bg-supperagent/90'
+                            className='bg-supperagent text-white hover:bg-supperagent/90 min-w-[90px]'
                             onClick={() => handlePreview(invoice._id)}
+                            disabled={previewLoadingId === invoice._id}
                           >   
-                            Preview
+                             {previewLoadingId === invoice._id ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Wait
+                                </>
+                            ) : (
+                                'Preview'
+                            )}
                           </Button>
+
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -554,10 +560,10 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
         />
 
         <InvoicePreviewModal 
-                  isOpen={isPreviewOpen}
-                  onClose={() => setIsPreviewOpen(false)}
-                  invoiceData={previewInvoiceData}
-                />
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          invoiceData={previewInvoiceData}
+        />
       </Card>
     </div>
   );

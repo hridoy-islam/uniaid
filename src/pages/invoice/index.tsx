@@ -11,7 +11,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import moment from 'moment';
-import { Eye, RefreshCcw, Send, Loader2 } from 'lucide-react'; // Added Loader2
+import { Eye, RefreshCcw, Send, Loader2 } from 'lucide-react'; 
 import InvoicePDF from './generate';
 import { Link, useNavigate } from 'react-router-dom';
 import { DataTablePagination } from '../students/view/components/data-table-pagination';
@@ -52,7 +52,8 @@ export default function InvoicesPage() {
   // Preview States
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewInvoiceData, setPreviewInvoiceData] = useState<any>(null);
-  const [previewLoading, setPreviewLoading] = useState(false); // New Loading State
+  
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
 
   const fetchInvoices = async (page, entriesPerPage) => {
     try {
@@ -84,7 +85,7 @@ export default function InvoicesPage() {
   const fetchcustomers = async () => {
     try {
       const response = await axiosInstance.get('/customer?limit=all');
-      setcustomerOptions(response.data?.data?.result || []); // Extract the 'result' array
+      setcustomerOptions(response.data?.data?.result || []); 
     } catch (error) {
       console.error('Error fetching customer data:', error);
     }
@@ -127,7 +128,7 @@ export default function InvoicesPage() {
   // --- UPDATED PREVIEW FUNCTION ---
   const handlePreview = async (invoiceId: string) => {
     try {
-      setPreviewLoading(true); // Start loading
+      setPreviewLoadingId(invoiceId); // Set the specific ID causing the load
       
       const response = await axiosInstance.get(`/invoice/${invoiceId}`);
       
@@ -146,7 +147,7 @@ export default function InvoicesPage() {
         variant: 'destructive'
       });
     } finally {
-      setPreviewLoading(false); // Stop loading
+      setPreviewLoadingId(null); // Reset to null when done
     }
   };
 
@@ -242,8 +243,8 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
         variant: 'destructive'
       });
     } finally {
-      setIsExportModalOpen(false); // Close the modal
-      setInvoiceToExport(null); // Reset the invoice ID
+      setIsExportModalOpen(false); 
+      setInvoiceToExport(null); 
     }
   };
 
@@ -279,8 +280,8 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
 
       <Card>
         <CardHeader>
+            {/* ... Header Filters (No changes here) ... */}
           <div className="flex space-x-6">
-            {/* Search by Reference */}
             <div className="min-w-[200px]">
               <h1 className="mb-2 block text-sm font-medium">Search</h1>
               <Input
@@ -291,8 +292,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                 className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
               />
             </div>
-
-            {/* From Date */}
             <div className="min-w-[200px]">
               <h1 className="mb-2 block text-sm font-medium">From Date</h1>
               <Input
@@ -302,8 +301,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                 className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
               />
             </div>
-
-            {/* To Date */}
             <div className="min-w-[200px]">
               <h1 className="mb-2 block text-sm font-medium">To Date</h1>
               <Input
@@ -313,8 +310,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                 className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
               />
             </div>
-
-            {/* customer To Dropdown */}
             <div className="min-w-[200px]">
               <h1 className="mb-2 block text-sm font-medium">Customer</h1>
               <select
@@ -330,7 +325,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                 ))}
               </select>
             </div>
-
             <div className="min-w-[200px]">
               <h1 className="mb-2 block text-sm font-medium">Status</h1>
               <select
@@ -343,7 +337,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                 <option value="due">Due</option>
               </select>
             </div>
-
             <div className="mt-7 flex items-center">
               <Button
                 className="min-w-[120px] bg-supperagent text-white hover:bg-supperagent"
@@ -370,7 +363,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
               <TableHeader>
                 <TableRow>
                   <TableHead>Created At</TableHead>
-                  {/* <TableHead>Invoice Number</TableHead> */}
                   <TableHead>Customer</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Institute</TableHead>
@@ -390,7 +382,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                       <TableCell>
                         {moment(invoice.createdAt).format('DD MMM YYYY')}
                       </TableCell>
-                      {/* <TableCell>{invoice.reference}</TableCell> */}
                       <TableCell>{invoice.customer?.name}</TableCell>
                       <TableCell>{invoice.totalAmount.toFixed(2)}</TableCell>
                       <TableCell>
@@ -441,12 +432,23 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-4">
+                          
+                          {/* --- UPDATED BUTTON WITH LOADING STATE --- */}
                           <Button 
-                          className='bg-supperagent text-white hover:bg-supperagent/90'
+                            className='bg-supperagent text-white hover:bg-supperagent/90 min-w-[90px]'
                             onClick={() => handlePreview(invoice._id)}
+                            disabled={previewLoadingId === invoice._id} // Disable only if this row is loading
                           >   
-                            Preview
+                            {previewLoadingId === invoice._id ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Wait
+                                </>
+                            ) : (
+                                'Preview'
+                            )}
                           </Button>
+                          
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -519,7 +521,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
           description="Are you sure you want to export this invoice?"
         />
         
-        {/* --- ADDED INVOICE PREVIEW MODAL --- */}
         <InvoicePreviewModal 
           isOpen={isPreviewOpen}
           onClose={() => setIsPreviewOpen(false)}
