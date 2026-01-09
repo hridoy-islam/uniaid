@@ -11,7 +11,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import moment from 'moment';
-import { RefreshCcw, Send } from 'lucide-react';
+import { Eye, RefreshCcw, Send, Loader2 } from 'lucide-react'; // Added Loader2
 import InvoicePDF from './generate';
 import { Link, useNavigate } from 'react-router-dom';
 import { DataTablePagination } from '../students/view/components/data-table-pagination';
@@ -28,6 +28,7 @@ import { MoreVertical } from 'lucide-react';
 import axios from 'axios';
 import { pdf } from '@react-pdf/renderer';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
+import { InvoicePreviewModal } from './components/invoice-preview-modal';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -47,6 +48,11 @@ export default function InvoicesPage() {
   const [toDate, setToDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState();
+  
+  // Preview States
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewInvoiceData, setPreviewInvoiceData] = useState<any>(null);
+  const [previewLoading, setPreviewLoading] = useState(false); // New Loading State
 
   const fetchInvoices = async (page, entriesPerPage) => {
     try {
@@ -66,8 +72,7 @@ export default function InvoicesPage() {
       });
       setInvoices(response.data?.data?.result || []);
       setTotalPages(response.data.data.meta.totalPage);
-              setTotal(response.data.data.meta.total);
-
+      setTotal(response.data.data.meta.total);
     } catch (error) {
       console.error('Error fetching invoices:', error);
     } finally {
@@ -119,6 +124,32 @@ export default function InvoicesPage() {
     }
   };
 
+  // --- UPDATED PREVIEW FUNCTION ---
+  const handlePreview = async (invoiceId: string) => {
+    try {
+      setPreviewLoading(true); // Start loading
+      
+      const response = await axiosInstance.get(`/invoice/${invoiceId}`);
+      
+      if(response.data?.data) {
+          setPreviewInvoiceData(response.data.data);
+          setIsPreviewOpen(true);
+      } else {
+          throw new Error("No data received");
+      }
+
+    } catch (error) {
+      console.error('Error fetching invoice for preview:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load invoice preview',
+        variant: 'destructive'
+      });
+    } finally {
+      setPreviewLoading(false); // Stop loading
+    }
+  };
+
   const handleConfirmMarkAsPaid = async () => {
     if (!invoiceToMark) return;
 
@@ -156,8 +187,8 @@ export default function InvoicesPage() {
   const account = import.meta.env.VITE_ACCOUNTING;
 
   const handleExport = (invoiceId: string) => {
-    setInvoiceToExport(invoiceId); // Set the invoice ID to be exported
-    setIsExportModalOpen(true); // Open the confirmation modal
+    setInvoiceToExport(invoiceId); 
+    setIsExportModalOpen(true); 
   };
 
   const handleConfirmExport = async () => {
@@ -220,14 +251,14 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
     <div className="mx-auto py-1">
       <div className="flex justify-between">
         <h1 className="mb-6 text-2xl font-bold">Invoices</h1>
-        <div className="space-x-4 flex flex-row items-center">
-           <Button
-                      className="gap-2 bg-supperagent text-white hover:bg-supperagent/90"
-                      onClick={() => window.location.reload()}
-                    >
-                      <RefreshCcw className="w-4" />
-                      Refresh
-                    </Button>
+        <div className="flex flex-row items-center space-x-4">
+          <Button
+            className="gap-2 bg-supperagent text-white hover:bg-supperagent/90"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCcw className="w-4" />
+            Refresh
+          </Button>
           <Link to="generate">
             <Button className="bg-supperagent text-white hover:bg-supperagent">
               Create Invoice
@@ -409,7 +440,13 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-4">
+                          <Button 
+                          className='bg-supperagent text-white hover:bg-supperagent/90'
+                            onClick={() => handlePreview(invoice._id)}
+                          >   
+                            Preview
+                          </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -481,6 +518,14 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
           title="Confirm Export"
           description="Are you sure you want to export this invoice?"
         />
+        
+        {/* --- ADDED INVOICE PREVIEW MODAL --- */}
+        <InvoicePreviewModal 
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          invoiceData={previewInvoiceData}
+        />
+
       </Card>
     </div>
   );

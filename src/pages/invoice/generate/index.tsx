@@ -217,6 +217,7 @@ interface Invoice {
   companyCity?: string;
   companyPostalCode?: string;
   companyState?: string;
+  createdAt?: Date;
 }
 
 const InvoicePDF = ({ invoice = {} as Invoice }) => {
@@ -225,7 +226,7 @@ const InvoicePDF = ({ invoice = {} as Invoice }) => {
     customer = {} as Customer,
     bank = {} as Bank,
     reference = '',
-    date = new Date(),
+    date = undefined,
     semester = '',
     noOfStudents = 0,
     students = [],
@@ -241,7 +242,8 @@ const InvoicePDF = ({ invoice = {} as Invoice }) => {
     companyCountry = '',
     companyCity = '',
     companyPostalCode = '',
-    companyState = ''
+    companyState = '',
+    createdAt= undefined,
     // totalAmount = 0,
   } = invoice;
 
@@ -311,7 +313,7 @@ const InvoicePDF = ({ invoice = {} as Invoice }) => {
             <Text style={styles.value}>Semester: {semester}</Text>
             <Text style={styles.value}>No of Students: {noOfStudents}</Text>
             <Text style={styles.value}>
-              Date: {moment(date).format('Do MMM, YYYY')}
+              Date: {moment(createdAt).format('Do MMM, YYYY')}
             </Text>
             <Text style={styles.value}>Reference: {reference}</Text>
           </View>

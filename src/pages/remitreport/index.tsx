@@ -30,6 +30,7 @@ import {
   DropdownMenuItem
 } from '@/components/ui/dropdown-menu';
 import { MoreVertical } from 'lucide-react';
+import { InvoicePreviewModal } from './components/invoice-preview-modal';
 export default function RemitReportPage() {
   const [invoices, setInvoices] = useState([]);
   const [agents, setAgents] = useState([]);
@@ -49,6 +50,13 @@ export default function RemitReportPage() {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState();
   const { user } = useSelector((state: any) => state.auth);
+  // Preview States
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewInvoiceData, setPreviewInvoiceData] = useState<any>(null);
+  const [previewLoading, setPreviewLoading] = useState(false); // New Loading State
+
+
+
 
   const fetchInvoices = async (page, entriesPerPage) => {
     try {
@@ -240,6 +248,35 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
       setRemit(user._id);
     }
   }, [user]);
+
+
+  const handlePreview = async (invoiceId: string) => {
+      try {
+        setPreviewLoading(true); // Start loading
+        
+        const response = await axiosInstance.get(`/remit-invoice/${invoiceId}`);
+        
+        if(response.data?.data) {
+            setPreviewInvoiceData(response.data.data);
+            setIsPreviewOpen(true);
+        } else {
+            throw new Error("No data received");
+        }
+  
+      } catch (error) {
+        console.error('Error fetching invoice for preview:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load invoice preview',
+          variant: 'destructive'
+        });
+      } finally {
+        setPreviewLoading(false); // Stop loading
+      }
+    };
+  
+
+
 
   return (
     <div className="mx-auto py-1">
@@ -437,7 +474,13 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-4">
+                          <Button 
+                          className='bg-supperagent text-white hover:bg-supperagent/90'
+                            onClick={() => handlePreview(invoice._id)}
+                          >   
+                            Preview
+                          </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -509,6 +552,12 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
           title="Confirm Export"
           description="Are you sure you want to export this remit report?"
         />
+
+        <InvoicePreviewModal 
+                  isOpen={isPreviewOpen}
+                  onClose={() => setIsPreviewOpen(false)}
+                  invoiceData={previewInvoiceData}
+                />
       </Card>
     </div>
   );
