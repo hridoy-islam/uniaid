@@ -200,6 +200,7 @@ interface Invoice {
   bank: Bank;
   reference: string;
   date: Date;
+  vatBeforeDiscount?: boolean;
   semester: string;
   noOfStudents: number;
   students: Student[];
@@ -242,8 +243,9 @@ const InvoicePDF = ({ invoice = {} as Invoice }) => {
     companyCountry = '',
     companyCity = '',
     companyPostalCode = '',
+    vatBeforeDiscount = true,
     companyState = '',
-    createdAt= undefined,
+    createdAt = undefined
     // totalAmount = 0,
   } = invoice;
 
@@ -256,12 +258,12 @@ const InvoicePDF = ({ invoice = {} as Invoice }) => {
       ? subtotal * (discountAmount / 100)
       : discountAmount;
 
-  // Calculate VAT amount
-  const vatBase = subtotal - discountValue;
-  const vatAmount = subtotal * (vat / 100);
+  // Calculate VAT and total based on vatBeforeDiscount
+  const vatAmount = vatBeforeDiscount
+    ? subtotal * (vat / 100)
+    : (subtotal - discountValue) * (vat / 100);
 
-  const totalAmount = vatBase + vatAmount;
-
+  const totalAmount = subtotal - discountValue + vatAmount;
   return (
     <Document>
       <Page size="A4" style={styles.page}>

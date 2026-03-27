@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 const filterSchema = z.object({
   term: z.string().optional(),
@@ -69,7 +71,8 @@ export default function InvoiceGeneratePage() {
       .transform((val) => Number(val)),
     discountType: z.enum(['percentage', 'flat']).optional(),
     vat: z.union([z.string(), z.number()]).transform((val) => Number(val)),
-    discountMsg: z.string().optional()
+    discountMsg: z.string().optional(),
+    vatBeforeDiscount: z.boolean().default(true)
   });
 
   const form = useForm<z.infer<typeof invoiceSchema>>({
@@ -80,6 +83,7 @@ export default function InvoiceGeneratePage() {
       bank: '',
       discountType: 'flat',
       discountAmount: '0',
+      vatBeforeDiscount: true,
       discountMsg: '',
       vat: '0',
       courseDetails: {
@@ -392,27 +396,25 @@ export default function InvoiceGeneratePage() {
   const calculateFinalAmount = () => {
     const subtotal = totalAmount;
     const discountType = form.watch('discountType');
-    // Convert string to number when calculating
     const discountAmount = Number(form.watch('discountAmount') || 0);
     const vat = Number(form.watch('vat') || 0);
+    const vatBeforeDiscount = form.watch('vatBeforeDiscount');
 
-    let discountValue = 0;
-    if (discountType === 'percentage') {
-      discountValue = subtotal * (discountAmount / 100);
+    let discountValue =
+      discountType === 'percentage'
+        ? subtotal * (discountAmount / 100)
+        : discountAmount;
+
+    if (vatBeforeDiscount) {
+      const vatAmount = subtotal * (vat / 100);
+      const finalAmount = subtotal - discountValue + vatAmount;
+      return { subtotal, discountValue, vatAmount, finalAmount };
     } else {
-      discountValue = discountAmount;
+      const amountAfterDiscount = subtotal - discountValue;
+      const vatAmount = amountAfterDiscount * (vat / 100);
+      const finalAmount = amountAfterDiscount + vatAmount;
+      return { subtotal, discountValue, vatAmount, finalAmount };
     }
-
-    const amountAfterDiscount = subtotal - discountValue;
-    const vatAmount = subtotal * (vat / 100);
-    const finalAmount = amountAfterDiscount + vatAmount;
-
-    return {
-      subtotal,
-      discountValue,
-      vatAmount,
-      finalAmount
-    };
   };
   const handleInstituteChange = (instituteId) => {
     filterForm.setValue('course', '');
@@ -647,6 +649,7 @@ export default function InvoiceGeneratePage() {
         status: filterValues.paymentStatus,
         customer: form.getValues('customer'),
         bank: form.getValues('bank'),
+        vatBeforeDiscount: form.getValues('vatBeforeDiscount'),
         students: selectedStudentsWithRelation.map((student) => ({
           collegeRoll: student.collegeRoll,
           refId: student.refId,
@@ -854,6 +857,27 @@ export default function InvoiceGeneratePage() {
                 onChange={(e) => form.setValue('discountMsg', e.target.value)}
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                VAT Calculation Method
+              </label>
+              <RadioGroup
+                value={form.watch('vatBeforeDiscount') ? 'before' : 'after'}
+                onValueChange={(value) =>
+                  form.setValue('vatBeforeDiscount', value === 'before')
+                }
+                className="mt-2 flex flex-col gap-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="before" id="vat-before" />
+                  <Label htmlFor="vat-before">VAT before discount</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="after" id="vat-after" />
+                  <Label htmlFor="vat-after">VAT after discount</Label>
+                </div>
+              </RadioGroup>
+            </div>
           </div>
 
           <CardFooter className="flex flex-col gap-2 p-4">
@@ -863,6 +887,16 @@ export default function InvoiceGeneratePage() {
                 {calculateFinalAmount().subtotal.toFixed(2)}
               </span>
             </div>
+
+            {form.watch('vat') > 0 && form.watch('vatBeforeDiscount') && (
+              <div className="flex w-full justify-between">
+                <span className="text-sm">VAT ({form.watch('vat')}%):</span>
+                <span className="text-sm">
+                  {calculateFinalAmount().vatAmount.toFixed(2)}
+                </span>
+              </div>
+            )}
+
             {form.watch('discountAmount') > 0 && (
               <div className="flex w-full justify-between">
                 <span className="text-sm">Discount:</span>
@@ -871,7 +905,8 @@ export default function InvoiceGeneratePage() {
                 </span>
               </div>
             )}
-            {form.watch('vat') > 0 && (
+
+            {form.watch('vat') > 0 && !form.watch('vatBeforeDiscount') && (
               <div className="flex w-full justify-between">
                 <span className="text-sm">VAT ({form.watch('vat')}%):</span>
                 <span className="text-sm">
@@ -879,10 +914,12 @@ export default function InvoiceGeneratePage() {
                 </span>
               </div>
             )}
+
             <div className="flex w-full justify-between border-t pt-2 text-lg font-semibold">
               <span>Total Amount:</span>
               <span>{calculateFinalAmount().finalAmount.toFixed(2)}</span>
             </div>
+
             <div className="mt-2 flex w-full justify-end">
               <Button
                 type="submit"
