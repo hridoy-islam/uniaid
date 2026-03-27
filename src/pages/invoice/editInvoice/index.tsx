@@ -19,6 +19,8 @@ import {
 import { ArrowLeft } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 const filterSchema = z.object({
   term: z.string().optional(),
@@ -44,7 +46,8 @@ const invoiceSchema = z.object({
     semester: z.string(),
     year: z.string(),
     session: z.string()
-  })
+  }),
+  vatBeforeDiscount: z.boolean().default(true)
 });
 
 export default function InvoicePage() {
@@ -77,6 +80,7 @@ export default function InvoicePage() {
       bank: '',
       discountType: 'flat',
       discountAmount: '0',
+      vatBeforeDiscount: true,
       discountMsg: '',
       vat: '0',
       courseDetails: {
@@ -112,22 +116,32 @@ export default function InvoicePage() {
     const discountType = form.watch('discountType');
     const discountAmount = Number(form.watch('discountAmount') || 0);
     const vat = Number(form.watch('vat') || 0);
+    const vatBeforeDiscount = form.watch('vatBeforeDiscount');
 
     let discountValue =
       discountType === 'percentage'
         ? subtotal * (discountAmount / 100)
         : discountAmount;
 
-    const amountAfterDiscount = subtotal - discountValue;
-    const vatAmount = subtotal * (vat / 100);
-    const finalAmount = amountAfterDiscount + vatAmount;
-
-    return { subtotal, discountValue, vatAmount, finalAmount };
+    if (vatBeforeDiscount) {
+      // VAT applied to subtotal BEFORE discount
+      const vatAmount = subtotal * (vat / 100);
+      const amountAfterDiscount = subtotal - discountValue;
+      const finalAmount = amountAfterDiscount + vatAmount;
+      return { subtotal, discountValue, vatAmount, finalAmount };
+    } else {
+      // VAT applied to amount AFTER discount
+      const amountAfterDiscount = subtotal - discountValue;
+      const vatAmount = amountAfterDiscount * (vat / 100);
+      const finalAmount = amountAfterDiscount + vatAmount;
+      return { subtotal, discountValue, vatAmount, finalAmount };
+    }
   }, [
     totalAmount,
     form.watch('discountType'),
     form.watch('discountAmount'),
-    form.watch('vat')
+    form.watch('vat'),
+    form.watch('vatBeforeDiscount')
   ]);
 
   // Data fetching
@@ -232,7 +246,8 @@ export default function InvoicePage() {
           semester: data.semester || '',
           year: data.year || '',
           session: data.session || ''
-        }
+        },
+        vatBeforeDiscount: data.vatBeforeDiscount ?? true
       });
 
       if (data.courseRelationId) {
@@ -455,6 +470,7 @@ export default function InvoicePage() {
         status: form.getValues('status'),
         customer: form.getValues('customer'),
         bank: form.getValues('bank'),
+        vatBeforeDiscount: form.getValues('vatBeforeDiscount'),
         students: selectedStudentsData.map((student) => ({
           refId: student.refId || student._id,
           firstName: student.firstName,
@@ -634,62 +650,97 @@ export default function InvoicePage() {
                 className="flex h-9 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
               />
             </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                VAT Calculation Method
+              </label>
+              <RadioGroup
+                value={form.watch('vatBeforeDiscount') ? 'before' : 'after'}
+                onValueChange={(value) =>
+                  form.setValue('vatBeforeDiscount', value === 'before')
+                }
+                className="mt-2 flex flex-col gap-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="before" id="vat-before" />
+                  <Label htmlFor="vat-before">VAT before discount</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="after" id="vat-after" />
+                  <Label htmlFor="vat-after">VAT after discount</Label>
+                </div>
+              </RadioGroup>
+            </div>
           </div>
 
           <CardFooter className="flex flex-col gap-2 p-4">
-            <div className="flex w-full justify-between">
-              <span className="text-sm">Subtotal:</span>
-              <span className="text-sm">
-                {finalAmountDetails.subtotal.toFixed(2)}
-              </span>
-            </div>
+  <div className="flex w-full justify-between">
+    <span className="text-sm">Subtotal:</span>
+    <span className="text-sm">
+      {finalAmountDetails.subtotal.toFixed(2)}
+    </span>
+  </div>
 
-            {form.watch('discountAmount') > 0 && (
-              <div className="flex w-full justify-between">
-                <span className="text-sm">Discount:</span>
-                <span className="text-sm">
-                  -{finalAmountDetails.discountValue.toFixed(2)}
-                </span>
-              </div>
-            )}
+  {form.watch('vat') > 0 && form.watch('vatBeforeDiscount') && (
+    <div className="flex w-full justify-between">
+      <span className="text-sm">
+        VAT ({form.watch('vat')}%):
+      </span>
+      <span className="text-sm">
+        {finalAmountDetails.vatAmount.toFixed(2)}
+      </span>
+    </div>
+  )}
 
-            {form.watch('vat') > 0 && (
-              <div className="flex w-full justify-between">
-                <span className="text-sm">VAT ({form.watch('vat')}%):</span>
-                <span className="text-sm">
-                  {finalAmountDetails.vatAmount.toFixed(2)}
-                </span>
-              </div>
-            )}
+  {form.watch('discountAmount') > 0 && (
+    <div className="flex w-full justify-between">
+      <span className="text-sm">Discount:</span>
+      <span className="text-sm">
+        -{finalAmountDetails.discountValue.toFixed(2)}
+      </span>
+    </div>
+  )}
 
-            <div className="flex w-full justify-between border-t pt-2 text-lg font-semibold">
-              <span>Total Amount:</span>
-              <span>{finalAmountDetails.finalAmount.toFixed(2)}</span>
-            </div>
+  {form.watch('vat') > 0 && !form.watch('vatBeforeDiscount') && (
+    <div className="flex w-full justify-between">
+      <span className="text-sm">
+        VAT ({form.watch('vat')}%):
+      </span>
+      <span className="text-sm">
+        {finalAmountDetails.vatAmount.toFixed(2)}
+      </span>
+    </div>
+  )}
 
-            <div className="mt-4 flex w-full justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => navigate('/admin/invoice')}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="bg-supperagent text-white hover:bg-supperagent"
-                onClick={onSubmit}
-                disabled={
-                  selectedStudents.filter((s) => s.selected).length === 0 ||
-                  loading
-                }
-              >
-                {loading
-                  ? 'Processing...'
-                  : isEditing
-                    ? 'Update Invoice'
-                    : 'Generate Invoice'}
-              </Button>
-            </div>
-          </CardFooter>
+  <div className="flex w-full justify-between border-t pt-2 text-lg font-semibold">
+    <span>Total Amount:</span>
+    <span>{finalAmountDetails.finalAmount.toFixed(2)}</span>
+  </div>
+
+  <div className="mt-4 flex w-full justify-end gap-2">
+    <Button
+      variant="outline"
+      onClick={() => navigate('/admin/invoice')}
+    >
+      Cancel
+    </Button>
+    <Button
+      className="bg-supperagent text-white hover:bg-supperagent"
+      onClick={onSubmit}
+      disabled={
+        selectedStudents.filter((s) => s.selected).length === 0 ||
+        loading
+      }
+    >
+      {loading
+        ? 'Processing...'
+        : isEditing
+          ? 'Update Invoice'
+          : 'Generate Invoice'}
+    </Button>
+  </div>
+</CardFooter>
         </Card>
       </div>
     </div>
