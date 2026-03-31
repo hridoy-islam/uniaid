@@ -11,7 +11,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import moment from 'moment';
-import { Eye, RefreshCcw, Send, Loader2 } from 'lucide-react'; 
+import { Eye, RefreshCcw, Send, Loader2 } from 'lucide-react';
 import InvoicePDF from './generate';
 import { Link, useNavigate } from 'react-router-dom';
 import { DataTablePagination } from '../students/view/components/data-table-pagination';
@@ -29,10 +29,11 @@ import axios from 'axios';
 import { pdf } from '@react-pdf/renderer';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { InvoicePreviewModal } from './components/invoice-preview-modal';
+import { useSelector } from 'react-redux';
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState([]);
-  const [customerOptions, setcustomerOptions] = useState([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [customerOptions, setcustomerOptions] = useState<any[]>([]);
   const [customer, setcustomer] = useState('');
   const [status, setStatus] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,12 +49,14 @@ export default function InvoicesPage() {
   const [toDate, setToDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState();
-  
+  const [remitLoadingId, setRemitLoadingId] = useState<string | null>(null);
   // Preview States
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewInvoiceData, setPreviewInvoiceData] = useState<any>(null);
-  
+  const [isRemitModalOpen, setIsRemitModalOpen] = useState(false);
+  const [invoiceToRemit, setInvoiceToRemit] = useState<string | null>(null);
   const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
+  const { user } = useSelector((state: any) => state.auth);
 
   const fetchInvoices = async (page, entriesPerPage) => {
     try {
@@ -85,7 +88,7 @@ export default function InvoicesPage() {
   const fetchcustomers = async () => {
     try {
       const response = await axiosInstance.get('/customer?limit=all');
-      setcustomerOptions(response.data?.data?.result || []); 
+      setcustomerOptions(response.data?.data?.result || []);
     } catch (error) {
       console.error('Error fetching customer data:', error);
     }
@@ -95,6 +98,44 @@ export default function InvoicesPage() {
     fetchcustomers();
     fetchInvoices(currentPage, entriesPerPage);
   }, [currentPage, entriesPerPage]);
+
+  const handleConfirmGenerateRemit = async () => {
+    if (!invoiceToRemit) return;
+
+    try {
+      setRemitLoadingId(invoiceToRemit);
+
+      await axiosInstance.post(`/invoice/generate-remit/${invoiceToRemit}`, {
+        createdBy: user?._id
+      });
+
+      toast({
+        title: 'Remit generated successfully',
+        className: 'bg-supperagent border-none text-white'
+      });
+
+      setInvoices((prevInvoices: any[]) =>
+        prevInvoices.map((invoice) =>
+          invoice._id === invoiceToRemit
+            ? { ...invoice, remitGenerated: true }
+            : invoice
+        )
+      );
+    } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message || 'Failed to generate remit';
+      console.error('Error generating remit:', error);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+    } finally {
+      setRemitLoadingId(null);
+      setIsRemitModalOpen(false);
+      setInvoiceToRemit(null);
+    }
+  };
 
   const handleSearchClick = () => {
     fetchInvoices(currentPage, entriesPerPage);
@@ -129,16 +170,15 @@ export default function InvoicesPage() {
   const handlePreview = async (invoiceId: string) => {
     try {
       setPreviewLoadingId(invoiceId); // Set the specific ID causing the load
-      
-      const response = await axiosInstance.get(`/invoice/${invoiceId}`);
-      
-      if(response.data?.data) {
-          setPreviewInvoiceData(response.data.data);
-          setIsPreviewOpen(true);
-      } else {
-          throw new Error("No data received");
-      }
 
+      const response = await axiosInstance.get(`/invoice/${invoiceId}`);
+
+      if (response.data?.data) {
+        setPreviewInvoiceData(response.data.data);
+        setIsPreviewOpen(true);
+      } else {
+        throw new Error('No data received');
+      }
     } catch (error) {
       console.error('Error fetching invoice for preview:', error);
       toast({
@@ -188,8 +228,8 @@ export default function InvoicesPage() {
   const account = import.meta.env.VITE_ACCOUNTING;
 
   const handleExport = (invoiceId: string) => {
-    setInvoiceToExport(invoiceId); 
-    setIsExportModalOpen(true); 
+    setInvoiceToExport(invoiceId);
+    setIsExportModalOpen(true);
   };
 
   const handleConfirmExport = async () => {
@@ -243,8 +283,8 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
         variant: 'destructive'
       });
     } finally {
-      setIsExportModalOpen(false); 
-      setInvoiceToExport(null); 
+      setIsExportModalOpen(false);
+      setInvoiceToExport(null);
     }
   };
 
@@ -280,7 +320,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
 
       <Card>
         <CardHeader>
-            {/* ... Header Filters (No changes here) ... */}
+          {/* ... Header Filters (No changes here) ... */}
           <div className="flex space-x-6">
             <div className="min-w-[200px]">
               <h1 className="mb-2 block text-sm font-medium">Search</h1>
@@ -410,9 +450,32 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                             </button>
                           </div>
                         ) : (
-                          <span className="text-xs font-semibold text-green-500">
-                            Paid
-                          </span>
+                          <div className="flex flex-row items-center justify-start gap-2">
+                            <span className="text-xs font-semibold text-green-500">
+                              Paid
+                            </span>
+                            {invoice.status === 'paid' &&
+                              !invoice.generatedRemit &&
+                              invoice.year === 'Year 1' && (
+                                <button
+                                  className="rounded-sm bg-supperagent px-1 py-1 text-[10px] font-medium text-white hover:bg-supperagent"
+                                  onClick={() => {
+                                    setInvoiceToRemit(invoice._id);
+                                    setIsRemitModalOpen(true);
+                                  }}
+                                  disabled={remitLoadingId === invoice._id}
+                                >
+                                  {remitLoadingId === invoice._id ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Wait
+                                    </>
+                                  ) : (
+                                    'Generate Remit'
+                                  )}
+                                </button>
+                              )}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell>
@@ -432,23 +495,22 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-4">
-                          
                           {/* --- UPDATED BUTTON WITH LOADING STATE --- */}
-                          <Button 
-                            className='bg-supperagent text-white hover:bg-supperagent/90 min-w-[90px]'
+                          <Button
+                            className="min-w-[90px] bg-supperagent text-white hover:bg-supperagent/90"
                             onClick={() => handlePreview(invoice._id)}
                             disabled={previewLoadingId === invoice._id} // Disable only if this row is loading
-                          >   
+                          >
                             {previewLoadingId === invoice._id ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Wait
-                                </>
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Wait
+                              </>
                             ) : (
-                                'Preview'
+                              'Preview'
                             )}
                           </Button>
-                          
+
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -520,13 +582,24 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
           title="Confirm Export"
           description="Are you sure you want to export this invoice?"
         />
-        
-        <InvoicePreviewModal 
+
+        <InvoicePreviewModal
           isOpen={isPreviewOpen}
           onClose={() => setIsPreviewOpen(false)}
           invoiceData={previewInvoiceData}
         />
 
+        <AlertModal
+          isOpen={isRemitModalOpen}
+          onClose={() => {
+            setIsRemitModalOpen(false);
+            setInvoiceToRemit(null);
+          }}
+          onConfirm={handleConfirmGenerateRemit}
+          loading={remitLoadingId !== null}
+          title="Confirm Generate Remit"
+          description="Are you sure you want to generate a remit for this invoice? This action will process agent commissions and cannot be undone."
+        />
       </Card>
     </div>
   );

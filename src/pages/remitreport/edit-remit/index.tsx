@@ -11,7 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { StudentFilter } from './components/student-filter';
 import { StudentSelection } from './components/StudentSelection';
 import { useSelector } from 'react-redux';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, RefreshCcw } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -297,6 +297,96 @@ export default function EditRemitPage() {
     }
   };
 
+  // const fetchStudentsForInvoice = async (
+  //   agent,
+  //   courseRelationId,
+  //   year,
+  //   session,
+  //   paymentStatus
+  // ) => {
+  //   try {
+  //     setLoading(true);
+  //     setHasSearched(false);
+
+  //     const relationResponse = await axiosInstance.get(
+  //       `/course-relations/${courseRelationId._id || courseRelationId}`
+  //     );
+  //     const relationData = relationResponse?.data?.data;
+  //     if (!relationData) throw new Error('Course relation not found');
+
+  //     setSelectedCourseRelation(relationData);
+
+  //     const [studentsResponse, invoiceResponse] = await Promise.all([
+  //       axiosInstance.get('/students', {
+  //         params: {
+  //           agentid: agent,
+  //           agentCourseRelationId: relationData._id,
+  //           agentYear: year,
+  //           agentSession: session,
+  //           agentPaymentStatus: paymentStatus,
+  //           limit: 10000
+  //         }
+  //       }),
+  //       id
+  //         ? axiosInstance.get(`/remit-invoice/${id}`)
+  //         : Promise.resolve({ data: { data: { students: [] } } })
+  //     ]);
+
+  //     const allStudents = studentsResponse?.data?.data?.result || [];
+  //     const invoiceStudents = invoiceResponse?.data?.data?.students || [];
+
+  //     const yearObj = relationData.years.find((y) => y.year === year);
+  //     const sessionObj = yearObj?.sessions.find(
+  //       (s) => s.sessionName === session
+  //     );
+
+  //     const selectedStudentsWithFees = invoiceStudents.map((student) => {
+  //       const originalStudent =
+  //         allStudents.find((s) => s.refId === student.refId) || {};
+  //       const studentChoice = originalStudent?.choice || 'Local';
+
+  //       const studentAmount =
+  //         studentChoice === 'Local'
+  //           ? Number.parseFloat(relationData.local_amount || 0)
+  //           : Number.parseFloat(relationData.international_amount || 0);
+
+  //       const sessionFee =
+  //         student.amount ||
+  //         (sessionObj ? calculateSessionFee(sessionObj, studentAmount) : 0);
+
+  //       return {
+  //         ...originalStudent,
+  //         ...student,
+  //         selected: true,
+  //         sessionFee,
+  //         courseRelationId: relationData._id,
+  //         year: year,
+  //         session: session,
+  //         semester: relationData.term?.term || ''
+  //       };
+  //     });
+
+  //     setSelectedStudents(selectedStudentsWithFees);
+
+  //     const selectedIds = new Set(selectedStudentsWithFees.map((s) => s.refId));
+  //     const availableStudents = allStudents.filter(
+  //       (student) => !selectedIds.has(student.refId)
+  //     );
+  //     setFilteredStudents(availableStudents);
+  //     setHasSearched(true);
+  //   } catch (error) {
+  //     console.error('Error fetching students:', error);
+  //     toast({
+  //       title: 'Error',
+  //       description: 'Failed to fetch students',
+  //       variant: 'destructive'
+  //     });
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+
   const fetchStudentsForInvoice = async (
     agent,
     courseRelationId,
@@ -316,10 +406,22 @@ export default function EditRemitPage() {
 
       setSelectedCourseRelation(relationData);
 
+      // --- NEW: Fetch Agent Course configuration to get the fresh rates ---
+      const agentId = agent._id || agent;
+      const agentCourse = await fetchAgentCourse(agentId, relationData._id);
+
+      let agentSessionConfig = null;
+      if (agentCourse && agentCourse.year) {
+        agentSessionConfig = agentCourse.year.find(
+          (y) => y.sessionName === session
+        );
+      }
+      // ------------------------------------------------------------------
+
       const [studentsResponse, invoiceResponse] = await Promise.all([
         axiosInstance.get('/students', {
           params: {
-            agentid: agent,
+            agentid: agentId,
             agentCourseRelationId: relationData._id,
             agentYear: year,
             agentSession: session,
@@ -335,11 +437,6 @@ export default function EditRemitPage() {
       const allStudents = studentsResponse?.data?.data?.result || [];
       const invoiceStudents = invoiceResponse?.data?.data?.students || [];
 
-      const yearObj = relationData.years.find((y) => y.year === year);
-      const sessionObj = yearObj?.sessions.find(
-        (s) => s.sessionName === session
-      );
-
       const selectedStudentsWithFees = invoiceStudents.map((student) => {
         const originalStudent =
           allStudents.find((s) => s.refId === student.refId) || {};
@@ -350,15 +447,19 @@ export default function EditRemitPage() {
             ? Number.parseFloat(relationData.local_amount || 0)
             : Number.parseFloat(relationData.international_amount || 0);
 
-        const sessionFee =
-          student.amount ||
-          (sessionObj ? calculateSessionFee(sessionObj, studentAmount) : 0);
+        // --- FIXED: Calculate fresh fee using the latest agent rates ---
+        // Fallback to the old saved student.amount ONLY if the agent config is missing
+        const sessionFee = agentSessionConfig
+          ? calculateSessionFee(agentSessionConfig, studentAmount)
+          : student.amount || 0;
+        // ---------------------------------------------------------------
 
         return {
           ...originalStudent,
           ...student,
           selected: true,
-          sessionFee,
+          amount: sessionFee, // Update the amount property to the fresh fee
+          sessionFee: sessionFee,
           courseRelationId: relationData._id,
           year: year,
           session: session,
@@ -385,7 +486,6 @@ export default function EditRemitPage() {
       setLoading(false);
     }
   };
-
   const calculateSessionFee = (session, amount) => {
     if (!session || session.rate == null) return 0;
     const rate = Number(session.rate) || 0;
@@ -721,14 +821,27 @@ export default function EditRemitPage() {
         <div>
           <div className="flex flex-row items-center justify-between">
             <h1 className="mb-2 text-2xl font-bold">Regenerate Remit</h1>
-            <Button
-              className="mb-2 bg-supperagent text-white hover:bg-supperagent/90"
-              size={'sm'}
-              onClick={() => navigate('/admin/remit')}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back To Remit List
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                className="mb-2 bg-supperagent text-white hover:bg-supperagent/90"
+                size="sm"
+                onClick={() => navigate(-1)}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back To Remit List
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mb-2"
+                onClick={() => id && fetchInvoiceData(id)}
+                disabled={loading}
+              >
+                <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh Data
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-2">
