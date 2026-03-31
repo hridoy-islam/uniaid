@@ -43,11 +43,11 @@ import CustomerPage from '@/pages/invoice/customer';
 import CustomerDetailsPage from '@/pages/invoice/customer/details';
 import InvoiceGeneratePage from '@/pages/invoice/createInvoice';
 import InvoiceStatusListPage from '@/pages/invoice/status';
-import EditRemitCreatePage from '@/pages/remitreport/edit-report';
 import EditInvoiceGeneratePage from '@/pages/invoice/editInvoice';
 import BankPage from '@/pages/bank';
 import BankDetailsPage from '@/pages/bank/details';
 import BulkRollPage from '@/pages/bulk-roll-update';
+import EditRemitPage from '@/pages/remitreport/edit-report';
 
 const SignInPage = lazy(() => import('@/pages/auth/signin'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -125,7 +125,7 @@ export default function AppRouter() {
         },
         {
           path: 'remit/edit-generate/:id',
-          element: <EditRemitCreatePage />
+          element: <EditRemitPage />
         },
         {
           path: 'remit/status',
