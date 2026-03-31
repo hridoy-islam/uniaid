@@ -458,7 +458,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                               !invoice.generatedRemit &&
                               invoice.year === 'Year 1' && (
                                 <button
-                                  className="rounded-sm bg-supperagent px-1 py-1 text-[10px] font-medium text-white hover:bg-supperagent"
+                                  className="rounded-sm bg-orange-500 px-1 py-1 text-[10px] font-medium text-white hover:bg-orange-600"
                                   onClick={() => {
                                     setInvoiceToRemit(invoice._id);
                                     setIsRemitModalOpen(true);
