@@ -11,7 +11,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import moment from 'moment';
-import { Loader2, RefreshCcw, Send } from 'lucide-react';
+import { Eye, RefreshCcw, Send, Loader2 } from 'lucide-react';
 import InvoicePDF from './generate';
 import { Link, useNavigate } from 'react-router-dom';
 import { DataTablePagination } from '../students/view/components/data-table-pagination';
@@ -29,10 +29,11 @@ import axios from 'axios';
 import { pdf } from '@react-pdf/renderer';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { InvoicePreviewModal } from './components/invoice-preview-modal';
+import { useSelector } from 'react-redux';
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState([]);
-  const [customerOptions, setcustomerOptions] = useState([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [customerOptions, setcustomerOptions] = useState<any[]>([]);
   const [customer, setcustomer] = useState('');
   const [status, setStatus] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,12 +49,14 @@ export default function InvoicesPage() {
   const [toDate, setToDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState();
-
-    // Preview States
+  const [remitLoadingId, setRemitLoadingId] = useState<string | null>(null);
+  // Preview States
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewInvoiceData, setPreviewInvoiceData] = useState<any>(null);
-  
+  const [isRemitModalOpen, setIsRemitModalOpen] = useState(false);
+  const [invoiceToRemit, setInvoiceToRemit] = useState<string | null>(null);
   const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
+  const { user } = useSelector((state: any) => state.auth);
 
   const fetchInvoices = async (page, entriesPerPage) => {
     try {
@@ -73,8 +76,7 @@ export default function InvoicesPage() {
       });
       setInvoices(response.data?.data?.result || []);
       setTotalPages(response.data.data.meta.totalPage);
-              setTotal(response.data.data.meta.total);
-
+      setTotal(response.data.data.meta.total);
     } catch (error) {
       console.error('Error fetching invoices:', error);
     } finally {
@@ -86,7 +88,7 @@ export default function InvoicesPage() {
   const fetchcustomers = async () => {
     try {
       const response = await axiosInstance.get('/customer?limit=all');
-      setcustomerOptions(response.data?.data?.result || []); // Extract the 'result' array
+      setcustomerOptions(response.data?.data?.result || []);
     } catch (error) {
       console.error('Error fetching customer data:', error);
     }
@@ -96,6 +98,44 @@ export default function InvoicesPage() {
     fetchcustomers();
     fetchInvoices(currentPage, entriesPerPage);
   }, [currentPage, entriesPerPage]);
+
+  const handleConfirmGenerateRemit = async () => {
+    if (!invoiceToRemit) return;
+
+    try {
+      setRemitLoadingId(invoiceToRemit);
+
+      await axiosInstance.post(`/invoice/generate-remit/${invoiceToRemit}`, {
+        createdBy: user?._id
+      });
+
+      toast({
+        title: 'Remit generated successfully',
+        className: 'bg-supperagent border-none text-white'
+      });
+
+      setInvoices((prevInvoices: any[]) =>
+        prevInvoices.map((invoice) =>
+          invoice._id === invoiceToRemit
+            ? { ...invoice, remitGenerated: true }
+            : invoice
+        )
+      );
+    } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message || 'Failed to generate remit';
+      console.error('Error generating remit:', error);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+    } finally {
+      setRemitLoadingId(null);
+      setIsRemitModalOpen(false);
+      setInvoiceToRemit(null);
+    }
+  };
 
   const handleSearchClick = () => {
     fetchInvoices(currentPage, entriesPerPage);
@@ -126,20 +166,19 @@ export default function InvoicesPage() {
     }
   };
 
-   // --- UPDATED PREVIEW FUNCTION ---
+  // --- UPDATED PREVIEW FUNCTION ---
   const handlePreview = async (invoiceId: string) => {
     try {
       setPreviewLoadingId(invoiceId); // Set the specific ID causing the load
-      
-      const response = await axiosInstance.get(`/invoice/${invoiceId}`);
-      
-      if(response.data?.data) {
-          setPreviewInvoiceData(response.data.data);
-          setIsPreviewOpen(true);
-      } else {
-          throw new Error("No data received");
-      }
 
+      const response = await axiosInstance.get(`/invoice/${invoiceId}`);
+
+      if (response.data?.data) {
+        setPreviewInvoiceData(response.data.data);
+        setIsPreviewOpen(true);
+      } else {
+        throw new Error('No data received');
+      }
     } catch (error) {
       console.error('Error fetching invoice for preview:', error);
       toast({
@@ -189,8 +228,8 @@ export default function InvoicesPage() {
   const account = import.meta.env.VITE_ACCOUNTING;
 
   const handleExport = (invoiceId: string) => {
-    setInvoiceToExport(invoiceId); // Set the invoice ID to be exported
-    setIsExportModalOpen(true); // Open the confirmation modal
+    setInvoiceToExport(invoiceId);
+    setIsExportModalOpen(true);
   };
 
   const handleConfirmExport = async () => {
@@ -244,8 +283,8 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
         variant: 'destructive'
       });
     } finally {
-      setIsExportModalOpen(false); // Close the modal
-      setInvoiceToExport(null); // Reset the invoice ID
+      setIsExportModalOpen(false);
+      setInvoiceToExport(null);
     }
   };
 
@@ -253,14 +292,14 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
     <div className="mx-auto py-1">
       <div className="flex justify-between">
         <h1 className="mb-6 text-2xl font-bold">Invoices</h1>
-        <div className="space-x-4 flex flex-row items-center">
-           <Button
-                      className="gap-2 bg-supperagent text-white hover:bg-supperagent/90"
-                      onClick={() => window.location.reload()}
-                    >
-                      <RefreshCcw className="w-4" />
-                      Refresh
-                    </Button>
+        <div className="flex flex-row items-center space-x-4">
+          <Button
+            className="gap-2 bg-supperagent text-white hover:bg-supperagent/90"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCcw className="w-4" />
+            Refresh
+          </Button>
           <Link to="generate">
             <Button className="bg-supperagent text-white hover:bg-supperagent">
               Create Invoice
@@ -281,8 +320,8 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
 
       <Card>
         <CardHeader>
+          {/* ... Header Filters (No changes here) ... */}
           <div className="flex space-x-6">
-            {/* Search by Reference */}
             <div className="min-w-[200px]">
               <h1 className="mb-2 block text-sm font-medium">Search</h1>
               <Input
@@ -293,8 +332,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                 className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
               />
             </div>
-
-            {/* From Date */}
             <div className="min-w-[200px]">
               <h1 className="mb-2 block text-sm font-medium">From Date</h1>
               <Input
@@ -304,8 +341,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                 className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
               />
             </div>
-
-            {/* To Date */}
             <div className="min-w-[200px]">
               <h1 className="mb-2 block text-sm font-medium">To Date</h1>
               <Input
@@ -315,8 +350,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                 className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
               />
             </div>
-
-            {/* customer To Dropdown */}
             <div className="min-w-[200px]">
               <h1 className="mb-2 block text-sm font-medium">Customer</h1>
               <select
@@ -332,7 +365,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                 ))}
               </select>
             </div>
-
             <div className="min-w-[200px]">
               <h1 className="mb-2 block text-sm font-medium">Status</h1>
               <select
@@ -345,7 +377,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                 <option value="due">Due</option>
               </select>
             </div>
-
             <div className="mt-7 flex items-center">
               <Button
                 className="min-w-[120px] bg-supperagent text-white hover:bg-supperagent"
@@ -372,7 +403,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
               <TableHeader>
                 <TableRow>
                   <TableHead>Created At</TableHead>
-                  {/* <TableHead>Invoice Number</TableHead> */}
                   <TableHead>Customer</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Institute</TableHead>
@@ -392,7 +422,6 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                       <TableCell>
                         {moment(invoice.createdAt).format('DD MMM YYYY')}
                       </TableCell>
-                      {/* <TableCell>{invoice.reference}</TableCell> */}
                       <TableCell>{invoice.customer?.name}</TableCell>
                       <TableCell>{invoice.totalAmount.toFixed(2)}</TableCell>
                       <TableCell>
@@ -421,9 +450,32 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                             </button>
                           </div>
                         ) : (
-                          <span className="text-xs font-semibold text-green-500">
-                            Paid
-                          </span>
+                          <div className="flex flex-row items-center justify-start gap-2">
+                            <span className="text-xs font-semibold text-green-500">
+                              Paid
+                            </span>
+                            {invoice.status === 'paid' &&
+                              !invoice.generatedRemit &&
+                              invoice.year === 'Year 1' && (
+                                <button
+                                  className="rounded-sm bg-supperagent px-1 py-1 text-[10px] font-medium text-white hover:bg-supperagent"
+                                  onClick={() => {
+                                    setInvoiceToRemit(invoice._id);
+                                    setIsRemitModalOpen(true);
+                                  }}
+                                  disabled={remitLoadingId === invoice._id}
+                                >
+                                  {remitLoadingId === invoice._id ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Wait
+                                    </>
+                                  ) : (
+                                    'Generate Remit'
+                                  )}
+                                </button>
+                              )}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell>
@@ -443,23 +495,22 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-4">
-                          
                           {/* --- UPDATED BUTTON WITH LOADING STATE --- */}
-                          <Button 
-                            className='bg-supperagent text-white hover:bg-supperagent/90 min-w-[90px]'
+                          <Button
+                            className="min-w-[90px] bg-supperagent text-white hover:bg-supperagent/90"
                             onClick={() => handlePreview(invoice._id)}
                             disabled={previewLoadingId === invoice._id} // Disable only if this row is loading
-                          >   
+                          >
                             {previewLoadingId === invoice._id ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Wait
-                                </>
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Wait
+                              </>
                             ) : (
-                                'Preview'
+                              'Preview'
                             )}
                           </Button>
-                          
+
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -532,10 +583,22 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
           description="Are you sure you want to export this invoice?"
         />
 
-         <InvoicePreviewModal 
+        <InvoicePreviewModal
           isOpen={isPreviewOpen}
           onClose={() => setIsPreviewOpen(false)}
           invoiceData={previewInvoiceData}
+        />
+
+        <AlertModal
+          isOpen={isRemitModalOpen}
+          onClose={() => {
+            setIsRemitModalOpen(false);
+            setInvoiceToRemit(null);
+          }}
+          onConfirm={handleConfirmGenerateRemit}
+          loading={remitLoadingId !== null}
+          title="Confirm Generate Remit"
+          description="Are you sure you want to generate a remit for this invoice? This action will process agent commissions and cannot be undone."
         />
       </Card>
     </div>
