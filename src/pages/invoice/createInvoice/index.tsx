@@ -870,11 +870,11 @@ export default function InvoiceGeneratePage() {
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="before" id="vat-before" />
-                  <Label htmlFor="vat-before">VAT before discount</Label>
+                  <Label htmlFor="vat-before">VAT before discount applied</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="after" id="vat-after" />
-                  <Label htmlFor="vat-after">VAT after discount</Label>
+                  <Label htmlFor="vat-after">VAT after discount applied</Label>
                 </div>
               </RadioGroup>
             </div>
