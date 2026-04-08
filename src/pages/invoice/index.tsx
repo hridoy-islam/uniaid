@@ -58,6 +58,12 @@ export default function InvoicesPage() {
   const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
   const { user } = useSelector((state: any) => state.auth);
 
+  // Add these alongside your other state variables
+  const [markPaidLoadingId, setMarkPaidLoadingId] = useState<string | null>(
+    null
+  );
+  const [exportLoadingId, setExportLoadingId] = useState<string | null>(null);
+
   const fetchInvoices = async (page, entriesPerPage) => {
     try {
       setLoading(true);
@@ -195,6 +201,7 @@ export default function InvoicesPage() {
     if (!invoiceToMark) return;
 
     try {
+      setMarkPaidLoadingId(invoiceToMark);
       await axiosInstance.patch(`/invoice/${invoiceToMark}`, {
         status: 'paid'
       });
@@ -218,10 +225,11 @@ export default function InvoicesPage() {
         description: 'Failed to update the invoice status',
         variant: 'destructive'
       });
+    } finally {
+      setMarkPaidLoadingId(null); // Stop loading
+      setIsModalOpen(false);
+      setInvoiceToMark(null);
     }
-
-    setIsModalOpen(false);
-    setInvoiceToMark(null);
   };
 
   const companyId = import.meta.env.VITE_COMPANY_ID;
@@ -236,6 +244,7 @@ export default function InvoicesPage() {
     if (!invoiceToExport) return;
 
     try {
+      setExportLoadingId(invoiceToExport);
       const invoiceResponse = await axiosInstance.get(
         `/invoice/${invoiceToExport}`
       );
@@ -283,6 +292,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
         variant: 'destructive'
       });
     } finally {
+      setExportLoadingId(null);
       setIsExportModalOpen(false);
       setInvoiceToExport(null);
     }
@@ -440,13 +450,16 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                               Due
                             </span>
                             <button
-                              className="rounded-sm bg-supperagent px-1 py-1 text-[10px] font-medium text-white hover:bg-supperagent"
+                              className="rounded-sm bg-supperagent px-1 py-1 text-[10px] font-medium text-white hover:bg-supperagent disabled:cursor-not-allowed disabled:opacity-50"
                               onClick={() => {
                                 setInvoiceToMark(invoice._id);
                                 setIsModalOpen(true);
                               }}
+                              disabled={markPaidLoadingId === invoice._id}
                             >
-                              Mark as Paid
+                              {markPaidLoadingId === invoice._id
+                                ? 'Wait...'
+                                : 'Mark as Paid'}
                             </button>
                           </div>
                         ) : (
@@ -485,10 +498,15 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                           {invoice.status === 'paid' && !invoice.exported && (
                             <Button
                               size="sm"
-                              className="bg-supperagent text-white hover:bg-supperagent"
+                              className="bg-supperagent text-white hover:bg-supperagent disabled:opacity-50"
                               onClick={() => handleExport(invoice._id)}
+                              disabled={exportLoadingId === invoice._id}
                             >
-                              <Send className="h-4 w-4" />
+                              {exportLoadingId === invoice._id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Send className="h-4 w-4" />
+                              )}
                             </Button>
                           )}
                         </div>
@@ -570,7 +588,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onConfirm={handleConfirmMarkAsPaid}
-          loading={false}
+          loading={markPaidLoadingId !== null}
           title="Confirm Action"
           description="Are you sure you want to mark this invoice as paid?"
         />
@@ -578,7 +596,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
           isOpen={isExportModalOpen}
           onClose={() => setIsExportModalOpen(false)}
           onConfirm={handleConfirmExport}
-          loading={false}
+          loading={exportLoadingId !== null}
           title="Confirm Export"
           description="Are you sure you want to export this invoice?"
         />

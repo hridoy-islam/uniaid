@@ -11,7 +11,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import moment from 'moment';
-import { RefreshCcw, Send, Loader2, MoreVertical } from 'lucide-react'; // Added Loader2
+import { Loader2, RefreshCcw, Send } from 'lucide-react';
 import InvoicePDF from './generate';
 import { Link, useNavigate } from 'react-router-dom';
 import { DataTablePagination } from '../students/view/components/data-table-pagination';
@@ -29,6 +29,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem
 } from '@/components/ui/dropdown-menu';
+import { MoreVertical } from 'lucide-react';
 import { InvoicePreviewModal } from './components/invoice-preview-modal';
 
 export default function RemitReportPage() {
@@ -50,14 +51,16 @@ export default function RemitReportPage() {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState();
   const { user } = useSelector((state: any) => state.auth);
-  
   // Preview States
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewInvoiceData, setPreviewInvoiceData] = useState<any>(null);
-  
+  // Add these alongside your other state variables
+  const [markPaidLoadingId, setMarkPaidLoadingId] = useState<string | null>(
+    null
+  );
+  const [exportLoadingId, setExportLoadingId] = useState<string | null>(null);
   // CHANGED: Track specific ID instead of boolean
   const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
-
   const fetchInvoices = async (page, entriesPerPage) => {
     try {
       setLoading(true);
@@ -151,6 +154,7 @@ export default function RemitReportPage() {
     if (!invoiceToMark) return;
 
     try {
+      setMarkPaidLoadingId(invoiceToMark);
       await axiosInstance.patch(`/remit-invoice/${invoiceToMark}`, {
         status: 'paid'
       });
@@ -174,10 +178,11 @@ export default function RemitReportPage() {
         description: 'Failed to update the remit report status',
         variant: 'destructive'
       });
+    } finally {
+      setMarkPaidLoadingId(null);
+      setIsModalOpen(false);
+      setInvoiceToMark(null);
     }
-
-    setIsModalOpen(false);
-    setInvoiceToMark(null);
   };
 
   const companyId = import.meta.env.VITE_COMPANY_ID;
@@ -192,6 +197,7 @@ export default function RemitReportPage() {
     if (!invoiceToExport) return;
 
     try {
+      setExportLoadingId(invoiceToExport);
       const invoiceResponse = await axiosInstance.get(
         `/remit-invoice/${invoiceToExport}`
       );
@@ -238,6 +244,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
         variant: 'destructive'
       });
     } finally {
+      setExportLoadingId(null);
       setIsExportModalOpen(false); // Close the modal
       setInvoiceToExport(null); // Reset the invoice ID
     }
@@ -251,30 +258,28 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
 
   // --- UPDATED PREVIEW FUNCTION ---
   const handlePreview = async (invoiceId: string) => {
-      try {
-        setPreviewLoadingId(invoiceId); // Set specific ID
-        
-        const response = await axiosInstance.get(`/remit-invoice/${invoiceId}`);
-        
-        if(response.data?.data) {
-            setPreviewInvoiceData(response.data.data);
-            setIsPreviewOpen(true);
-        } else {
-            throw new Error("No data received");
-        }
-  
-      } catch (error) {
-        console.error('Error fetching invoice for preview:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load invoice preview',
-          variant: 'destructive'
-        });
-      } finally {
-        setPreviewLoadingId(null); // Reset ID
+    try {
+      setPreviewLoadingId(invoiceId); // Set specific ID
+
+      const response = await axiosInstance.get(`/remit-invoice/${invoiceId}`);
+
+      if (response.data?.data) {
+        setPreviewInvoiceData(response.data.data);
+        setIsPreviewOpen(true);
+      } else {
+        throw new Error('No data received');
       }
-    };
-  
+    } catch (error) {
+      console.error('Error fetching invoice for preview:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load invoice preview',
+        variant: 'destructive'
+      });
+    } finally {
+      setPreviewLoadingId(null); // Reset ID
+    }
+  };
 
   return (
     <div className="mx-auto py-1">
@@ -403,6 +408,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
               <TableHeader>
                 <TableRow>
                   <TableHead>Created At</TableHead>
+                  {/* <TableHead>Remit Number</TableHead> */}
                   <TableHead>Remit To</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Institute</TableHead>
@@ -421,6 +427,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                       <TableCell>
                         {moment(invoice.createdAt).format('DD MMM YYYY')}
                       </TableCell>
+                      {/* <TableCell>{invoice.reference}</TableCell> */}
                       <TableCell>{invoice.remitTo?.name}</TableCell>
                       <TableCell>{invoice.totalAmount.toFixed(2)}</TableCell>
                       <TableCell>
@@ -431,6 +438,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                       <TableCell>
                         {invoice.courseRelationId?.course?.name}
                       </TableCell>
+                      {/* <TableCell>{invoice.status}</TableCell> */}
                       <TableCell>
                         {invoice.status === 'due' ? (
                           <div className="flex flex-row items-center justify-start gap-2">
@@ -439,13 +447,21 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                             </span>
                             <Button
                               size="sm"
-                              className="max-w-[100px] bg-supperagent text-white hover:bg-supperagent"
+                              className="min-w-[100px] bg-supperagent text-white hover:bg-supperagent disabled:opacity-50"
                               onClick={() => {
                                 setInvoiceToMark(invoice._id);
                                 setIsModalOpen(true);
                               }}
+                              disabled={markPaidLoadingId === invoice._id}
                             >
-                              Mark as Paid
+                              {markPaidLoadingId === invoice._id ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Wait
+                                </>
+                              ) : (
+                                'Mark as Paid'
+                              )}
                             </Button>
                           </div>
                         ) : (
@@ -460,30 +476,34 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                           {invoice.status === 'paid' && !invoice.exported && (
                             <Button
                               size="sm"
-                              className="bg-supperagent text-white hover:bg-supperagent"
+                              className="bg-supperagent text-white hover:bg-supperagent disabled:opacity-50"
                               onClick={() => handleExport(invoice._id)}
+                              disabled={exportLoadingId === invoice._id}
                             >
-                              <Send className="h-4 w-4" />
+                              {exportLoadingId === invoice._id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Send className="h-4 w-4" />
+                              )}
                             </Button>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-4">
-                          
                           {/* --- UPDATED PREVIEW BUTTON WITH LOADING STATE --- */}
-                          <Button 
-                            className='bg-supperagent text-white hover:bg-supperagent/90 min-w-[90px]'
+                          <Button
+                            className="min-w-[90px] bg-supperagent text-white hover:bg-supperagent/90"
                             onClick={() => handlePreview(invoice._id)}
                             disabled={previewLoadingId === invoice._id}
-                          >   
-                             {previewLoadingId === invoice._id ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Wait
-                                </>
+                          >
+                            {previewLoadingId === invoice._id ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Wait
+                              </>
                             ) : (
-                                'Preview'
+                              'Preview'
                             )}
                           </Button>
 
@@ -546,7 +566,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onConfirm={handleConfirmMarkAsPaid}
-          loading={false}
+          loading={markPaidLoadingId !== null}
           title="Confirm Action"
           description="Are you sure you want to mark this remit report as paid?"
         />
@@ -554,12 +574,12 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
           isOpen={isExportModalOpen}
           onClose={() => setIsExportModalOpen(false)}
           onConfirm={handleConfirmExport}
-          loading={false}
+          loading={exportLoadingId !== null}
           title="Confirm Export"
           description="Are you sure you want to export this remit report?"
         />
 
-        <InvoicePreviewModal 
+        <InvoicePreviewModal
           isOpen={isPreviewOpen}
           onClose={() => setIsPreviewOpen(false)}
           invoiceData={previewInvoiceData}
