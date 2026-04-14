@@ -156,7 +156,7 @@ export default function StudentFilter({ onSubmit, total }) {
       const exportData = studentsForExport?.map((student) => {
         const baseFields = {
           'Reference No': student.refId || '',
-          'College Roll':student.collegeRoll ||'',
+          'College Roll': student.collegeRoll || '',
           'Student Name':
             `${student?.title || ''} ${student?.firstName || ''} ${student?.lastName || ''}`.trim(),
           Email: student.email || '',
@@ -197,7 +197,11 @@ export default function StudentFilter({ onSubmit, total }) {
         if (Array.isArray(student?.applications)) {
           const applications = student?.applications;
 
-          applications.forEach((application, index) => {
+          const enrolledApplications = applications.filter(
+            (app) => app.status && app.status.toLowerCase() === 'enrolled'
+          );
+
+          enrolledApplications.forEach((application, index) => {
             const courseNum = index + 1;
             courseFields[`Course ${courseNum} Institution`] =
               application.courseRelationId?.institute?.name || '';
