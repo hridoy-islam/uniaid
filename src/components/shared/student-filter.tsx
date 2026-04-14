@@ -156,7 +156,7 @@ export default function StudentFilter({ onSubmit, total }) {
       const exportData = studentsForExport?.map((student) => {
         const baseFields = {
           'Reference No': student.refId || '',
-          'College Roll':student.collegeRoll ||'',
+          'College Roll': student.collegeRoll || '',
           'Student Name':
             `${student?.title || ''} ${student?.firstName || ''} ${student?.lastName || ''}`.trim(),
           Email: student.email || '',
@@ -200,7 +200,7 @@ export default function StudentFilter({ onSubmit, total }) {
           const enrolledApplications = applications.filter(
             (app) => app.status && app.status.toLowerCase() === 'enrolled'
           );
-          
+
           enrolledApplications.forEach((application, index) => {
             const courseNum = index + 1;
             courseFields[`Course ${courseNum} Institution`] =
@@ -215,9 +215,16 @@ export default function StudentFilter({ onSubmit, total }) {
               application?.amount || '';
           });
 
-          // Populate Status and Type based on your logic
-          const activeApp = applications.find((app) => app.isActive === true);
-          const singleApp = applications.length === 1 ? applications[0] : null;
+          // Populate Status and Type based on enrolled applications only
+          const activeApp = applications.find(
+            (app) =>
+              app.isActive === true && app.status?.toLowerCase() === 'enrolled'
+          );
+          const singleApp =
+            applications.length === 1 &&
+            applications[0].status?.toLowerCase() === 'enrolled'
+              ? applications[0]
+              : null;
 
           if (activeApp) {
             baseFields.Status = activeApp.status || '';
