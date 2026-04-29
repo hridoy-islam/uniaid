@@ -20,16 +20,17 @@ import { Link, useParams } from 'react-router-dom';
 import axiosInstance from '@/lib/axios';
 import { StudentProfile } from '../students/view/components/student-profile';
 import moment from 'moment';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react'; // NEW: import Loader2
 import { useSelector } from 'react-redux';
 import { toast } from '@/components/ui/use-toast';
 
 export default function CourseDetails() {
   const { id, courseid } = useParams();
   const [student, setStudent] = useState<any>();
-  const [application, setApplication] = useState<any>(null); // Filtered application
+  const [application, setApplication] = useState<any>(null);
   const [currentStatus, setCurrentStatus] = useState<any>(null);
-  const [initialLoading, setInitialLoading] = useState(true); // New state for initial loading
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [saving, setSaving] = useState(false); // NEW: loading state for save
   const { user } = useSelector((state: any) => state.auth);
 
   const fetchData = async () => {
@@ -39,7 +40,6 @@ export default function CourseDetails() {
       const data = response.data.data;
       setStudent(data);
 
-      // Filter the application based on courseid
       const selectedApplication = data.applications.find(
         (app) => app._id == courseid
       );
@@ -48,7 +48,7 @@ export default function CourseDetails() {
     } catch (error) {
       console.error('Error fetching institutions:', error);
     } finally {
-      setInitialLoading(false); // Disable initial loading after the first fetch
+      setInitialLoading(false);
     }
   };
 
@@ -56,80 +56,38 @@ export default function CourseDetails() {
     fetchData();
   };
 
-  // const handleSave = async () => {
-  //   try {
-  //     // Ensure application exists before updating
-  //     if (!application) {
-  //       console.error("Application not found.");
-  //       return;
-  //     }
-
-  //     // Find the last status log entry to get the previous status
-  //     const previousLog = application.statusLogs?.[application.statusLogs.length - 1];
-
-  //     // Create a new status log entry
-  //     const statusLog = {
-  //       prev_status: previousLog?.changed_to || application.status || 'New',
-  //       changed_to: currentStatus,
-  //       assigned_by: previousLog?.assigned_by || null,
-  //       changed_by: user._id,
-  //       assigned_at: previousLog?.assigned_at || null,
-  //       created_at: moment().toISOString(),
-  //     };
-
-  //     // Preserve all properties of the existing application
-  //     const updatedApplication = {
-  //       ...application, // Spread existing application to keep all properties
-  //       status: currentStatus,
-  //       statusLogs: [...(application.statusLogs || []), statusLog], // Append new log
-  //     };
-
-  //     // Send the updated application data to the backend
-  //     await axiosInstance.patch(`/students/${id}`, {
-  //       applications: [updatedApplication], // Wrap in an array if required by the backend
-  //     });
-
-  //     // Refetch data to update the UI
-  //     fetchData();
-  //   } catch (error) {
-  //     console.error("Error updating application status:", error);
-  //   }
-  // };
-
   const handleSave = async () => {
+    if (saving) return; // NEW: prevent double clicks
     try {
+      setSaving(true); // NEW: start loading
       if (!application) {
         console.error('Application not found.');
         return;
       }
-  
-      // Prepare the payload for the backend
+
       const payload = {
         newStatus: currentStatus,
         changedBy: user._id,
       };
-  
-      // Send the update to the backend
+
       const response = await axiosInstance.patch(
         `/students/${id}/application/${courseid}`,
         payload
       );
-  
-      // Handle successful update
-      fetchData(); // Refresh the data
+
+      fetchData();
       toast({
         title: 'Application Updated Successfully',
         className: 'bg-supperagent border-none text-white'
       });
-  
     } catch (error) {
       console.error('Error updating application status:', error);
-      
       toast({
-      
         description: error.response?.data?.message || error.message || 'Student already enrolled',
         className: 'bg-destructive border-none text-white'
       });
+    } finally {
+      setSaving(false); // NEW: stop loading regardless of outcome
     }
   };
 
@@ -190,7 +148,6 @@ export default function CourseDetails() {
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
-
               <SelectContent>
                 <SelectItem value="Waiting LCC Approval">
                   Waiting LCC Approval
@@ -212,14 +169,16 @@ export default function CourseDetails() {
               </SelectContent>
             </Select>
           </div>
-          {/* Show the update button if the status was changed */}
+          {/* UPDATED: Button now shows loading state and is disabled */}
           {currentStatus !== application?.status && (
             <div className="mt-6">
               <Button
                 onClick={handleSave}
+                disabled={saving} // disabled while saving
                 className="bg-supperagent text-white hover:bg-supperagent"
               >
-                Update Status
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {saving ? 'Updating...' : 'Update Status'}
               </Button>
             </div>
           )}
@@ -250,7 +209,6 @@ export default function CourseDetails() {
                         ? moment(change.assigned_at).format('MM-DD-YYYY')
                         : '---'}
                     </TableCell>
-
                     <TableCell>{change?.changed_to}</TableCell>
                     <TableCell>{change?.changed_by?.name}</TableCell>
                     <TableCell>
