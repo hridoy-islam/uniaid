@@ -49,6 +49,8 @@ import BankPage from '@/pages/bank';
 import BankDetailsPage from '@/pages/bank/details';
 import BulkRollPage from '@/pages/bulk-roll-update';
 import EditRemitPage from '@/pages/remitreport/edit-remit';
+import JobListingsPage from '@/pages/jobs';
+import JobDetailsPage from '@/pages/jobs/jobDetails';
 
 const SignInPage = lazy(() => import('@/pages/auth/signin'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -232,6 +234,14 @@ export default function AppRouter() {
         {
           path: 'bulk-roll-update',
           element: <BulkRollPage />
+        },
+        {
+          path: 'jobs',
+          element: <JobListingsPage />
+        },
+        {
+          path: 'jobs/:id',
+          element: <JobDetailsPage />
         }
       ]
     }

@@ -11,71 +11,6 @@ import { RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import axiosInstance from '@/lib/axios'
 import { useSelector } from 'react-redux';
-// const stats = [
-//   // {
-//   //   title: 'Applications',
-//   //   value: 1426
-//   // },
-//   // {
-//   //   title: 'Students',
-//   //   value: 1070
-//   // },
-//   // {
-//   //   title: 'Waiting LLC Approval',
-//   //   value: 0
-//   // },
-//   // {
-//   //   title: 'New',
-//   //   value: 125
-//   // },
-//   // {
-//   //   title: 'Processing',
-//   //   value: 29
-//   // },
-//   // {
-//   //   title: 'Application Made',
-//   //   value: 4
-//   // },
-//   // {
-//   //   title: 'Offer Made',
-//   //   value: 0
-//   // },
-//   // {
-//   //   title: 'Enrolled',
-//   //   value: 594
-//   // },
-//   // {
-//   //   title: 'Rejected',
-//   //   value: 367
-//   // },
-//   // {
-//   //   title: 'Hold',
-//   //   value: 1
-//   // },
-//   // {
-//   //   title: 'App made to LCC',
-//   //   value: 113
-//   // },
-//   // {
-//   //   title: 'Deregister',
-//   //   value: 60
-//   // },
-//   // {
-//   //   title: 'SLC Course Completed',
-//   //   value: 133
-//   // },
-//   {
-//     title: 'Follow Ups Pending',
-//     value: '0',
-//     href: 'followup'
-//   },
-//   {
-//     title: 'Created Follow Ups',
-//     value: '0',
-//     href: 'followup/created'
-//   },
-// ];
-
 
 export default function DashboardPage() {
   
@@ -85,6 +20,7 @@ export default function DashboardPage() {
   const [createdFollowUps, setCreatedFollowUps] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [jobsCount, setJobsCount] = useState(0);
 
   const stats = [
     {
@@ -96,6 +32,11 @@ export default function DashboardPage() {
       title: 'Created Follow Ups',
       value: createdFollowUps.toString(),
       href: 'followup/created',
+    },
+    {
+      title: 'Jobs',
+      value: jobsCount.toString(),
+      href: 'jobs',
     },
   ];
 
@@ -114,6 +55,14 @@ export default function DashboardPage() {
         `/notes?where=with:followUpStaffs,with:user,email,${user.email}&status=pending`
       );
       setFollowUpsPending(response2.data.data.meta.total);
+
+      // Fetch jobs count with conditional userId for staff role
+      let jobsUrl = `/jobs?limit=1`;
+      if (user.role === 'staff') {
+        jobsUrl += `&userId=${user._id}`;
+      }
+      const response3 = await axiosInstance.get(jobsUrl);
+      setJobsCount(response3.data.data.data.meta.total);
     } catch (error) {
       setError('Failed to fetch data. Please try again later.');
       console.error('Error fetching notes:', error);
@@ -166,9 +115,7 @@ export default function DashboardPage() {
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
-            
-              <StatCard key={stat.title} href={stat.href} title={stat.title} value={stat.value} />
-            
+            <StatCard key={stat.title} href={stat.href} title={stat.title} value={stat.value} />
           ))}
         </div>
       </div>
