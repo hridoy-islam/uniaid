@@ -304,6 +304,7 @@ function StaffPanel({ allStaff, selected, onChange }: StaffPanelProps) {
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
+
 export default function JobDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useSelector((state: any) => state.auth);
