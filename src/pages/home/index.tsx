@@ -15,7 +15,7 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="flex items-center gap-2 text-white">
             <Layers className="h-6 w-6" />
-            <span className="text-lg font-semibold">UniAid</span>
+            <span className="text-lg font-semibold">Watney Dubai</span>
           </div>
           
           {/* Main Content */}

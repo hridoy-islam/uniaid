@@ -11,7 +11,7 @@ export function TopNav() {
       <div className="flex items-center space-x-4">
         <Link to="/" className="flex items-center space-x-2 text-white">
           <Layers className="h-6 w-6" />
-          <span className="text-lg font-semibold">UniAid</span>
+          <span className="text-lg font-semibold">Watney Dubai</span>
         </Link>
        
       </div>

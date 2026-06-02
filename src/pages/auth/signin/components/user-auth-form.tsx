@@ -114,23 +114,23 @@ export default function UserAuthForm() {
 
             <Link
               to="/forgot-password"
-              className="text-sm text-teal-600 hover:text-teal-500"
+              className="text-sm text-supperagent hover:text-supperagent/90"
             >
               Forgot Password?
             </Link>
           </div>
 
-          <Button disabled={loading} type="submit" className="w-full text-white bg-teal-600 hover:bg-teal-600/90">
+          <Button disabled={loading} type="submit" className="w-full text-white bg-supperagent hover:bg-supperagent/90">
             Login
           </Button>
           {error && <Badge className="mt-2 text-red-500">{error}</Badge>}
           <p className="text-center text-sm text-gray-600">
             By signin up, you agree to our{" "}
-            <Link to="/terms" className="text-teal-600 hover:text-teal-500">
+            <Link to="/terms" className="text-supperagent hover:text-supperagent/90">
               Terms and Conditions
             </Link>{" "}
             &{" "}
-            <Link to="/privacy" className="text-teal-600 hover:text-teal-500">
+            <Link to="/privacy" className="text-supperagent hover:text-supperagent/90">
               Privacy Policy
             </Link>
           </p>

@@ -17,12 +17,12 @@ export default function SignInPage() {
   return (
     <div className="flex min-h-screen">
       {/* Left Section */}
-      <div className="relative hidden w-1/2 bg-teal-600 lg:block">
+      <div className="relative hidden w-1/2 bg-supperagent lg:block">
         <div className="flex h-full flex-col gap-60 p-8">
           {/* Logo */}
           <div className="flex items-center gap-2 text-white">
             <Layers className="h-6 w-6" />
-            <span className="text-lg font-semibold">UniAid</span>
+            <span className="text-lg font-semibold">Watney Dubai</span>
           </div>
 
           {/* Main Content */}
@@ -45,16 +45,7 @@ export default function SignInPage() {
           </div>
         </div>
 
-        {/* Curved Edge */}
-        <div
-          className="absolute right-0 top-0 h-full w-32 bg-teal-600"
-          style={{
-            clipPath:
-              'polygon(100% 0, 0% 0, 0 100%, 100% 100%, 100% 0, 100% 0, 0 100%, 0 100%)',
-            background:
-              'linear-gradient(to right, #0d9488 0%, transparent 100%)'
-          }}
-        />
+        
       </div>
 
       {/* Right Section */}

@@ -12,7 +12,7 @@ const axiosInstance = axios.create({
 // Request interceptor: Attach access token to all outgoing requests
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = JSON.parse(localStorage.getItem('uniaid')); // Access token
+    const token = JSON.parse(localStorage.getItem('watneyDubai')); // Access token
    
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
@@ -34,7 +34,7 @@ const refreshToken = async () => {
     const accessToken = response?.data?.data?.accessToken;
     
     if (accessToken) {
-      localStorage.setItem('uniaid', JSON.stringify(accessToken));
+      localStorage.setItem('watneyDubai', JSON.stringify(accessToken));
       return accessToken;
     
     }
@@ -42,7 +42,7 @@ const refreshToken = async () => {
     return null;
   } catch (error) {
     // Token refresh failed — clean up and logout
-    localStorage.removeItem('uniaid');
+    localStorage.removeItem('watneyDubai');
     store.dispatch(logout());
     return null;
   }

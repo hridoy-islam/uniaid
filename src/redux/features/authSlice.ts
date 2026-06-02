@@ -106,7 +106,7 @@ export const loginUser = createAsyncThunk<UserResponse, UserCredentials>(
 
     const response = await request.data;
 
-    localStorage.setItem('uniaid', JSON.stringify(response.data.accessToken));
+    localStorage.setItem('watneyDubai', JSON.stringify(response.data.accessToken));
     return response;
   }
 );
@@ -126,7 +126,7 @@ export const authWithFbORGoogle = createAsyncThunk<
     }
   );
   const response = await request.data;
-  localStorage.setItem('uniaid', JSON.stringify(response.data.accessToken));
+  localStorage.setItem('watneyDubai', JSON.stringify(response.data.accessToken));
   return response;
 });
 // forgot password
@@ -192,7 +192,7 @@ export const changePassword = createAsyncThunk<
 });
 
 export const logout = createAsyncThunk<void>('user/logout', async () => {
-  localStorage.removeItem('uniaid');
+  localStorage.removeItem('watneyDubai');
 });
 
 const authSlice = createSlice({
