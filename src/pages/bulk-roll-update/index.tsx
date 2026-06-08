@@ -144,6 +144,18 @@ export default function BulkRollPage() {
     }
   };
 
+
+  useEffect(() => {
+  if (csvData.length === 0 && parentCsvId && hasActiveUpload) {
+    axiosInstance.delete(`/csv/${parentCsvId}`)
+      .then(() => {
+        setHasActiveUpload(false);
+        setParentCsvId('');
+      })
+      .catch((err) => console.error('Auto-delete failed:', err));
+  }
+}, [csvData, parentCsvId, hasActiveUpload]);
+
   const saveCsvToDatabase = async (csvRows: ProcessedRow[]) => {
     try {
       const response = await axiosInstance.post('/csv', {
@@ -179,37 +191,24 @@ export default function BulkRollPage() {
   };
 
   const removeFromCsvDatabase = async (csvId: string, row: ProcessedRow) => {
-    try {
-      const studentIdToRemove = row.originalId || row.id;
-      const patchData = row.originalId
-        ? { studentId: studentIdToRemove }
-        : { tempId: row.id };
-      const patchResponse = await axiosInstance.patch(
-        `/csv/${csvId}`,
-        patchData
-      );
+  try {
+    const studentIdToRemove = row.originalId || row.id;
+    const patchData = row.originalId
+      ? { studentId: studentIdToRemove }
+      : { tempId: row.id };
 
-      if (!patchResponse.data.success) {
-        throw new Error(patchResponse.data.message || 'Failed to remove student');
-      }
+    const patchResponse = await axiosInstance.patch(`/csv/${csvId}`, patchData);
 
-      const isLastStudent = csvData.length === 1;
-      let documentDeleted = false;
-
-      if (isLastStudent) {
-        const deleteResponse = await axiosInstance.delete(`/csv/${csvId}`);
-        if (!deleteResponse.data.success) {
-          throw new Error(deleteResponse.data.message || 'Failed to delete document');
-        }
-        documentDeleted = true;
-      }
-
-      return { ...patchResponse.data, documentDeleted };
-    } catch (error) {
-      console.error('Error removing from CSV:', error);
-      throw error;
+    if (!patchResponse.data.success) {
+      throw new Error(patchResponse.data.message || 'Failed to remove student');
     }
-  };
+
+    return patchResponse.data;
+  } catch (error) {
+    console.error('Error removing from CSV:', error);
+    throw error;
+  }
+};
 
   const handleFileUpload = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -277,71 +276,49 @@ export default function BulkRollPage() {
     [hasActiveUpload]
   );
 
-  const handleApproveStudent = async (row: ProcessedRow) => {
-    if (!row.studentData) return;
-    try {
-      setCsvData((prev) =>
-        prev.map((r) => (r.id === row.id ? { ...r, status: 'processing' } : r))
-      );
-      await axiosInstance.patch(`/students/${row.studentData._id}`, {
-        collegeRoll: row.csvData['Reg No']
-      });
-      const isLastStudent = csvData.length === 1;
-      const result = await removeFromCsvDatabase(parentCsvId, row);
-      setCsvData((prev) => prev.filter((r) => r.id !== row.id));
-      if (isLastStudent || result.documentDeleted) {
-        setHasActiveUpload(false);
-        setParentCsvId('');
-      }
-    } catch (error: any) {
-      console.error('Error approving student:', error);
-      setCsvData((prev) =>
-        prev.map((r) =>
-          r.id === row.id
-            ? {
-                ...r,
-                status: 'error',
-                error:
-                  error.response?.data?.message ||
-                  error.message ||
-                  'Failed to approve'
-              }
-            : r
-        )
-      );
-    }
-  };
+const handleApproveStudent = async (row: ProcessedRow) => {
+  if (!row.studentData) return;
+  try {
+    setCsvData((prev) =>
+      prev.map((r) => (r.id === row.id ? { ...r, status: 'processing' } : r))
+    );
+    await axiosInstance.patch(`/students/${row.studentData._id}`, {
+      collegeRoll: row.csvData['Reg No']
+    });
+    await removeFromCsvDatabase(parentCsvId, row);
+    setCsvData((prev) => prev.filter((r) => r.id !== row.id));
+    // ↑ useEffect above handles delete when length hits 0
+  } catch (error: any) {
+    setCsvData((prev) =>
+      prev.map((r) =>
+        r.id === row.id
+          ? { ...r, status: 'error', error: error.response?.data?.message || error.message || 'Failed to approve' }
+          : r
+      )
+    );
+  }
+};
 
-  const handleRejectStudent = async (row: ProcessedRow) => {
-    try {
-      setCsvData((prev) =>
-        prev.map((r) => (r.id === row.id ? { ...r, status: 'processing' } : r))
-      );
-      const isLastStudent = csvData.length === 1;
-      const result = await removeFromCsvDatabase(parentCsvId, row);
-      setCsvData((prev) => prev.filter((r) => r.id !== row.id));
-      if (isLastStudent || result.documentDeleted) {
-        setHasActiveUpload(false);
-        setParentCsvId('');
-      }
-    } catch (error: any) {
-      console.error('Error rejecting student:', error);
-      setCsvData((prev) =>
-        prev.map((r) =>
-          r.id === row.id
-            ? {
-                ...r,
-                status: 'error',
-                error:
-                  error.response?.data?.message ||
-                  error.message ||
-                  'Failed to reject'
-              }
-            : r
-        )
-      );
-    }
-  };
+const handleRejectStudent = async (row: ProcessedRow) => {
+  try {
+    setCsvData((prev) =>
+      prev.map((r) => (r.id === row.id ? { ...r, status: 'processing' } : r))
+    );
+    await removeFromCsvDatabase(parentCsvId, row);
+    setCsvData((prev) => prev.filter((r) => r.id !== row.id));
+    // ↑ useEffect above handles delete when length hits 0
+  } catch (error: any) {
+    setCsvData((prev) =>
+      prev.map((r) =>
+        r.id === row.id
+          ? { ...r, status: 'error', error: error.response?.data?.message || error.message || 'Failed to reject' }
+          : r
+      )
+    );
+  }
+};
+
+
 
   const handleRollInputChange = (
     e: React.ChangeEvent<HTMLInputElement>,
