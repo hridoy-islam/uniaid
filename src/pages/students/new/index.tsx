@@ -61,12 +61,10 @@ export default function NewStudentPage() {
     const postcode = getComponent('postal_code') || '';
     const country = getComponent('country') || '';
 
-    
     const matchedCountry = countries.find(
       (c) => c.toLowerCase() === country.toLowerCase()
     );
 
-   
     setValue('addressLine1', address1);
     setValue('addressLine2', address2);
     setValue('townCity', city);
@@ -78,9 +76,21 @@ export default function NewStudentPage() {
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
+      // 1. Convert the local dob to a Date object (if it isn't already)
+      const localDob = new Date(data.dob);
+
+      // 2. Create a clean UTC string that preserves the exact date selected
+      const utcDob = new Date(
+        Date.UTC(
+          localDob.getFullYear(),
+          localDob.getMonth(),
+          localDob.getDate()
+        )
+      ).toISOString();
+
       const formattedData = {
         ...data,
-        dob: data.dob,
+        dob: utcDob, // <-- Using the fixed UTC date here
         title: data.title,
         gender: data.gender,
         maritualStatus: data.maritalStatus,
@@ -89,6 +99,7 @@ export default function NewStudentPage() {
         email: data.email.toLowerCase(),
         phone: data.phone
       };
+
       // Add agentID only if the user is an agent
       if (user.role === 'agent') {
         formattedData.agent = user._id;
