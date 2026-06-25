@@ -78,9 +78,21 @@ export default function NewStudentPage() {
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
+       // 1. Convert the local dob to a Date object (if it isn't already)
+      const localDob = new Date(data.dob);
+
+      // 2. Create a clean UTC string that preserves the exact date selected
+      const utcDob = new Date(
+        Date.UTC(
+          localDob.getFullYear(),
+          localDob.getMonth(),
+          localDob.getDate()
+        )
+      ).toISOString();
+
       const formattedData = {
         ...data,
-        dob: data.dob,
+        dob: utcDob,
         title: data.title,
         gender: data.gender,
         maritualStatus: data.maritalStatus,
