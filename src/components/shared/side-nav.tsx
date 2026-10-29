@@ -20,7 +20,10 @@ import {
   PiggyBank,
   Vault,
   Database,
-  Building2
+  Building2,
+  GraduationCap,
+  CalendarClock,
+  LayoutGrid
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
@@ -51,6 +54,7 @@ const navItems = [
   // { icon: UserIcon, label: 'Enrolled', href: '#' },
   { icon: FileTextIcon, label: 'Invoices', href: 'invoice' },
   { icon: ClipboardPaste, label: 'Remit', href: 'remit' },
+  { icon: CalendarClock, label: 'Teacher Slots', href: 'teacher-slots' },
   {
     icon: Settings2Icon,
     label: 'Settings',
@@ -74,12 +78,19 @@ const navItems = [
         ]
       },
       { icon: CircleUser, label: 'Staffs', href: 'staff' },
+      { icon: GraduationCap, label: 'Teachers', href: 'teachers' },
+      { icon: LayoutGrid, label: 'Slot Templates', href: 'slot-templates' },
       { icon: AtSign, label: 'Emails', href: 'emails' },
       { icon: DraftingCompass, label: 'Drafts', href: 'drafts' },
       { icon: Database, label: 'Bulk Roll Update', href: 'bulk-roll-update' }
     ]
   }
 ];
+// A teacher only manages the slots assigned to them
+const teacherNavItems = [
+  { icon: CalendarClock, label: 'My Slots', href: 'my-slots' }
+];
+
 const NavItem = ({ item, depth = 0 }) => {
   if (!item) return null; // Ensure no invalid items render
   if (item.subItems) {
@@ -136,10 +147,16 @@ export function SideNav() {
   //       )
   //     : navItems;
 
-  const filterForAgent = (navItems) =>
-    navItems.filter(
-      (item) => !['Management', 'Settings', 'Invoices'].includes(item.label)
-    );
+  // Agents book slots for their students instead of managing them
+  const filterForAgent = (navItems) => [
+    ...navItems.filter(
+      (item) =>
+        !['Management', 'Settings', 'Invoices', 'Teacher Slots'].includes(
+          item.label
+        )
+    ),
+    { icon: CalendarCheck, label: 'Book Slot', href: 'book-slot' }
+  ];
 
   const filterForStaff = (navItems, user) => {
     if (!user?.privileges?.management) return navItems; // If no privileges, return default nav
@@ -179,6 +196,9 @@ export function SideNav() {
                   : null;
               }
 
+              // Staff manage slots, so it follows Teacher Slots and is always shown
+              if (subItem.label === 'Slot Templates') return subItem;
+
               return ['Staffs', 'Emails', 'Drafts'].includes(subItem.label) &&
                 management[subItem.label.toLowerCase()]
                 ? subItem
@@ -199,12 +219,39 @@ export function SideNav() {
       .filter(Boolean); // Remove null items
   };
 
+  // A teacher gets the staff portal, filtered by their own privileges the
+  // same way, plus their own slots straight after the dashboard. "Teacher
+  // Slots" manages everyone's slots, so a teacher sees "My Slots" instead.
+  const filterForTeacher = (navItems, user) => {
+    const items = filterForStaff(navItems, user)
+      .filter((item) => item.label !== 'Teacher Slots')
+      .map((item) =>
+        item.label === 'Settings'
+          ? {
+              ...item,
+              subItems: item.subItems.filter(
+                (sub) => sub.label !== 'Slot Templates'
+              )
+            }
+          : item
+      )
+      .filter((item) => !item.subItems || item.subItems.length);
+    const dashboardAt = items.findIndex((item) => item.label === 'Dashboard');
+    return [
+      ...items.slice(0, dashboardAt + 1),
+      ...teacherNavItems,
+      ...items.slice(dashboardAt + 1)
+    ];
+  };
+
   const filteredNavItems =
-    user.role === 'agent'
-      ? filterForAgent(navItems)
-      : user.role === 'staff'
-        ? filterForStaff(navItems, user)
-        : navItems;
+    user.role === 'teacher'
+      ? filterForTeacher(navItems, user)
+      : user.role === 'agent'
+        ? filterForAgent(navItems)
+        : user.role === 'staff'
+          ? filterForStaff(navItems, user)
+          : navItems;
 
   return (
     <nav className="flex space-x-6 bg-white px-4 py-4 shadow-sm">

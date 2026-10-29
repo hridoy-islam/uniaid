@@ -100,6 +100,9 @@ export function StaffSettings() {
     fetchData();
   }, [id]);
 
+  // The same screen serves staff and teachers, so it names whichever this is.
+  const roleLabel = (staffDetails as any)?.role === 'teacher' ? 'Teacher' : 'Staff';
+
   const {
     setValue,
     formState: { errors }
@@ -165,7 +168,7 @@ export function StaffSettings() {
       // Handle success response
       if (response.data && response.data.success === true) {
         toast({
-          title: 'Staff Access Updated successfully',
+          title: `${roleLabel} Access Updated successfully`,
           className: 'bg-supperagent border-none text-white'
         });
         await fetchData(); // Reload the updated data
@@ -184,10 +187,10 @@ export function StaffSettings() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(() => {})} className="space-y-8">
-        {/* Staff Information Card */}
+        {/* Staff / Teacher Information Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Staff Information</CardTitle>
+            <CardTitle>{roleLabel} Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p>
@@ -224,7 +227,7 @@ export function StaffSettings() {
                                 {key}
                               </FormLabel>
                               <FormDescription>
-                                Allow this staff member to manage {key}.
+                                Allow this {roleLabel.toLowerCase()} to manage {key}.
                               </FormDescription>
                             </div>
                             <FormControl>

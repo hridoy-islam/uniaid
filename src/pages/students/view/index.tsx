@@ -25,6 +25,7 @@ import {
 import { useSelector } from 'react-redux';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import AgentPaymentPage from './components/agentPayment';
+import { isPrivilegedRole } from '@/lib/roles';
 
 export default function StudentViewPage() {
   const { id } = useParams();
@@ -140,7 +141,8 @@ export default function StudentViewPage() {
 
   // Check if the user is an agent
   const isAgent = user?.role === 'agent';
-  const isStaff = user?.role === 'staff';
+  // Teachers are configured on the same privilege screen as staff.
+  const isStaff = isPrivilegedRole(user?.role);
   const isAdmin = user?.role === 'admin';
 
   // Add conditional tabs when `isComplete` is true

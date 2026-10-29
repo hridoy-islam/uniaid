@@ -10,6 +10,7 @@ import { DataTablePagination } from './view/components/data-table-pagination';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { useSelector } from 'react-redux';
 import { RefreshCcw } from 'lucide-react';
+import { isPrivilegedRole } from '@/lib/roles';
 
 export default function StudentsPage() {
   const { user } = useSelector((state: any) => state.auth);
@@ -64,7 +65,7 @@ export default function StudentsPage() {
         params.agent = user._id;
       }
 
-      if (user.role === 'staff') {
+      if (isPrivilegedRole(user.role)) {
         const hasSearchPrivileges =
           user?.privileges?.student?.search?.agent &&
           user?.privileges?.student?.search?.staff;

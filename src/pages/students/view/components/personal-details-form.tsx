@@ -21,6 +21,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { format } from 'date-fns';
 import { LoadScript, Autocomplete } from '@react-google-maps/api';
 import { useRef } from 'react';
+import { isPrivilegedRole } from '@/lib/roles';
 
 export function PersonalDetailsForm({ student, onSave }) {
   const { user } = useSelector((state: any) => state.auth);
@@ -498,7 +499,7 @@ export function PersonalDetailsForm({ student, onSave }) {
           </div>
 
           {(user.role === 'admin' ||
-            (user.role === 'staff' &&
+            (isPrivilegedRole(user.role) &&
               user.privileges?.student?.agentChange)) && (
             <div>
               <Label htmlFor="agent">Agent</Label>

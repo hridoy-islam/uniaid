@@ -51,6 +51,12 @@ import BulkRollPage from '@/pages/bulk-roll-update';
 import EditRemitPage from '@/pages/remitreport/edit-remit';
 import JobListingsPage from '@/pages/jobs';
 import JobDetailsPage from '@/pages/jobs/jobDetails';
+import TeacherPage from '@/pages/teacher';
+import TeacherSlotPage from '@/pages/teacher-slot';
+import MySlotsPage from '@/pages/teacher-slot/my-slots';
+import SlotTemplatesPage from '@/pages/slot-templates';
+import BookSlotPage from '@/pages/book-slot';
+import { useSelector } from 'react-redux';
 
 const SignInPage = lazy(() => import('@/pages/auth/signin'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -242,6 +248,32 @@ export default function AppRouter() {
         {
           path: 'jobs/:id',
           element: <JobDetailsPage />
+        },
+        {
+          path: 'teachers',
+          element: <TeacherPage />
+        },
+        // Same privilege screen as staff - it works on any user by id.
+        {
+          path: 'teachers/:id',
+          element: <StaffSettings />
+        },
+        {
+          path: 'teacher-slots',
+          element: <TeacherSlotPage />
+        },
+        {
+          path: 'slot-templates',
+          element: <SlotTemplatesPage />
+        },
+        {
+          path: 'my-slots',
+          element: <MySlotsPage />
+        },
+        // Admins and agents book slots for students from inside the portal
+        {
+          path: 'book-slot',
+          element: <BookSlotPage embedded />
         }
       ]
     }
@@ -272,6 +304,10 @@ export default function AppRouter() {
       path: '/new-password',
       element: <NewPassword />,
       index: true
+    },
+    {
+      path: '/book-slot',
+      element: <BookSlotPage />
     },
     {
       path: '/404',

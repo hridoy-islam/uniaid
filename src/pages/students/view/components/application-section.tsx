@@ -16,6 +16,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Switch } from '@/components/ui/switch';
 import axiosInstance from '@/lib/axios';
+import { isPrivilegedRole } from '@/lib/roles';
 
 export function ApplicationsSection({ student, onSave }) {
   const [applications, setApplications] = useState<any>([]);
@@ -146,7 +147,7 @@ export function ApplicationsSection({ student, onSave }) {
                 <TableCell className="text-right">
                   {/* Conditionally render Agent dropdown */}
                   {(user.role === 'admin' ||
-                    (user.role === 'staff' &&
+                    (isPrivilegedRole(user.role) &&
                       user.privileges?.student?.applicationStatus)) && (
                     <Switch
                       checked={course.isActive === true}
@@ -160,7 +161,7 @@ export function ApplicationsSection({ student, onSave }) {
                 <TableCell className="text-right">
                   {/* Conditionally render Agent dropdown */}
                   {(user.role === 'admin' ||
-                    (user.role === 'staff' &&
+                    (isPrivilegedRole(user.role) &&
                       user.privileges?.student?.applicationStatus)) && (
                     <Link to={`course/${course._id}`}>
                       <Button variant="ghost" size="icon">

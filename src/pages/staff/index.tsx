@@ -134,7 +134,7 @@ export default function StaffPage() {
   };
 
   useEffect(() => {
-    fetchData(currentPage, entriesPerPage);
+    fetchData(currentPage, entriesPerPage, searchTerm);
   }, [currentPage, entriesPerPage]);
 
   useEffect(() => {
@@ -142,8 +142,11 @@ export default function StaffPage() {
       setEditingStaff(null);
     }
   }, [dialogOpen]);
+  // A new search starts from page 1, or a search made from a later page
+  // would report "no staff" while the matches sit on page 1.
   const handleSearch = () => {
-    fetchData(currentPage, entriesPerPage, searchTerm); 
+    if (currentPage !== 1) setCurrentPage(1);
+    else fetchData(1, entriesPerPage, searchTerm);
   };
 
   return (
@@ -176,6 +179,17 @@ export default function StaffPage() {
         </Button>
       </div>
       <div className="rounded-md bg-white p-4 shadow-2xl">
+        {initialLoading ? null : !staff?.length ? (
+          <div className="py-12 text-center">
+            <p className="text-sm font-medium text-black">No staff found</p>
+            <p className="mt-1 text-xs text-black">
+              {searchTerm
+                ? 'No staff match your search. Try a different name or email.'
+                : 'Add your first staff member with the New Staff button.'}
+            </p>
+          </div>
+        ) : (
+        <>
         <Table>
           <TableHeader>
             <TableRow>
@@ -224,13 +238,19 @@ export default function StaffPage() {
             ))}
           </TableBody>
         </Table>
-        <DataTablePagination
+        {
+          totalPages > 1 && (
+ <DataTablePagination
           pageSize={entriesPerPage}
           setPageSize={setEntriesPerPage}
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
         />
+          )
+        }
+        </>
+        )}
       </div>
       <StaffDialog
         open={dialogOpen}

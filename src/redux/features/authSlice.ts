@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import axiosInstance from '../../lib/axios';
+import { isPrivilegedRole } from '../../lib/roles';
 
 interface UserCredentials {
   email: string;
@@ -219,9 +220,9 @@ const authSlice = createSlice({
         // Create a mutable copy of the decoded user
         const userWithPrivileges = { ...decodedUser };
 
-        // Assign privileges if they exist in the response (only for staff)
+        // Assign privileges if they exist in the response (staff and teachers)
         if (
-          userWithPrivileges.role === 'staff' &&
+          isPrivilegedRole(userWithPrivileges.role) &&
           action.payload.data.privileges
         ) {
           userWithPrivileges.privileges = action.payload.data.privileges;
@@ -250,9 +251,9 @@ const authSlice = createSlice({
         // Create a mutable copy of the decoded user
         const userWithPrivileges = { ...decodedUser };
 
-        // Assign privileges if they exist in the response (only for staff)
+        // Assign privileges if they exist in the response (staff and teachers)
         if (
-          userWithPrivileges.role === 'staff' &&
+          isPrivilegedRole(userWithPrivileges.role) &&
           action.payload.data.privileges
         ) {
           userWithPrivileges.privileges = action.payload.data.privileges;

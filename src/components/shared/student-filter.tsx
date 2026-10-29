@@ -8,6 +8,7 @@ import Select, { MultiValue } from 'react-select';
 import * as XLSX from 'xlsx';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { isPrivilegedRole } from '@/lib/roles';
 export default function StudentFilter({ onSubmit, total }) {
   const { user } = useSelector((state: any) => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
@@ -96,7 +97,7 @@ export default function StudentFilter({ onSubmit, total }) {
       }
 
       // Only use user.staff_id if neither staffId nor agentId is provided
-      if (user.role === 'staff' && !staffId && !agent) {
+      if (isPrivilegedRole(user.role) && !staffId && !agent) {
         params.staffId = user._id;
         params.createdBy = user._id;
       }
