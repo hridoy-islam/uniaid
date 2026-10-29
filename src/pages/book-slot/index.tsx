@@ -55,7 +55,6 @@ import {
 // to the portal, so it must not send (or try to refresh) a staff token.
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL });
 
-const RESET_SECONDS = 10;
 const DATE_FORMAT = 'DD/MM/YYYY';
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -83,14 +82,8 @@ const failToast = (title: string, error: any) =>
     className: 'bg-red-500 border-none text-white'
   });
 
-const hasStarted = (slot: { date: string; startTime: string }) =>
-  moment(
-    `${slotDateKey(slot.date)} ${slot.startTime}`,
-    'YYYY-MM-DD HH:mm'
-  ).isBefore(moment());
-
-const isBookable = (group: SeatGroup) =>
-  group.available > 0 && !hasStarted(group);
+// A time can be booked while it has a free seat, even if it has started
+const isBookable = (group: SeatGroup) => group.available > 0;
 
 const groupBySeats = (slots: any[]): SeatGroup[] => {
   const map = new Map<string, SeatGroup>();
@@ -347,10 +340,6 @@ export default function BookSlotPage({
                         {
                           label: 'Booked',
                           swatch: 'border-rose-500 bg-rose-100'
-                        },
-                        {
-                          label: 'Unavailable',
-                          swatch: 'border-amber-500 bg-amber-100'
                         }
                       ].map(({ label, swatch }) => (
                         <span key={label} className="flex items-center gap-1.5">
@@ -508,7 +497,7 @@ function DateField({
   );
 }
 
-// Status shown by colour: available green, booked red, passed amber
+// Status shown by colour: available green, booked red
 function SlotCard({
   group,
   onSelect
@@ -516,9 +505,8 @@ function SlotCard({
   group: SeatGroup;
   onSelect: (group: SeatGroup) => void;
 }) {
-  const full = group.available === 0;
   const disabled = !isBookable(group);
-  const tone = full
+  const tone = disabled
     ? {
         card: 'border-rose-200 border-l-rose-500 bg-rose-50/60',
         icon: 'bg-rose-100 text-rose-600',
@@ -526,21 +514,13 @@ function SlotCard({
         label: 'Booked',
         footer: 'No seats left'
       }
-    : disabled
-      ? {
-          card: 'border-amber-200 border-l-amber-500 bg-amber-50/60',
-          icon: 'bg-amber-100 text-amber-700',
-          badge: 'bg-amber-100 text-amber-800 ring-amber-200',
-          label: 'Unavailable',
-          footer: 'This time has passed'
-        }
-      : {
-          card: 'border-emerald-200 border-l-emerald-500 bg-white hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-100',
-          icon: 'bg-emerald-100 text-emerald-700',
-          badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-          label: 'Available',
-          footer: ''
-        };
+    : {
+        card: 'border-emerald-200 border-l-emerald-500 bg-white hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-100',
+        icon: 'bg-emerald-100 text-emerald-700',
+        badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+        label: 'Available',
+        footer: ''
+      };
 
   return (
     <button
@@ -613,7 +593,6 @@ function BookingView({
   const [submitting, setSubmitting] = useState(false);
   const [resendIn, setResendIn] = useState(0);
   const [booked, setBooked] = useState<any>(null);
-  const [resetIn, setResetIn] = useState(RESET_SECONDS);
   const [student, setStudent] = useState<StudentOption | null>(null);
   const [confirming, setConfirming] = useState(false);
 
@@ -623,7 +602,6 @@ function BookingView({
     setOtp('');
     setCodeSent(false);
     setBooked(null);
-    setResetIn(RESET_SECONDS);
     setConfirming(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slot]);
@@ -633,17 +611,6 @@ function BookingView({
     const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
     return () => clearTimeout(t);
   }, [resendIn]);
-
-  // The thank you message counts down, then the whole page starts over
-  useEffect(() => {
-    if (!booked) return;
-    if (resetIn <= 0) {
-      onReset();
-      return;
-    }
-    const t = setTimeout(() => setResetIn((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [booked, resetIn, onReset]);
 
   const trimmed = email.trim().toLowerCase();
   const isVerified = !!verified && verified.email === trimmed;
@@ -759,9 +726,11 @@ function BookingView({
         <div className="mt-6 rounded-lg border border-black/10 bg-white p-4 text-left text-sm">
           <SlotSummary slot={booked} showTeacher={staff} />
         </div>
-        <Button variant="outline" className="mt-6" onClick={onReset}>
-          Book another slot
-        </Button>
+        {staff && (
+          <Button variant="outline" className="mt-6" onClick={onReset}>
+            Book another slot
+          </Button>
+        )}
       </div>
     );
   }

@@ -50,7 +50,6 @@ import {
   formatSlotDate,
   formatTime,
   formatTimeInput,
-  isSlotPast,
   localDateKey,
   makeRowId,
   maskTimeInput,
@@ -432,8 +431,6 @@ function SlotCard({
   onOpen?: (slot: any) => void;
 }) {
   const booked = slot.status === 'booked';
-  const past = isSlotPast(slot);
-  const available = !booked && !past;
 
   return (
     // One compact row: status, time, duration, student (when booked), actions
@@ -445,22 +442,15 @@ function SlotCard({
       className={`flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm text-black transition hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-supperagent ${
         booked
           ? 'border-emerald-300 bg-emerald-50'
-          : available
-            ? 'border-blue-300 bg-blue-50'
-            : 'border-black/10 bg-white'
+          : 'border-blue-300 bg-blue-50'
       }`}
     >
-      <Badge
-        className={`w-[70px] shrink-0 justify-center px-2 py-0 text-[11px] shadow-none ${
-          booked
-            ? 'border-transparent bg-emerald-600 text-white hover:bg-emerald-600'
-            : available
-              ? 'border-transparent bg-blue-600 text-white hover:bg-blue-600'
-              : 'border-black/20 bg-white text-black hover:bg-white'
-        }`}
-      >
-        {booked ? 'Booked' : past ? 'Passed' : 'Available'}
-      </Badge>
+      {/* Only booked slots get a badge, the blue card already means open */}
+      {booked && (
+        <Badge className="w-[70px] shrink-0 justify-center border-transparent bg-emerald-600 px-2 py-0 text-[11px] text-white shadow-none hover:bg-emerald-600">
+          Booked
+        </Badge>
+      )}
       <span className="shrink-0 font-semibold tabular-nums">
         {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
       </span>
@@ -486,7 +476,7 @@ function SlotCard({
         )}
       </span>
 
-      {onAssign && available && slot.teacherId && (
+      {onAssign && !booked && slot.teacherId && (
         <Button
           type="button"
           size="sm"
@@ -580,8 +570,6 @@ function SlotDetailsDialog({
   onAssign?: (slot: any) => void;
 }) {
   const booked = slot?.status === 'booked';
-  const past = slot ? isSlotPast(slot) : false;
-  const available = !booked && !past;
   const student = booked ? slot?.studentId : null;
   const name = student ? studentName(student) : '';
 
@@ -602,24 +590,16 @@ function SlotDetailsDialog({
               className={`border-b px-6 py-5 ${
                 booked
                   ? 'border-emerald-200 bg-emerald-50'
-                  : available
-                    ? 'border-blue-200 bg-blue-50'
-                    : 'border-black/10 bg-white'
+                  : 'border-blue-200 bg-blue-50'
               }`}
             >
               <DialogHeader className="space-y-1 text-left">
                 <div className="flex items-center gap-2">
-                  <Badge
-                    className={`px-2 py-0 text-[11px] shadow-none ${
-                      booked
-                        ? 'border-transparent bg-emerald-600 text-white hover:bg-emerald-600'
-                        : available
-                          ? 'border-transparent bg-blue-600 text-white hover:bg-blue-600'
-                          : 'border-black/20 bg-white text-black hover:bg-white'
-                    }`}
-                  >
-                    {booked ? 'Booked' : past ? 'Passed' : 'Available'}
-                  </Badge>
+                  {booked && (
+                    <Badge className="border-transparent bg-emerald-600 px-2 py-0 text-[11px] text-white shadow-none hover:bg-emerald-600">
+                      Booked
+                    </Badge>
+                  )}
                   <span className="text-xs font-medium">
                     {durationLabel(slot.duration)}
                   </span>
@@ -718,9 +698,7 @@ function SlotDetailsDialog({
                   <div className="flex items-center gap-3 rounded-lg border border-dashed border-black/15 p-4 text-sm">
                     <User className="h-5 w-5 shrink-0" />
                     <p className="font-medium">
-                      {past
-                        ? 'This slot passed without a booking.'
-                        : 'Not booked yet. It is open on the booking page.'}
+                      Not booked yet. It is open on the booking page.
                     </p>
                   </div>
                 )}
@@ -731,7 +709,7 @@ function SlotDetailsDialog({
               <Button variant="outline" onClick={onClose}>
                 Close
               </Button>
-              {onAssign && available && slot.teacherId && (
+              {onAssign && !booked && slot.teacherId && (
                 <Button
                   onClick={() => handOff(onAssign)}
                   className="border-none bg-blue-600 text-white hover:bg-blue-700"

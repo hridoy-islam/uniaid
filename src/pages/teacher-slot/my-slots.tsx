@@ -8,9 +8,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  GraduationCap,
   Mail,
-  Timer
+  Timer,
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,12 +26,13 @@ import {
   durationLabel,
   formatSlotDate,
   formatTime,
-  isSlotPast,
   localDateKey,
-  studentName
+  studentName,
+  ukTodayKey
 } from './utils';
 
-const startOfToday = () => moment().startOf('day').toDate();
+// Today in UK time, as a local date for the date picker
+const startOfToday = () => moment(ukTodayKey(), 'YYYY-MM-DD').toDate();
 
 // A teacher's own slots, one day at a time, laid out like Teacher Slots
 export default function MySlotsPage() {
@@ -62,7 +63,7 @@ export default function MySlotsPage() {
   }, [fetchSlots]);
 
   const booked = slots.filter((s) => s.status === 'booked').length;
-  const isToday = moment(date).isSame(moment(), 'day');
+  const isToday = localDateKey(date) === ukTodayKey();
   const shiftDay = (days: number) =>
     setDate(moment(date).add(days, 'day').toDate());
 
@@ -225,16 +226,8 @@ export default function MySlotsPage() {
   );
 }
 
-const initials = (name: string) =>
-  name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
-
-// A full card per slot: time and status on top, duration and teacher below,
-// and the student it is booked for (if any) in the footer
+// A full card per slot: time and status on top, then duration and the
+// student it is booked for
 function MySlotCard({
   slot,
   onClick
@@ -243,11 +236,7 @@ function MySlotCard({
   onClick: (slot: any) => void;
 }) {
   const booked = slot.status === 'booked';
-  const past = isSlotPast(slot);
-  const status = booked ? 'Booked' : past ? 'Passed' : 'Available';
   const student = booked && slot.studentId ? studentName(slot.studentId) : '';
-  // Booked green, available blue, passed without a booking plain white
-  const available = !booked && !past;
 
   return (
     <button
@@ -256,15 +245,13 @@ function MySlotCard({
       className={`group relative flex flex-col overflow-hidden rounded-xl border text-left text-black shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-supperagent ${
         booked
           ? 'border-emerald-200 bg-emerald-50'
-          : available
-            ? 'border-blue-200 bg-blue-50'
-            : 'border-black/10 bg-white'
+          : 'border-blue-200 bg-blue-50'
       }`}
     >
       {/* Status accent down the left edge */}
       <span
         className={`absolute inset-y-0 left-0 w-1 ${
-          booked ? 'bg-emerald-500' : past ? 'bg-black/20' : 'bg-blue-500'
+          booked ? 'bg-emerald-500' : 'bg-blue-500'
         }`}
       />
 
@@ -272,12 +259,8 @@ function MySlotCard({
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <span
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
-                booked
-                  ? 'bg-emerald-600 text-white'
-                  : available
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-black/5 text-black'
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white ${
+                booked ? 'bg-emerald-600' : 'bg-blue-600'
               }`}
             >
               <Clock className="h-5 w-5" />
@@ -292,20 +275,12 @@ function MySlotCard({
             </div>
           </div>
           <span
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-              booked
-                ? 'bg-emerald-600 text-white'
-                : available
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-black ring-1 ring-black/15'
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white ${
+              booked ? 'bg-emerald-600' : 'bg-blue-600'
             }`}
           >
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                available || booked ? 'bg-white' : 'bg-black/40'
-              }`}
-            />
-            {status}
+            <span className="h-1.5 w-1.5 rounded-full bg-white" />
+            {booked ? 'Booked' : 'Available'}
           </span>
         </div>
 
@@ -313,9 +288,7 @@ function MySlotCard({
           className={`grid grid-cols-[auto_1fr] divide-x rounded-lg border bg-white ${
             booked
               ? 'divide-emerald-200 border-emerald-200'
-              : available
-                ? 'divide-blue-200 border-blue-200'
-                : 'divide-black/10 border-black/10'
+              : 'divide-blue-200 border-blue-200'
           }`}
         >
           <div className="flex items-center gap-2.5 px-3 py-2.5">
@@ -330,50 +303,29 @@ function MySlotCard({
             </div>
           </div>
           <div className="flex min-w-0 items-center gap-2.5 px-3 py-2.5">
-            <GraduationCap className="h-4 w-4 shrink-0 text-supperagent" />
+            <User className="h-4 w-4 shrink-0 text-supperagent" />
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-wider">
-                Teacher
+                Student
               </p>
-              <p className="truncate text-sm font-semibold">
-                {slot.teacherId?.name || 'No teacher'}
-              </p>
+              {booked ? (
+                <>
+                  <p className="truncate text-sm font-semibold">
+                    {student || 'Student'}
+                  </p>
+                  {slot.studentId?.email && (
+                    <p className="flex items-center gap-1 truncate text-xs">
+                      <Mail className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{slot.studentId.email}</span>
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm font-medium">Not booked yet</p>
+              )}
             </div>
           </div>
         </div>
-      </div>
-
-      <div
-        className={`mt-auto flex items-center gap-3 border-t px-4 py-3 pl-5 ${
-          booked
-            ? 'border-emerald-200'
-            : available
-              ? 'border-blue-200'
-              : 'border-black/10'
-        }`}
-      >
-        {booked ? (
-          <>
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white">
-              {initials(student) || '?'}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">
-                {student || 'Student'}
-              </p>
-              {slot.studentId?.email && (
-                <p className="flex items-center gap-1 truncate text-xs">
-                  <Mail className="h-3 w-3 shrink-0" />
-                  <span className="truncate">{slot.studentId.email}</span>
-                </p>
-              )}
-            </div>
-          </>
-        ) : (
-          <p className="text-xs font-medium">
-            {past ? 'This slot was not booked' : 'Open for booking'}
-          </p>
-        )}
       </div>
     </button>
   );

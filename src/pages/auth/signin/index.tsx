@@ -10,7 +10,8 @@ export default function SignInPage() {
 
   useEffect(() => {
     if (user) {
-      navigate('/admin'); // Adjust the path as needed
+      // Teachers land straight on their own slots
+      navigate(user.role === 'teacher' ? '/admin/my-slots' : '/admin');
     }
   }, [user, navigate]);
 

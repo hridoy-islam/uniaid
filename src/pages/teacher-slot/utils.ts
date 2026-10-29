@@ -1,9 +1,17 @@
 import moment from 'moment';
+import momentTz from 'moment-timezone';
+
+// Slots are run in the UK, so "today" follows UK time whatever the device says
+export const UK_TZ = 'Europe/London';
+export const ukTodayKey = () => momentTz().tz(UK_TZ).format('YYYY-MM-DD');
 
 // ── Calendar constants (same grid as the course routine) ─────────────────────
 export const START_H = 8;
 export const END_H = 23;
-export const HOURS = Array.from({ length: END_H - START_H }, (_, i) => START_H + i);
+export const HOURS = Array.from(
+  { length: END_H - START_H },
+  (_, i) => START_H + i
+);
 export const ROW_HEIGHT = 68;
 export const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
 
@@ -40,7 +48,9 @@ export function timeRangesOverlap(
   bStart: string,
   bEnd: string
 ) {
-  return toMinutes(aStart) < toMinutes(bEnd) && toMinutes(bStart) < toMinutes(aEnd);
+  return (
+    toMinutes(aStart) < toMinutes(bEnd) && toMinutes(bStart) < toMinutes(aEnd)
+  );
 }
 
 // Turns "9", "930", "9:3" etc. into "09:00", "09:30", "09:03".
@@ -55,7 +65,10 @@ export function formatTimeInput(value: string): string {
 
 // Keeps a typed time to digits and one colon, adding the colon after the hour.
 export function maskTimeInput(next: string, prev: string) {
-  let val = next.replace(/[^0-9:]/g, '').replace(/:+/g, ':').slice(0, 5);
+  let val = next
+    .replace(/[^0-9:]/g, '')
+    .replace(/:+/g, ':')
+    .slice(0, 5);
   if (val.length === 2 && prev.length === 1 && !val.includes(':')) val += ':';
   return val;
 }
@@ -70,7 +83,9 @@ export function durationLabel(minutes: number) {
   if (!minutes) return '—';
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  return [h ? `${h} hr${h > 1 ? 's' : ''}` : '', m ? `${m} min` : ''].filter(Boolean).join(' ');
+  return [h ? `${h} hr${h > 1 ? 's' : ''}` : '', m ? `${m} min` : '']
+    .filter(Boolean)
+    .join(' ');
 }
 
 // The server keeps a slot's day as UTC midnight, so the date part of the ISO
@@ -98,7 +113,10 @@ export function formatTime(t: string) {
 }
 
 export function isSlotPast(slot: { date: string; endTime: string }) {
-  return moment(`${slotDateKey(slot.date)} ${slot.endTime}`, 'YYYY-MM-DD HH:mm').isBefore(moment());
+  return moment(
+    `${slotDateKey(slot.date)} ${slot.endTime}`,
+    'YYYY-MM-DD HH:mm'
+  ).isBefore(moment());
 }
 
 export function studentName(student: any) {
@@ -146,7 +164,11 @@ export const portalSelectProps = {
 // includes the select menu portaled to <body>. Keep it open for those.
 export function keepOpenForSelectMenu(e: Event) {
   const target = e.target as HTMLElement | null;
-  if (target?.closest?.('.rs__menu-portal, .rs__menu, .react-datepicker, .react-datepicker-popper'))
+  if (
+    target?.closest?.(
+      '.rs__menu-portal, .rs__menu, .react-datepicker, .react-datepicker-popper'
+    )
+  )
     e.preventDefault();
 }
 

@@ -63,6 +63,16 @@ const DashboardPage = lazy(() => import('@/pages/dashboard'));
 
 // ----------------------------------------------------------------------
 
+// Teachers only have My Slots, so their home page is that
+function AdminHome() {
+  const role = useSelector((state: any) => state.auth?.user?.role);
+  return role === 'teacher' ? (
+    <Navigate to="/admin/my-slots" replace />
+  ) : (
+    <DashboardPage />
+  );
+}
+
 export default function AppRouter() {
   const adminRoutes = [
     {
@@ -78,7 +88,7 @@ export default function AppRouter() {
       ),
       children: [
         {
-          element: <DashboardPage />,
+          element: <AdminHome />,
           index: true
         },
         {
