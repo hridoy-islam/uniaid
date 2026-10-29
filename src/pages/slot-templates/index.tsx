@@ -119,42 +119,63 @@ export default function SlotTemplatesPage() {
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {templates.map((template, i) => (
-            <div
-              key={template._id}
-              className="group flex flex-col gap-3 rounded-xl border border-black/10 bg-white p-4 shadow-sm transition hover:border-supperagent/50 hover:shadow-md"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-black">
-                  Slot {i + 1}
-                </span>
-                <div className="flex gap-1">
-                  <button
-                    type="button"
-                    onClick={() => openForm(template)}
-                    className="rounded-md p-1.5 text-black transition hover:bg-supperagent/10 hover:text-supperagent"
-                    aria-label="Edit slot"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeleting(template)}
-                    className="rounded-md p-1.5 text-black transition hover:bg-red-50 hover:text-red-600"
-                    aria-label="Delete slot"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-base font-semibold">
-                <Clock className="h-4 w-4 text-supperagent" />
-                {formatTime(template.startTime)} – {formatTime(template.endTime)}
-              </div>
-              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-black">
-                <Timer className="h-3.5 w-3.5" />
-                {durationLabel(template.duration)}
-              </span>
-            </div>
+           
+<div
+  key={template._id}
+  className="group relative flex flex-col gap-4 rounded-xl border border-black/10 bg-white p-4 shadow-sm transition-all duration-200 hover:border-supperagent/40 hover:shadow-md"
+>
+  {/* Header */}
+  <div className="flex items-start justify-between gap-3">
+    <div className="flex min-w-0 items-center gap-2.5">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-supperagent/10">
+        <Clock className="h-5 w-5 text-supperagent" />
+      </div>
+
+      <div className="min-w-0">
+        <p className="text-xs font-medium uppercase tracking-wide text-black">
+          Time slot
+        </p>
+        <h3 className="mt-0.5 text-base font-semibold tracking-tight text-gray-900">
+          {formatTime(template.startTime)} – {formatTime(template.endTime)}
+        </h3>
+      </div>
+    </div>
+
+    {/* Actions */}
+    <div className="flex shrink-0 items-center gap-1">
+      <button
+        type="button"
+        onClick={() => openForm(template)}
+        className="rounded-lg p-2 text-black transition hover:bg-supperagent/10 hover:text-supperagent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-supperagent"
+        aria-label="Edit slot"
+        title="Edit slot"
+      >
+        <Pencil className="h-4 w-4" />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setDeleting(template)}
+        className="rounded-lg p-2 text-black transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+        aria-label="Delete slot"
+        title="Delete slot"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  </div>
+
+  {/* Duration */}
+  <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+    <span className="text-sm text-black">Duration</span>
+
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-supperagent/10 px-3 py-1 text-xs font-semibold text-supperagent">
+      <Timer className="h-3.5 w-3.5" />
+      {durationLabel(template.duration)}
+    </span>
+  </div>
+</div>
+
           ))}
         </div>
       )}

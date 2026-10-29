@@ -256,9 +256,9 @@ export default function TeacherSlotPage() {
             </Button>
             {!isToday && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-9 text-supperagent"
+                className="h-9 "
                 onClick={() => setDate(startOfToday())}
               >
                 Today
