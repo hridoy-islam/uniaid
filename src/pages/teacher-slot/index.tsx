@@ -127,7 +127,12 @@ export default function TeacherSlotPage() {
       .get('/users', {
         params: { role: 'teacher', limit: 'all', sort: 'name' }
       })
-      .then((res) => setTeachers(res.data?.data?.result || []))
+      // Inactive teachers get no slots, so they get no card and can not be picked
+      .then((res) =>
+        setTeachers(
+          (res.data?.data?.result || []).filter((t: any) => t.status != 0)
+        )
+      )
       .catch((error) => console.error('Error fetching teachers:', error))
       .finally(() => setTeachersLoading(false));
   }, []);
