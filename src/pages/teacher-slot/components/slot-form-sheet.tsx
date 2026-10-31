@@ -46,6 +46,8 @@ type Props = {
   defaults?: SlotFormDefaults | null;
   teacherOptions: { value: string; label: string }[];
   teachersLoading?: boolean;
+  // Hides Delete for someone who may edit a slot but not delete it
+  canDelete?: boolean;
   onSaved: () => void;
 };
 
@@ -64,6 +66,7 @@ export function SlotFormSheet({
   defaults,
   teacherOptions,
   teachersLoading,
+  canDelete = true,
   onSaved
 }: Props) {
   const isEdit = !!slot;
@@ -333,14 +336,16 @@ export function SlotFormSheet({
           <SheetFooter className="absolute bottom-0 left-0 right-0 flex flex-col gap-2 border-t bg-supperagent/5 p-4 sm:flex-row sm:justify-between">
             {isEdit && (
               <div className="flex gap-2">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="h-9 w-full sm:w-auto"
-                  onClick={() => setConfirm('delete')}
-                >
-                  <Trash2 className="mr-1.5 h-4 w-4" /> Delete
-                </Button>
+                {canDelete && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="h-9 w-full sm:w-auto"
+                    onClick={() => setConfirm('delete')}
+                  >
+                    <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+                  </Button>
+                )}
                 {isBooked && (
                   <Button
                     variant="outline"

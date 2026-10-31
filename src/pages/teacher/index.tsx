@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pen, Cog } from 'lucide-react';
+import { Plus, Pen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -15,7 +15,6 @@ import axiosInstance from '../../lib/axios';
 import { toast } from '@/components/ui/use-toast';
 import { DataTablePagination } from '../students/view/components/data-table-pagination';
 import { Input } from '@/components/ui/input';
-import { Link } from 'react-router-dom';
 
 export default function TeacherPage() {
   const [teachers, setTeachers] = useState<any>([]);
@@ -26,6 +25,20 @@ export default function TeacherPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
+  const [designations, setDesignations] = useState<any[]>([]);
+
+  useEffect(() => {
+    axiosInstance
+      .get('/designations')
+      .then((res) => setDesignations(res.data?.data || []))
+      .catch((error) => console.error('Error fetching designations:', error));
+  }, []);
+
+  const designationNames = (teacher) =>
+    designations
+      .filter((d) => (teacher.designationId || []).map(String).includes(d._id))
+      .map((d) => d.name)
+      .join(', ');
   
 
   const fetchData = async (page, entriesPerPage,searchTerm="") => {
@@ -77,8 +90,14 @@ export default function TeacherPage() {
           });
         }
       } else {
-        // Create new teacher
-        response = await axiosInstance.post(`/auth/signup`, updateData);
+        // Create new teacher. Signup does not take designations, so an
+        // admin gives them straight after.
+        const { designationId, ...signupData } = updateData;
+        response = await axiosInstance.post(`/auth/signup`, signupData);
+        const newId = response.data?.data?._id;
+        if (response.data?.success === true && newId && designationId?.length) {
+          await axiosInstance.patch(`/users/${newId}`, { designationId });
+        }
         if (response.data && response.data.success === true) {
           toast({
             title: 'Teacher Created successfully',
@@ -196,6 +215,7 @@ export default function TeacherPage() {
               <TableHead>Teacher Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
+              <TableHead>Designations</TableHead>
               <TableHead className="w-32 text-center">Status</TableHead>
               <TableHead className="w-32 text-center">Actions</TableHead>
             </TableRow>
@@ -206,14 +226,19 @@ export default function TeacherPage() {
                 <TableCell>{`${teacher.name} `}</TableCell>
                 <TableCell>{teacher.email}</TableCell>
                 <TableCell>{teacher.phone}</TableCell>
+                <TableCell>{designationNames(teacher) || '—'}</TableCell>
                 <TableCell className="text-center">
-                  <Switch
-                    checked={teacher.status == 1}
-                    onCheckedChange={(checked) =>
-                      handleStatusChange(teacher._id, checked)
-                    }
-                    className="mx-auto"
-                  />
+                  <div className="flex items-center justify-center gap-2">
+                    <Switch
+                      checked={teacher.status == 1}
+                      onCheckedChange={(checked) =>
+                        handleStatusChange(teacher._id, checked)
+                      }
+                    />
+                    <span className="w-14 text-left text-xs font-medium text-black">
+                      {teacher.status == 1 ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
                 </TableCell>
                 <TableCell className="space-x-1 text-center">
                   <Button
@@ -224,15 +249,6 @@ export default function TeacherPage() {
                   >
                     <Pen className="h-4 w-4" />
                   </Button>
-                  <Link to={`${teacher._id}`}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="bg-red-700 text-white hover:bg-red-700/90"
-                    >
-                      <Cog className="h-4 w-4" />
-                    </Button>
-                  </Link>
                 </TableCell>
               </TableRow>
             ))}
@@ -258,6 +274,7 @@ export default function TeacherPage() {
         }}
         onSubmit={handleSubmit}
         initialData={editingTeacher}
+        designations={designations}
       />
     </div>
   );

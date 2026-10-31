@@ -23,7 +23,8 @@ import {
   Building2,
   GraduationCap,
   CalendarClock,
-  LayoutGrid
+  LayoutGrid,
+  BadgeCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
@@ -39,6 +40,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { useEffect } from 'react';
 import { logout } from '@/redux/features/authSlice';
+import { useSlotAccess } from '@/hooks/use-slot-access';
 const navItems = [
   { icon: HomeIcon, label: 'Dashboard', href: '/admin' },
   {
@@ -80,6 +82,7 @@ const navItems = [
       { icon: CircleUser, label: 'Staffs', href: 'staff' },
       { icon: GraduationCap, label: 'Teachers', href: 'teachers' },
       { icon: LayoutGrid, label: 'Slot Templates', href: 'slot-templates' },
+      { icon: BadgeCheck, label: 'Designations', href: 'designations' },
       { icon: AtSign, label: 'Emails', href: 'emails' },
       { icon: DraftingCompass, label: 'Drafts', href: 'drafts' },
       { icon: Database, label: 'Bulk Roll Update', href: 'bulk-roll-update' }
@@ -128,6 +131,7 @@ export function SideNav() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth?.user) || null;
+  const access = useSlotAccess();
 
   // Auto logout if user is null
   useEffect(() => {
@@ -219,34 +223,22 @@ export function SideNav() {
       .filter(Boolean); // Remove null items
   };
 
-  // A teacher gets the staff portal, filtered by their own privileges the
-  // same way, plus their own slots straight after the dashboard. "Teacher
-  // Slots" manages everyone's slots, so a teacher sees "My Slots" instead.
-  const filterForTeacher = (navItems, user) => {
-    const items = filterForStaff(navItems, user)
-      .filter((item) => item.label !== 'Teacher Slots')
-      .map((item) =>
-        item.label === 'Settings'
-          ? {
-              ...item,
-              subItems: item.subItems.filter(
-                (sub) => sub.label !== 'Slot Templates'
-              )
-            }
-          : item
-      )
-      .filter((item) => !item.subItems || item.subItems.length);
-    const dashboardAt = items.findIndex((item) => item.label === 'Dashboard');
-    return [
-      ...items.slice(0, dashboardAt + 1),
-      ...teacherNavItems,
-      ...items.slice(dashboardAt + 1)
-    ];
-  };
+  // A teacher's menu comes from their designations only: their own slots
+  // always, then "Teacher Slots" (everyone's slots) and "Slot Templates" when
+  // a designation lets them view those
+  const filterForTeacher = () => [
+    ...teacherNavItems,
+    ...(access.teacherSlot.view
+      ? [{ icon: CalendarClock, label: 'Teacher Slots', href: 'teacher-slots' }]
+      : []),
+    ...(access.slotTemplate.view
+      ? [{ icon: LayoutGrid, label: 'Slot Templates', href: 'slot-templates' }]
+      : [])
+  ];
 
   const filteredNavItems =
     user.role === 'teacher'
-      ? filterForTeacher(navItems, user)
+      ? filterForTeacher()
       : user.role === 'agent'
         ? filterForAgent(navItems)
         : user.role === 'staff'

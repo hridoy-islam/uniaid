@@ -21,6 +21,7 @@ import { toast } from '@/components/ui/use-toast';
 import { AlertModal } from '@/components/shared/alert-modal';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import axiosInstance from '@/lib/axios';
+import { useSlotAccess } from '@/hooks/use-slot-access';
 import {
   durationLabel,
   durationMinutes,
@@ -49,6 +50,7 @@ export default function SlotTemplatesPage() {
   const [editing, setEditing] = useState<any>(null);
   const [deleting, setDeleting] = useState<any>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const { slotTemplate: access } = useSlotAccess();
 
   const fetchTemplates = useCallback(async () => {
     setLoading(true);
@@ -105,13 +107,15 @@ export default function SlotTemplatesPage() {
             {durationLabel(totalMinutes) === '—' ? '0 min' : durationLabel(totalMinutes)} in total
           </p> */}
         </div>
-        <Button
-          size="sm"
-          className="h-9 bg-supperagent text-white shadow-sm hover:bg-supperagent/90"
-          onClick={() => openForm()}
-        >
-          <Plus className="mr-1.5 h-4 w-4" /> Add Slot
-        </Button>
+        {access.create && (
+          <Button
+            size="sm"
+            className="h-9 bg-supperagent text-white shadow-sm hover:bg-supperagent/90"
+            onClick={() => openForm()}
+          >
+            <Plus className="mr-1.5 h-4 w-4" /> Add Slot
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -128,13 +132,15 @@ export default function SlotTemplatesPage() {
             Add the times of day you offer. Teacher Slots then generates them
             for any date and teacher.
           </p>
-          <Button
-            size="sm"
-            className="mt-5 bg-supperagent text-white hover:bg-supperagent/90"
-            onClick={() => openForm()}
-          >
-            <Plus className="mr-1.5 h-4 w-4" /> Add Slot
-          </Button>
+          {access.create && (
+            <Button
+              size="sm"
+              className="mt-5 bg-supperagent text-white hover:bg-supperagent/90"
+              onClick={() => openForm()}
+            >
+              <Plus className="mr-1.5 h-4 w-4" /> Add Slot
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -160,25 +166,29 @@ export default function SlotTemplatesPage() {
 
                 {/* Actions */}
                 <div className="flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => openForm(template)}
-                    className="rounded-lg p-2 text-black transition hover:bg-supperagent/10 hover:text-supperagent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-supperagent"
-                    aria-label="Edit slot"
-                    title="Edit slot"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
+                  {access.edit && (
+                    <button
+                      type="button"
+                      onClick={() => openForm(template)}
+                      className="rounded-lg p-2 text-black transition hover:bg-supperagent/10 hover:text-supperagent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-supperagent"
+                      aria-label="Edit slot"
+                      title="Edit slot"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => setDeleting(template)}
-                    className="rounded-lg p-2 text-black transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                    aria-label="Delete slot"
-                    title="Delete slot"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {access.delete && (
+                    <button
+                      type="button"
+                      onClick={() => setDeleting(template)}
+                      className="rounded-lg p-2 text-black transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                      aria-label="Delete slot"
+                      title="Delete slot"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 

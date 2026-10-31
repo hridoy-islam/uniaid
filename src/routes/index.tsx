@@ -55,6 +55,8 @@ import TeacherPage from '@/pages/teacher';
 import TeacherSlotPage from '@/pages/teacher-slot';
 import MySlotsPage from '@/pages/teacher-slot/my-slots';
 import SlotTemplatesPage from '@/pages/slot-templates';
+import DesignationsPage from '@/pages/designations';
+import DesignationAccessPage from '@/pages/designations/access-control';
 import BookSlotPage from '@/pages/book-slot';
 import { useSelector } from 'react-redux';
 
@@ -275,6 +277,14 @@ export default function AppRouter() {
         {
           path: 'slot-templates',
           element: <SlotTemplatesPage />
+        },
+        {
+          path: 'designations',
+          element: <DesignationsPage />
+        },
+        {
+          path: 'designations/:id',
+          element: <DesignationAccessPage />
         },
         {
           path: 'my-slots',

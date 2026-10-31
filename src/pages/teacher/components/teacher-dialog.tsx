@@ -1,12 +1,32 @@
 import { useForm } from "react-hook-form";
+import Select from "react-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ErrorMessage from "@/components/shared/error-message";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-export function TeacherDialog({ open, onOpenChange, onSubmit, initialData }) {
+const designationSelectStyles = {
+  control: (base: any) => ({
+    ...base,
+    minHeight: "36px",
+    borderColor: "rgba(0,0,0,0.2)",
+    boxShadow: "none",
+    fontSize: "0.875rem",
+    "&:hover": { borderColor: "#000" },
+  }),
+  placeholder: (base: any) => ({ ...base, color: "#000" }),
+  menu: (base: any) => ({ ...base, zIndex: 50 }),
+};
+
+export function TeacherDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  initialData,
+  designations = [] as any[],
+}) {
   const {
     register,
     handleSubmit,
@@ -20,6 +40,8 @@ export function TeacherDialog({ open, onOpenChange, onSubmit, initialData }) {
       password: "",
     },
   });
+  // A teacher may have several designations
+  const [designationIds, setDesignationIds] = useState<string[]>([]);
 
    // Reset form when initialData changes
    useEffect(() => {
@@ -30,22 +52,30 @@ export function TeacherDialog({ open, onOpenChange, onSubmit, initialData }) {
         phone: initialData.phone ?? "",
         password: initialData.password ?? "",
       });
+      setDesignationIds((initialData.designationId || []).map(String));
     } else {
       reset(); // Reset to default values if no initialData is provided
+      setDesignationIds([]);
     }
   }, [initialData, reset]);
 
   useEffect(() => {
     if (!open) {
       reset(); // Reset form data when dialog closes
+      setDesignationIds([]);
     }
   }, [open, reset]);
 
+  const designationOptions = designations.map((d: any) => ({
+    value: d._id,
+    label: d.name,
+  }));
+
   const onSubmitForm = (data) => {
     if (!data.password) {
-      delete data.password; 
+      delete data.password;
     }
-    onSubmit(data);
+    onSubmit({ ...data, designationId: designationIds });
     onOpenChange(false);
   };
 
@@ -57,7 +87,7 @@ export function TeacherDialog({ open, onOpenChange, onSubmit, initialData }) {
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
-            
+
             <div className="space-y-2">
               <Label htmlFor="name">
                 Full Name <span className="text-red-500">*</span>
@@ -99,6 +129,23 @@ export function TeacherDialog({ open, onOpenChange, onSubmit, initialData }) {
                 {...register("password")}
               />
               <ErrorMessage message={errors.password?.message?.toString()} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Designations</Label>
+              <Select
+                isMulti
+                options={designationOptions}
+                value={designationOptions.filter((o) =>
+                  designationIds.includes(o.value)
+                )}
+                onChange={(selected: any) =>
+                  setDesignationIds(selected.map((o: any) => o.value))
+                }
+                placeholder="Choose designations"
+                noOptionsMessage={() => "No designations, add them in Settings → Designations"}
+                styles={designationSelectStyles}
+              />
             </div>
           </div>
 

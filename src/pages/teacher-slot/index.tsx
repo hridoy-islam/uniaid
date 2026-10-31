@@ -45,6 +45,7 @@ import { toast } from '@/components/ui/use-toast';
 import { AlertModal } from '@/components/shared/alert-modal';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import axiosInstance from '@/lib/axios';
+import { useSlotAccess } from '@/hooks/use-slot-access';
 import {
   durationLabel,
   formatSlotDate,
@@ -102,14 +103,23 @@ export default function TeacherSlotPage() {
   const [teachers, setTeachers] = useState<any[]>([]);
   const [teachersLoading, setTeachersLoading] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
-  // Only an admin edits or deletes a slot
+  const [deleteByDateOpen, setDeleteByDateOpen] = useState(false);
+  // Only an admin books a slot for a student. Creating, editing and deleting
+  // follow the user's access, for a teacher that is their designation.
   const isAdmin =
     useSelector((state: any) => state.auth?.user?.role) === 'admin';
+  const { teacherSlot: access } = useSlotAccess();
   const [editing, setEditing] = useState<any>(null);
   const [deleting, setDeleting] = useState<any>(null);
   const [assigning, setAssigning] = useState<any>(null);
   const [viewing, setViewing] = useState<any>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  // One teacher card's slots for the day, waiting for confirmation
+  const [deletingDay, setDeletingDay] = useState<{
+    id: string;
+    name: string;
+    slots: any[];
+  } | null>(null);
 
   useEffect(() => {
     setTeachersLoading(true);
@@ -180,6 +190,34 @@ export default function TeacherSlotPage() {
       setDeleting(null);
     }
   };
+
+  const deleteTeacherDay = async () => {
+    if (!deletingDay) return;
+    setDeleteLoading(true);
+    try {
+      const res = await axiosInstance.delete('/teacher-slots/by-date', {
+        data: {
+          date: localDateKey(date),
+          teacherId: deletingDay.id === 'none' ? 'unassigned' : deletingDay.id
+        }
+      });
+      const deleted = res.data?.data?.deleted ?? 0;
+      toast({
+        title: `${deleted} slot${deleted === 1 ? '' : 's'} deleted`,
+        description: `${deletingDay.name}, ${moment(date).format('ddd, D MMM YYYY')}`,
+        className: 'bg-supperagent border-none text-white'
+      });
+      fetchSlots();
+    } catch (error) {
+      failToast('Could not delete slots', error);
+    } finally {
+      setDeleteLoading(false);
+      setDeletingDay(null);
+    }
+  };
+
+  const deletingDayBooked =
+    deletingDay?.slots.filter((s) => s.status === 'booked').length || 0;
 
   // Shared by both generate dialogs
   const generateProps = {
@@ -276,13 +314,25 @@ export default function TeacherSlotPage() {
             >
               <Link2 className="mr-1.5 h-4 w-4" /> Booking Link
             </Button>
-            <Button
-              size="sm"
-              className="h-9 bg-supperagent text-white shadow-sm hover:bg-supperagent/90"
-              onClick={() => setBulkOpen(true)}
-            >
-              <Sparkles className="mr-1.5 h-4 w-4" /> Generate Slot
-            </Button>
+            {access.delete && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="h-9"
+                onClick={() => setDeleteByDateOpen(true)}
+              >
+                <Trash2 className="mr-1.5 h-4 w-4" /> Delete Slots
+              </Button>
+            )}
+            {access.create && (
+              <Button
+                size="sm"
+                className="h-9 bg-supperagent text-white shadow-sm hover:bg-supperagent/90"
+                onClick={() => setBulkOpen(true)}
+              >
+                <Sparkles className="mr-1.5 h-4 w-4" /> Generate Slot
+              </Button>
+            )}
           </div>
           <div className="flex items-center gap-3 text-xs font-medium text-black">
             <span className="flex items-center gap-1.5">
@@ -313,7 +363,7 @@ export default function TeacherSlotPage() {
           <p className="mt-1 text-sm text-black">
             Generate slots for this day or choose another date.
           </p>
-          {!moment(date).isBefore(moment(), 'day') && (
+          {access.create && !moment(date).isBefore(moment(), 'day') && (
             <div className="mt-5 flex flex-wrap justify-center gap-2">
               <Button
                 size="sm"
@@ -344,9 +394,24 @@ export default function TeacherSlotPage() {
                       {group.name}
                     </h2>
                   </div>
-                  <span className="shrink-0 text-[11px] font-medium text-black">
-                    {groupBooked}/{group.slots.length} booked
-                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-[11px] font-medium text-black">
+                      {groupBooked}/{group.slots.length} booked
+                    </span>
+                    {access.delete && group.slots.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="h-7 gap-1 px-2 text-xs"
+                        onClick={() => setDeletingDay(group)}
+                        aria-label={`Delete all slots of ${group.name} on this day`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete All
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 {group.slots.length === 0 ? (
                   <p className="flex flex-1 items-center justify-center px-3 py-6 text-sm text-black">
@@ -358,8 +423,8 @@ export default function TeacherSlotPage() {
                       <SlotCard
                         key={slot._id}
                         slot={slot}
-                        onEdit={isAdmin ? setEditing : undefined}
-                        onDelete={isAdmin ? setDeleting : undefined}
+                        onEdit={access.edit ? setEditing : undefined}
+                        onDelete={access.delete ? setDeleting : undefined}
                         onAssign={isAdmin ? setAssigning : undefined}
                         onOpen={setViewing}
                       />
@@ -379,13 +444,14 @@ export default function TeacherSlotPage() {
         defaults={null}
         teacherOptions={teachers.map((t) => ({ value: t._id, label: t.name }))}
         teachersLoading={teachersLoading}
+        canDelete={access.delete}
         onSaved={fetchSlots}
       />
 
       <SlotDetailsDialog
         slot={viewing}
         onClose={() => setViewing(null)}
-        onEdit={isAdmin ? setEditing : undefined}
+        onEdit={access.edit ? setEditing : undefined}
         onAssign={isAdmin ? setAssigning : undefined}
       />
 
@@ -408,12 +474,211 @@ export default function TeacherSlotPage() {
         }
       />
 
+      <AlertModal
+        isOpen={!!deletingDay}
+        onClose={() => setDeletingDay(null)}
+        onConfirm={deleteTeacherDay}
+        loading={deleteLoading}
+        title={`Delete all slots of ${deletingDay?.name || ''}?`}
+        description={
+          deletingDay
+            ? `All ${deletingDay.slots.length} slot${deletingDay.slots.length === 1 ? '' : 's'} on ${moment(date).format('dddd, D MMMM YYYY')} will be deleted.${
+                deletingDayBooked
+                  ? ` ${deletingDayBooked} of them ${deletingDayBooked === 1 ? 'is' : 'are'} booked, those bookings will be removed too.`
+                  : ''
+              } This can not be undone.`
+            : ''
+        }
+      />
+
+      <DeleteByDateDialog
+        open={deleteByDateOpen}
+        onOpenChange={setDeleteByDateOpen}
+        initialDate={date}
+        onDeleted={(deletedFor: Date) => {
+          if (moment(deletedFor).isSame(date, 'day')) fetchSlots();
+        }}
+      />
+
       <BulkGenerateDialog
         open={bulkOpen}
         onOpenChange={setBulkOpen}
         {...generateProps}
       />
     </div>
+  );
+}
+
+// Every teacher's slots on one chosen day. It first says how many slots (and
+// bookings) that day has, then asks for a confirmation before deleting.
+function DeleteByDateDialog({
+  open,
+  onOpenChange,
+  initialDate,
+  onDeleted
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initialDate: Date;
+  onDeleted: (date: Date) => void;
+}) {
+  const [step, setStep] = useState<'form' | 'confirm'>('form');
+  const [date, setDate] = useState<Date>(initialDate);
+  const [counts, setCounts] = useState<{
+    total: number;
+    booked: number;
+  } | null>(null);
+  const [counting, setCounting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setStep('form');
+    setDate(initialDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Only the totals are needed, so one slot of each is asked for
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const key = localDateKey(date);
+    const count = (params: Record<string, string> = {}) =>
+      axiosInstance
+        .get('/teacher-slots', {
+          params: { fromDate: key, toDate: key, limit: 1, ...params }
+        })
+        .then((res) => res.data?.data?.meta?.total || 0);
+    setCounting(true);
+    setCounts(null);
+    Promise.all([count(), count({ status: 'booked' })])
+      .then(([total, booked]) => !cancelled && setCounts({ total, booked }))
+      .catch((error) => !cancelled && failToast('Could not count slots', error))
+      .finally(() => !cancelled && setCounting(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [open, date]);
+
+  const dayLabel = moment(date).format('dddd, D MMMM YYYY');
+
+  const remove = async () => {
+    setDeleting(true);
+    try {
+      const res = await axiosInstance.delete('/teacher-slots/by-date', {
+        data: { date: localDateKey(date) }
+      });
+      const deleted = res.data?.data?.deleted ?? 0;
+      toast({
+        title: `${deleted} slot${deleted === 1 ? '' : 's'} deleted`,
+        description: dayLabel,
+        className: 'bg-supperagent border-none text-white'
+      });
+      onOpenChange(false);
+      onDeleted(date);
+    } catch (error) {
+      failToast('Could not delete slots', error);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !deleting && onOpenChange(o)}>
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {step === 'form' ? 'Delete Slots' : 'Are you sure?'}
+          </DialogTitle>
+          <DialogDescription className="text-black">
+            {step === 'form'
+              ? 'Choose a day to delete every teacher slot on it.'
+              : 'Please confirm before the slots are deleted.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        {step === 'form' ? (
+          <div className="space-y-4">
+            <DateField date={date} setDate={setDate} minDate={null} />
+            <div className="rounded-lg border border-black/10 px-3 py-2.5 text-sm">
+              {counting || !counts ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-supperagent" />
+                  Counting slots...
+                </span>
+              ) : counts.total === 0 ? (
+                <span className="font-medium">No slots on this day.</span>
+              ) : (
+                <span className="font-medium">
+                  {counts.total} slot{counts.total === 1 ? '' : 's'} for all
+                  teachers, {counts.booked} booked
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                disabled={counting || !counts?.total}
+                onClick={() => setStep('confirm')}
+              >
+                Continue
+                <ChevronRight className="ml-1.5 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="flex gap-3 rounded-lg border border-red-300 bg-red-50 p-4">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+              <div className="space-y-1 text-sm text-red-900">
+                <p className="font-semibold">
+                  {counts?.total} slot{counts?.total === 1 ? '' : 's'} of all
+                  teachers on {dayLabel} will be deleted
+                </p>
+                {!!counts?.booked && (
+                  <p>
+                    {counts.booked} of them {counts.booked === 1 ? 'is' : 'are'}{' '}
+                    booked, those bookings will be removed too.
+                  </p>
+                )}
+                <p>This can not be undone.</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setStep('form')}
+                disabled={deleting}
+              >
+                <ChevronLeft className="mr-1.5 h-4 w-4" /> Back
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={remove}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="mr-2 h-4 w-4" />
+                )}
+                Delete Slots
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -897,7 +1162,8 @@ function DateField({
   date: Date;
   setDate: (date: Date) => void;
   label?: string;
-  minDate?: Date;
+  // null lets any day be picked, past days too
+  minDate?: Date | null;
 }) {
   return (
     <div className="space-y-2">
@@ -907,7 +1173,7 @@ function DateField({
         onChange={(d: Date | null) =>
           d && setDate(moment(d).startOf('day').toDate())
         }
-        minDate={minDate}
+        minDate={minDate ?? undefined}
         wrapperClassName="w-full"
         dateFormat="dd-MM-yyyy"
         customInput={<DateButton fullWidth />}
