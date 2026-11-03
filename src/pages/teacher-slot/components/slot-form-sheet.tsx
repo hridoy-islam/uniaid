@@ -14,7 +14,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
 import { AlertModal } from '@/components/shared/alert-modal';
 import axiosInstance from '@/lib/axios';
@@ -56,7 +55,6 @@ type FormState = {
   startTime: string;
   endTime: string;
   teacher: string;
-  note: string;
 };
 
 export function SlotFormSheet({
@@ -74,8 +72,7 @@ export function SlotFormSheet({
     date: new Date(),
     startTime: '09:00',
     endTime: '10:00',
-    teacher: '',
-    note: ''
+    teacher: ''
   });
   const [timeErrors, setTimeErrors] = useState({ startTime: '', endTime: '' });
   const [teacherSlots, setTeacherSlots] = useState<any[]>([]);
@@ -90,16 +87,14 @@ export function SlotFormSheet({
         date: keyToLocalDate(slotDateKey(slot.date)),
         startTime: slot.startTime,
         endTime: slot.endTime,
-        teacher: teacherIdOf(slot),
-        note: slot.note || ''
+        teacher: teacherIdOf(slot)
       });
     } else {
       setForm({
         date: defaults?.date || new Date(),
         startTime: defaults?.startTime || '09:00',
         endTime: defaults?.endTime || '10:00',
-        teacher: '',
-        note: ''
+        teacher: ''
       });
     }
   }, [open, slot, defaults]);
@@ -183,8 +178,7 @@ export function SlotFormSheet({
         date: localDateKey(form.date),
         startTime: form.startTime,
         endTime: form.endTime,
-        teacherId: form.teacher || null,
-        note: form.note.trim()
+        teacherId: form.teacher || null
       };
       if (isEdit) await axiosInstance.patch(`/teacher-slots/${slot._id}`, payload);
       else await axiosInstance.post('/teacher-slots', payload);
@@ -321,15 +315,6 @@ export function SlotFormSheet({
                   Clashes with this teacher's slot {clash.startTime}–{clash.endTime}
                 </p>
               )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Note</Label>
-              <Textarea
-                placeholder="e.g. Room 101, Online"
-                value={form.note}
-                onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
-              />
             </div>
           </div>
 

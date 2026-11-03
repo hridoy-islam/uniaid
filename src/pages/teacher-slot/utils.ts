@@ -173,3 +173,25 @@ export function keepOpenForSelectMenu(e: Event) {
 }
 
 export const UNASSIGNED = 'unassigned';
+
+// Marks a teacher can give a booked session in its feedback
+export const SLOT_MARK_OPTIONS = [
+  { value: 'pass', label: 'Pass' },
+  { value: 'marginal_fail', label: 'Marginal Fail' },
+  { value: 'fail', label: 'Fail' }
+] as const;
+
+export type SlotMark = (typeof SLOT_MARK_OPTIONS)[number]['value'];
+
+export const markLabel = (mark?: string | null) =>
+  SLOT_MARK_OPTIONS.find((o) => o.value === mark)?.label || '';
+
+// Badge colours per mark
+export const markClass = (mark?: string | null) =>
+  mark === 'pass'
+    ? 'bg-emerald-600 text-white'
+    : mark === 'marginal_fail'
+      ? 'bg-amber-500 text-white'
+      : mark === 'fail'
+        ? 'bg-red-600 text-white'
+        : '';

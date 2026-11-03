@@ -23,6 +23,11 @@ import { BlinkingDots } from '@/components/shared/blinking-dots';
 import axiosInstance from '@/lib/axios';
 import { DateButton } from './index';
 import {
+  FeedbackButton,
+  FeedbackDialog,
+  MarkBadge
+} from './components/slot-feedback';
+import {
   durationLabel,
   formatSlotDate,
   formatTime,
@@ -40,6 +45,7 @@ export default function MySlotsPage() {
   const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
+  const [feedbackFor, setFeedbackFor] = useState<any>(null);
 
   // The server scopes this list to the logged in teacher
   const fetchSlots = useCallback(async () => {
@@ -152,7 +158,12 @@ export default function MySlotsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3">
           {slots.map((slot) => (
-            <MySlotCard key={slot._id} slot={slot} onClick={setSelected} />
+            <MySlotCard
+              key={slot._id}
+              slot={slot}
+              onClick={setSelected}
+              onFeedback={setFeedbackFor}
+            />
           ))}
         </div>
       )}
@@ -161,7 +172,9 @@ export default function MySlotsPage() {
         open={!!selected}
         onOpenChange={(open) => !open && setSelected(null)}
       >
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+        <DialogContent
+          className="max-h-[90vh] max-w-[calc(100vw-2rem)] overflow-y-auto sm:max-w-md"
+        >
           <DialogHeader>
             <DialogTitle>Slot Details</DialogTitle>
           </DialogHeader>
@@ -220,8 +233,46 @@ export default function MySlotsPage() {
               )}
             </dl>
           )}
+          {/* The teacher's feedback on the session, once it is booked */}
+          {selected?.status === 'booked' && (
+            <>
+              <dl className="grid grid-cols-3 gap-y-2 border-t border-black/10 pt-3 text-sm text-black">
+                <dt className="col-span-3 font-semibold">Feedback</dt>
+                {selected.feedback?.mark || selected.feedback?.comment ? (
+                  <>
+                    <dt>Mark</dt>
+                    <dd className="col-span-2 font-medium">
+                      {selected.feedback?.mark ? (
+                        <MarkBadge mark={selected.feedback.mark} />
+                      ) : (
+                        '—'
+                      )}
+                    </dd>
+                    <dt>Comment</dt>
+                    <dd className="col-span-2 whitespace-pre-wrap">
+                      {selected.feedback?.comment || '—'}
+                    </dd>
+                  </>
+                ) : (
+                  <dd className="col-span-3">No feedback yet.</dd>
+                )}
+              </dl>
+            </>
+          )}
         </DialogContent>
       </Dialog>
+
+      <FeedbackDialog
+        slot={feedbackFor}
+        open={!!feedbackFor}
+        onOpenChange={(open) => !open && setFeedbackFor(null)}
+        onSaved={(updated: any) => {
+          setSelected((s: any) => (s?._id === updated._id ? updated : s));
+          setSlots((prev) =>
+            prev.map((s) => (s._id === updated._id ? updated : s))
+          );
+        }}
+      />
     </div>
   );
 }
@@ -230,19 +281,26 @@ export default function MySlotsPage() {
 // student it is booked for
 function MySlotCard({
   slot,
-  onClick
+  onClick,
+  onFeedback
 }: {
   slot: any;
   onClick: (slot: any) => void;
+  onFeedback: (slot: any) => void;
 }) {
   const booked = slot.status === 'booked';
   const student = booked && slot.studentId ? studentName(slot.studentId) : '';
 
   return (
-    <button
-      type="button"
+    // A div, not a button, so the Feedback button can sit inside it
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onClick(slot)}
-      className={`group relative flex flex-col overflow-hidden rounded-xl border text-left text-black shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-supperagent ${
+      onKeyDown={(e) =>
+        e.target === e.currentTarget && e.key === 'Enter' && onClick(slot)
+      }
+      className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-xl border text-left text-black shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-supperagent ${
         booked
           ? 'border-emerald-200 bg-emerald-50'
           : 'border-blue-200 bg-blue-50'
@@ -274,15 +332,28 @@ function MySlotCard({
               </p>
             </div>
           </div>
-          <span
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white ${
-              booked ? 'bg-emerald-600' : 'bg-blue-600'
-            }`}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-white" />
-            {booked ? 'Booked' : 'Available'}
-          </span>
+          {/* Status badge, with the Feedback button beside it once booked */}
+          <div className="flex shrink-0 items-center gap-2">
+            {booked && (
+              <span onClick={(e) => e.stopPropagation()}>
+                <FeedbackButton
+                  size="sm"
+                  onClick={() => onFeedback(slot)}
+                />
+              </span>
+            )}
+            <span
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white ${
+                booked ? 'bg-emerald-600' : 'bg-blue-600'
+              }`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-white" />
+              {booked ? 'Booked' : 'Available'}
+            </span>
+          </div>
         </div>
+
+        {booked && <MarkBadge mark={slot.feedback?.mark} />}
 
         <div
           className={`grid grid-cols-[auto_1fr] divide-x rounded-lg border bg-white ${
@@ -327,6 +398,6 @@ function MySlotCard({
           </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }

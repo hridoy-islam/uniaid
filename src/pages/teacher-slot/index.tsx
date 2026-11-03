@@ -25,7 +25,9 @@ import {
   Mail,
   Phone,
   StickyNote,
-  CalendarCheck
+  CalendarCheck,
+  Award,
+  MessageSquareText
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -64,6 +66,10 @@ import {
 } from './utils';
 import { SlotFormSheet } from './components/slot-form-sheet';
 import { StudentSelect, type StudentOption } from '../book-slot';
+import {
+  FeedbackDialog,
+  MarkBadge
+} from './components/slot-feedback';
 
 const errorMessage = (error: any) =>
   error?.response?.data?.message || 'Something went wrong, please try again.';
@@ -106,13 +112,18 @@ export default function TeacherSlotPage() {
   const [deleteByDateOpen, setDeleteByDateOpen] = useState(false);
   // Only an admin books a slot for a student. Creating, editing and deleting
   // follow the user's access, for a teacher that is their designation.
-  const isAdmin =
-    useSelector((state: any) => state.auth?.user?.role) === 'admin';
+  const authUser = useSelector((state: any) => state.auth?.user);
+  const isAdmin = authUser?.role === 'admin';
   const { teacherSlot: access } = useSlotAccess();
   const [editing, setEditing] = useState<any>(null);
   const [deleting, setDeleting] = useState<any>(null);
   const [assigning, setAssigning] = useState<any>(null);
   const [viewing, setViewing] = useState<any>(null);
+  const [feedbackFor, setFeedbackFor] = useState<any>(null);
+  // Admin, staff and teachers give feedback, only on a booked slot
+  const canFeedback = (s: any) =>
+    s?.status === 'booked' &&
+    ['admin', 'staff', 'teacher'].includes(authUser?.role);
   const [deleteLoading, setDeleteLoading] = useState(false);
   // One teacher card's slots for the day, waiting for confirmation
   const [deletingDay, setDeletingDay] = useState<{
@@ -432,6 +443,9 @@ export default function TeacherSlotPage() {
                         onDelete={access.delete ? setDeleting : undefined}
                         onAssign={isAdmin ? setAssigning : undefined}
                         onOpen={setViewing}
+                        onFeedback={
+                          canFeedback(slot) ? setFeedbackFor : undefined
+                        }
                       />
                     ))}
                   </div>
@@ -458,6 +472,18 @@ export default function TeacherSlotPage() {
         onClose={() => setViewing(null)}
         onEdit={access.edit ? setEditing : undefined}
         onAssign={isAdmin ? setAssigning : undefined}
+      />
+
+      <FeedbackDialog
+        slot={feedbackFor}
+        open={!!feedbackFor}
+        onOpenChange={(open) => !open && setFeedbackFor(null)}
+        onSaved={(updated: any) => {
+          setViewing((v: any) => (v?._id === updated._id ? updated : v));
+          setSlots((prev) =>
+            prev.map((s) => (s._id === updated._id ? updated : s))
+          );
+        }}
       />
 
       <AssignStudentDialog
@@ -692,13 +718,15 @@ function SlotCard({
   onEdit,
   onDelete,
   onAssign,
-  onOpen
+  onOpen,
+  onFeedback
 }: {
   slot: any;
   onEdit?: (slot: any) => void;
   onDelete?: (slot: any) => void;
   onAssign?: (slot: any) => void;
   onOpen?: (slot: any) => void;
+  onFeedback?: (slot: any) => void;
 }) {
   const booked = slot.status === 'booked';
 
@@ -746,6 +774,9 @@ function SlotCard({
         )}
       </span>
 
+      {booked && <MarkBadge mark={slot.feedback?.mark} />}
+
+
       {onAssign && !booked && slot.teacherId && (
         <Button
           type="button"
@@ -759,6 +790,22 @@ function SlotCard({
         >
           <UserPlus className="h-3.5 w-3.5" />
           Book
+        </Button>
+      )}
+
+      {onFeedback && booked && (
+        <Button
+          type="button"
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            onFeedback(slot);
+          }}
+          className="h-7 w-7 shrink-0 border-none bg-black text-white hover:bg-black/80"
+          aria-label="Give feedback"
+          title="Feedback"
+        >
+          <MessageSquareText className="h-3.5 w-3.5" />
         </Button>
       )}
 
@@ -852,7 +899,9 @@ function SlotDetailsDialog({
 
   return (
     <Dialog open={!!slot} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent
+        className="max-w-[calc(100vw-2rem)] gap-0 overflow-hidden p-0 sm:max-w-3xl"
+      >
         {slot && (
           <>
             {/* Header, tinted by status like the card */}
@@ -888,7 +937,8 @@ function SlotDetailsDialog({
                 <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-supperagent">
                   Slot
                 </h3>
-                <div className="divide-y divide-black/5">
+                {/* Teacher, date and time side by side */}
+                <div className="grid gap-x-4 sm:grid-cols-3">
                   <DetailRow icon={GraduationCap} label="Teacher">
                     {slot.teacherId?.name || 'No teacher'}
                     {slot.teacherId?.email && (
@@ -906,12 +956,12 @@ function SlotDetailsDialog({
                       ({durationLabel(slot.duration)})
                     </span>
                   </DetailRow>
-                  {slot.note && (
-                    <DetailRow icon={StickyNote} label="Note">
-                      {slot.note}
-                    </DetailRow>
-                  )}
                 </div>
+                {slot.note && (
+                  <DetailRow icon={StickyNote} label="Note">
+                    {slot.note}
+                  </DetailRow>
+                )}
               </section>
 
               <section>
@@ -919,28 +969,31 @@ function SlotDetailsDialog({
                   Student
                 </h3>
                 {student ? (
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4">
+                  // Compact: who on the left, how to reach them laid out in
+                  // a row to use the dialog's width
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-semibold text-white">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white">
                         {initials(name) || '?'}
                       </span>
-                      <div className="min-w-0">
+                      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
                         <p className="truncate font-semibold">
                           {name || 'Student'}
                         </p>
                         {student.refId && (
-                          <p className="flex items-center gap-1 text-xs font-medium">
+                          <span className="inline-flex items-center gap-0.5 text-xs font-medium">
                             <Hash className="h-3 w-3" />
                             {student.refId}
-                          </p>
+                          </span>
                         )}
                       </div>
                     </div>
-                    <div className="mt-3 grid gap-2 border-t border-emerald-200 pt-3 text-sm">
+                    <div className="mt-2.5 grid gap-x-4 gap-y-1.5 border-t border-emerald-200 pt-2.5 text-sm sm:grid-cols-3">
                       {student.email && (
                         <a
                           href={`mailto:${student.email}`}
-                          className="flex min-w-0 items-center gap-2 hover:underline"
+                          title={student.email}
+                          className="flex min-w-0 items-center gap-1.5 hover:underline"
                         >
                           <Mail className="h-4 w-4 shrink-0 text-emerald-700" />
                           <span className="truncate">{student.email}</span>
@@ -949,17 +1002,22 @@ function SlotDetailsDialog({
                       {student.phone && (
                         <a
                           href={`tel:${student.phone}`}
-                          className="flex items-center gap-2 hover:underline"
+                          className="flex min-w-0 items-center gap-1.5 hover:underline"
                         >
                           <Phone className="h-4 w-4 shrink-0 text-emerald-700" />
-                          {student.phone}
+                          <span className="truncate">{student.phone}</span>
                         </a>
                       )}
                       {slot.bookedAt && (
-                        <p className="flex items-center gap-2">
+                        <p
+                          className="flex min-w-0 items-center gap-1.5"
+                          title="Booked at"
+                        >
                           <CalendarCheck className="h-4 w-4 shrink-0 text-emerald-700" />
-                          Booked{' '}
-                          {moment(slot.bookedAt).format('D MMM YYYY, HH:mm')}
+                          <span className="truncate">
+                            Booked{' '}
+                            {moment(slot.bookedAt).format('D MMM YYYY, HH:mm')}
+                          </span>
                         </p>
                       )}
                     </div>
@@ -973,6 +1031,33 @@ function SlotDetailsDialog({
                   </div>
                 )}
               </section>
+
+              {booked && (
+                <section>
+                  <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-supperagent">
+                    Feedback
+                  </h3>
+                  {slot.feedback?.mark || slot.feedback?.comment ? (
+                    // Mark on top, the comment under it
+                    <div>
+                      <DetailRow icon={Award} label="Mark">
+                        {slot.feedback?.mark ? (
+                          <MarkBadge mark={slot.feedback.mark} />
+                        ) : (
+                          '—'
+                        )}
+                      </DetailRow>
+                      <DetailRow icon={MessageSquareText} label="Comment">
+                        <span className="whitespace-pre-wrap">
+                          {slot.feedback?.comment || '—'}
+                        </span>
+                      </DetailRow>
+                    </div>
+                  ) : (
+                    <p className="py-2 text-sm font-medium">No feedback yet.</p>
+                  )}
+                </section>
+              )}
             </div>
 
             <DialogFooter className="gap-2 border-t border-black/10 px-6 py-4 sm:gap-0">
