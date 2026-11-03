@@ -195,4 +195,6 @@ export const markClass = (mark?: string | null) =>
       ? 'bg-amber-500 text-white'
       : mark === 'fail'
         ? 'bg-red-600 text-white'
-        : '';
+        : mark === 'no_show'
+          ? 'bg-slate-600 text-white'
+          : '';
