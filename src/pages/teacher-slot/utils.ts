@@ -178,7 +178,8 @@ export const UNASSIGNED = 'unassigned';
 export const SLOT_MARK_OPTIONS = [
   { value: 'pass', label: 'Pass' },
   { value: 'marginal_fail', label: 'Marginal Fail' },
-  { value: 'fail', label: 'Fail' }
+  { value: 'fail', label: 'Fail' },
+  { value: 'no_show', label: 'No Show' }
 ] as const;
 
 export type SlotMark = (typeof SLOT_MARK_OPTIONS)[number]['value'];
