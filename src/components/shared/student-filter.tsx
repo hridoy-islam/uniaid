@@ -9,6 +9,8 @@ import * as XLSX from 'xlsx';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { isPrivilegedRole } from '@/lib/roles';
+import { toast } from '@/components/ui/use-toast';
+import { fetchStudentFeedback, markLabel } from '@/pages/teacher-slot/utils';
 export default function StudentFilter({ onSubmit, total }) {
   const { user } = useSelector((state: any) => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
@@ -113,6 +115,27 @@ export default function StudentFilter({ onSubmit, total }) {
     }
   };
 
+  // Each student's feedback, oldest first. Agents have no access to it. When
+  // it can't be loaded the export still runs, and says what is missing.
+  const fetchFeedbackForExport = async (students) => {
+    const byStudent: Record<string, any[]> = {};
+    if (user.role === 'agent' || !students?.length) return byStudent;
+    try {
+      const slots = await fetchStudentFeedback(students.map((s) => s._id));
+      slots.forEach((slot) => {
+        (byStudent[slot.studentId] ||= []).push(slot);
+      });
+    } catch (error) {
+      console.error('Error fetching feedback for export:', error);
+      toast({
+        title: 'Exported without feedback.',
+        description: 'The feedback could not be loaded.',
+        className: 'bg-red-500 border-none text-white'
+      });
+    }
+    return byStudent;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const filterData = {
@@ -153,6 +176,8 @@ export default function StudentFilter({ onSubmit, total }) {
         filterData.staffId = selectedStaff.map((item) => item.value) || null;
       }
       const studentsForExport = await fetchAllStudentsForExport(filterData);
+      const feedbackByStudent =
+        await fetchFeedbackForExport(studentsForExport);
 
       const exportData = studentsForExport?.map((student) => {
         const baseFields = {
@@ -236,11 +261,38 @@ export default function StudentFilter({ onSubmit, total }) {
           }
         }
 
-        return { ...baseFields, ...courseFields };
+        const feedbackFields = {};
+        (feedbackByStudent[student._id] || []).forEach((slot, index) => {
+          const feedbackNum = index + 1;
+          feedbackFields[`feedback_mark${feedbackNum}`] = markLabel(
+            slot.feedback?.mark
+          );
+          feedbackFields[`feedback_comment${feedbackNum}`] =
+            slot.feedback?.comment || '';
+        });
+
+        return { ...baseFields, ...courseFields, ...feedbackFields };
       });
 
+      // Feedback columns go last, in order, whichever student has the most
+      const feedbackCount = Math.max(
+        0,
+        ...Object.values(feedbackByStudent).map((slots) => slots.length)
+      );
+      const feedbackHeader = Array.from({ length: feedbackCount }).flatMap(
+        (_, index) => [
+          `feedback_mark${index + 1}`,
+          `feedback_comment${index + 1}`
+        ]
+      );
+      const otherHeader = [
+        ...new Set<string>(exportData.flatMap((row) => Object.keys(row)))
+      ].filter((key) => !feedbackHeader.includes(key));
+
       const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(exportData);
+      const ws = XLSX.utils.json_to_sheet(exportData, {
+        header: [...otherHeader, ...feedbackHeader]
+      });
       XLSX.utils.book_append_sheet(wb, ws, 'Students');
       XLSX.writeFile(
         wb,

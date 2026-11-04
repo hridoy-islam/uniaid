@@ -25,6 +25,7 @@ import {
 import { useSelector } from 'react-redux';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import AgentPaymentPage from './components/agentPayment';
+import { StudentFeedback } from './components/student-feedback';
 import { isPrivilegedRole } from '@/lib/roles';
 
 export default function StudentViewPage() {
@@ -178,6 +179,13 @@ export default function StudentViewPage() {
     }
   }
 
+  // Feedback comes from booked sessions, so it does not wait for a complete
+  // profile. Agents have no access to teacher feedback.
+  const canViewFeedback = isAdmin || isStaff;
+  if (canViewFeedback) {
+    tabs.push({ value: 'feedback', label: 'Feedback', showIcon: false });
+  }
+
   if (initialLoading) {
     return (
       <div className="flex justify-center py-6">
@@ -249,6 +257,11 @@ export default function StudentViewPage() {
             onSave={handleSave}
           />
         </TabsContent>
+        {canViewFeedback && (
+          <TabsContent value="feedback">
+            <StudentFeedback studentId={student?._id} />
+          </TabsContent>
+        )}
         {isComplete && (
           <>
             <TabsContent value="application">

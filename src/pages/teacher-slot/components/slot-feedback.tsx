@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Select from 'react-select';
 import { Loader2, MessageSquareText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -56,7 +57,8 @@ export function FeedbackButton({
   );
 }
 
-// The teacher's mark and comment for a booked slot, both optional
+// The teacher confirms the passport or photo ID first, then the mark and
+// comment for the booked slot open up, both optional
 export function FeedbackDialog({
   slot,
   open,
@@ -68,6 +70,7 @@ export function FeedbackDialog({
   onOpenChange: (open: boolean) => void;
   onSaved?: (slot: any) => void;
 }) {
+  const [idChecked, setIdChecked] = useState(false);
   const [comment, setComment] = useState('');
   const [mark, setMark] = useState<MarkOption | null>(null);
   const [saving, setSaving] = useState(false);
@@ -75,6 +78,7 @@ export function FeedbackDialog({
   // Start from the saved feedback each time it opens
   useEffect(() => {
     if (!open) return;
+    setIdChecked(!!slot?.feedback?.idChecked);
     setComment(slot?.feedback?.comment || '');
     setMark(findMark(slot?.feedback?.mark));
   }, [open, slot]);
@@ -84,7 +88,7 @@ export function FeedbackDialog({
     try {
       const response = await axiosInstance.patch(
         `/teacher-slots/${slot._id}/feedback`,
-        { comment: comment.trim(), mark: mark?.value || null }
+        { idChecked, comment: comment.trim(), mark: mark?.value || null }
       );
       toast({
         title: 'Feedback saved!',
@@ -125,29 +129,45 @@ export function FeedbackDialog({
         </DialogHeader>
 
         <div className="space-y-4 text-black">
-          <div className="space-y-1.5">
-            <Label>Mark</Label>
-            <Select<MarkOption>
-              {...portalSelectProps}
-              options={SLOT_MARK_OPTIONS as unknown as MarkOption[]}
-              value={mark}
-              onChange={(o) => setMark(o)}
-              isClearable
-              isSearchable={false}
-              placeholder="Select a mark (optional)"
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="feedback-id-checked"
+              className="border-black"
+              checked={idChecked}
+              onCheckedChange={(checked) => setIdChecked(checked === true)}
             />
+            <Label htmlFor="feedback-id-checked">
+              Passport or Photo ID checked{' '}
+              <span className="text-red-600">*</span>
+            </Label>
           </div>
-          <div className="space-y-1.5">
-            <Label>Comment</Label>
-            <Textarea
-              placeholder="Comment (optional)"
-              className="border-gray-300"
-              value={comment}
-              maxLength={2000}
-              rows={4}
-              onChange={(e) => setComment(e.target.value)}
-            />
-          </div>
+          {idChecked && (
+            <>
+              <div className="space-y-1.5">
+                <Label>Mark</Label>
+                <Select<MarkOption>
+                  {...portalSelectProps}
+                  options={SLOT_MARK_OPTIONS as unknown as MarkOption[]}
+                  value={mark}
+                  onChange={(o) => setMark(o)}
+                  isClearable
+                  isSearchable={false}
+                  placeholder="Select a mark (optional)"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Comment</Label>
+                <Textarea
+                  placeholder="Comment (optional)"
+                  className="border-gray-300"
+                  value={comment}
+                  maxLength={2000}
+                  rows={4}
+                  onChange={(e) => setComment(e.target.value)}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
@@ -160,7 +180,7 @@ export function FeedbackDialog({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !idChecked}
             className="border-none bg-supperagent text-white hover:bg-supperagent/90"
           >
             {saving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}

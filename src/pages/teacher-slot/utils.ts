@@ -1,5 +1,6 @@
 import moment from 'moment';
 import momentTz from 'moment-timezone';
+import axiosInstance from '@/lib/axios';
 
 // Slots are run in the UK, so "today" follows UK time whatever the device says
 export const UK_TZ = 'Europe/London';
@@ -186,6 +187,22 @@ export type SlotMark = (typeof SLOT_MARK_OPTIONS)[number]['value'];
 
 export const markLabel = (mark?: string | null) =>
   SLOT_MARK_OPTIONS.find((o) => o.value === mark)?.label || '';
+
+// The API's JSON body limit is 100kb, so a big export asks in batches
+const FEEDBACK_BATCH_SIZE = 2000;
+
+// The saved feedback of these students, oldest session first
+export async function fetchStudentFeedback(studentIds: string[]) {
+  const slots: any[] = [];
+  for (let i = 0; i < studentIds.length; i += FEEDBACK_BATCH_SIZE) {
+    const response = await axiosInstance.post(
+      '/teacher-slots/student-feedback',
+      { studentIds: studentIds.slice(i, i + FEEDBACK_BATCH_SIZE) }
+    );
+    slots.push(...response.data.data);
+  }
+  return slots;
+}
 
 // Badge colours per mark
 export const markClass = (mark?: string | null) =>
