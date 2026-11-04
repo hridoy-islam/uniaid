@@ -10,7 +10,11 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { isPrivilegedRole } from '@/lib/roles';
 import { toast } from '@/components/ui/use-toast';
-import { fetchStudentFeedback, markLabel } from '@/pages/teacher-slot/utils';
+import {
+  fetchStudentFeedback,
+  formatSlotDate,
+  markLabel
+} from '@/pages/teacher-slot/utils';
 export default function StudentFilter({ onSubmit, total }) {
   const { user } = useSelector((state: any) => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
@@ -264,6 +268,9 @@ export default function StudentFilter({ onSubmit, total }) {
         const feedbackFields = {};
         (feedbackByStudent[student._id] || []).forEach((slot, index) => {
           const feedbackNum = index + 1;
+          feedbackFields[`feedback_date${feedbackNum}`] = slot.date
+            ? formatSlotDate(slot.date, 'DD/MM/YYYY')
+            : '';
           feedbackFields[`feedback_mark${feedbackNum}`] = markLabel(
             slot.feedback?.mark
           );
@@ -281,6 +288,7 @@ export default function StudentFilter({ onSubmit, total }) {
       );
       const feedbackHeader = Array.from({ length: feedbackCount }).flatMap(
         (_, index) => [
+          `feedback_date${index + 1}`,
           `feedback_mark${index + 1}`,
           `feedback_comment${index + 1}`
         ]

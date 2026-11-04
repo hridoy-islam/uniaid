@@ -75,6 +75,11 @@ type SeatGroup = {
 const errorMessage = (error: any) =>
   error?.response?.data?.message || 'Something went wrong, please try again.';
 
+// The student's own bookings stopped this one (a clash or the 4 week gap), as
+// opposed to the seats running out, which also comes back as a 409
+const isOwnBookingError = (error: any) =>
+  /already booked|contact admin/i.test(errorMessage(error));
+
 const failToast = (title: string, error: any) =>
   toast({
     title,
@@ -595,6 +600,7 @@ function BookingView({
   const [booked, setBooked] = useState<any>(null);
   const [student, setStudent] = useState<StudentOption | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [bookingError, setBookingError] = useState('');
 
   // Fresh form for each slot, keeping the email once it has been verified
   useEffect(() => {
@@ -603,6 +609,7 @@ function BookingView({
     setCodeSent(false);
     setBooked(null);
     setConfirming(false);
+    setBookingError('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slot]);
 
@@ -639,6 +646,7 @@ function BookingView({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setBookingError('');
 
     let token = isVerified ? verified!.token : '';
     if (!token) {
@@ -668,6 +676,12 @@ function BookingView({
       );
       setBooked(res.data.data);
     } catch (error: any) {
+      // The student's own bookings stopping it keeps this view, with the reason
+      // above the button
+      if (isOwnBookingError(error)) {
+        setBookingError(errorMessage(error));
+        return;
+      }
       failToast('Booking failed', error);
       // The last seats went to someone else first, so show the day again
       if (error?.response?.status === 409) onBack();
@@ -691,10 +705,7 @@ function BookingView({
       failToast('Booking failed', error);
       // Seats gone: show the day again. A clash with the student's own
       // booking keeps this view so another student can be chosen.
-      if (
-        error?.response?.status === 409 &&
-        !/already booked/i.test(errorMessage(error))
-      )
+      if (error?.response?.status === 409 && !isOwnBookingError(error))
         onBack();
     } finally {
       setConfirming(false);
@@ -802,6 +813,7 @@ function BookingView({
                       setEmail(e.target.value);
                       setCodeSent(false);
                       setOtp('');
+                      setBookingError('');
                     }}
                     placeholder="you@example.com"
                     className="h-10 min-w-0"
@@ -888,6 +900,12 @@ function BookingView({
                     spam folder or use Resend.
                   </p>
                 </div>
+              )}
+
+              {bookingError && (
+                <p role="alert" className="text-sm font-medium text-red-500">
+                  {bookingError}
+                </p>
               )}
 
               <Button

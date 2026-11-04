@@ -55,11 +55,11 @@ export function StudentFeedback({ studentId }: { studentId?: string }) {
             <TableRow className="border-black/10">
               {SHOW_SESSION_DETAILS && (
                 <>
-                  <TableHead className="text-black">Date</TableHead>
                   <TableHead className="text-black">Time</TableHead>
                   <TableHead className="text-black">Teacher</TableHead>
                 </>
               )}
+              <TableHead className="text-black">Date</TableHead>
               <TableHead className="text-black">Mark</TableHead>
               <TableHead className="text-black">Comment</TableHead>
             </TableRow>
@@ -69,15 +69,17 @@ export function StudentFeedback({ studentId }: { studentId?: string }) {
               <TableRow key={slot._id} className="border-black/10">
                 {SHOW_SESSION_DETAILS && (
                   <>
-                    <TableCell className="whitespace-nowrap">
-                      {formatSlotDate(slot.date)}
-                    </TableCell>
+                   
                     <TableCell className="whitespace-nowrap">
                       {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
                     </TableCell>
                     <TableCell>{slot.teacherId?.name || '—'}</TableCell>
                   </>
                 )}
+                 <TableCell className="whitespace-nowrap">
+                      {formatSlotDate(slot.date)}
+                    </TableCell>
+                    
                 <TableCell>
                   {slot.feedback?.mark ? (
                     <MarkBadge mark={slot.feedback.mark} />
