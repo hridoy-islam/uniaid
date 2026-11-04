@@ -49,19 +49,25 @@ import { BlinkingDots } from '@/components/shared/blinking-dots';
 import axiosInstance from '@/lib/axios';
 import { useSlotAccess } from '@/hooks/use-slot-access';
 import {
+  byStartTime,
   durationLabel,
   formatSlotDate,
   formatTime,
   formatTimeInput,
+  formatUkDateTime,
+  isSlotUnavailable,
   localDateKey,
   makeRowId,
   maskTimeInput,
   selectStyles,
+  startOfToday,
   studentName,
   teacherIdOf,
   timeRangesOverlap,
   timeRegex,
   toMinutes,
+  ukTodayKey,
+  useMinuteTick,
   WEEKDAYS
 } from './utils';
 import { SlotFormSheet } from './components/slot-form-sheet';
@@ -80,8 +86,6 @@ const failToast = (title: string, error: any) =>
     description: errorMessage(error),
     className: 'bg-red-500 border-none text-white'
   });
-
-const startOfToday = () => moment().startOf('day').toDate();
 
 // The button react-datepicker opens from
 export const DateButton = forwardRef<
@@ -110,6 +114,7 @@ export default function TeacherSlotPage() {
   const [teachersLoading, setTeachersLoading] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [deleteByDateOpen, setDeleteByDateOpen] = useState(false);
+  useMinuteTick();
   // Only an admin books a slot for a student. Creating, editing and deleting
   // follow the user's access, for a teacher that is their designation.
   const authUser = useSelector((state: any) => state.auth?.user);
@@ -125,7 +130,7 @@ export default function TeacherSlotPage() {
     s?.status === 'booked' &&
     ['admin', 'staff', 'teacher'].includes(authUser?.role);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  // One teacher card's slots for the day, waiting for confirmation
+  // One teacher card's open slots for the day, waiting for confirmation
   const [deletingDay, setDeletingDay] = useState<{
     id: string;
     name: string;
@@ -155,7 +160,7 @@ export default function TeacherSlotPage() {
       const res = await axiosInstance.get('/teacher-slots', {
         params: { fromDate: key, toDate: key, limit: 'all' }
       });
-      setSlots(res.data?.data?.result || []);
+      setSlots((res.data?.data?.result || []).sort(byStartTime));
     } catch (error) {
       console.error('Error fetching slots:', error);
       setSlots([]);
@@ -232,12 +237,11 @@ export default function TeacherSlotPage() {
     }
   };
 
-  const deletingDayBooked =
-    deletingDay?.slots.filter((s) => s.status === 'booked').length || 0;
-
   // Shared by both generate dialogs
   const generateProps = {
-    initialDate: moment(date).isBefore(moment(), 'day') ? startOfToday() : date,
+    initialDate: moment(date).isBefore(startOfToday(), 'day')
+      ? startOfToday()
+      : date,
     teachers,
     teachersLoading,
     onGenerated: (generatedFor: Date) => {
@@ -247,7 +251,8 @@ export default function TeacherSlotPage() {
   };
 
   const booked = slots.filter((s) => s.status === 'booked').length;
-  const isToday = moment(date).isSame(moment(), 'day');
+  const unavailable = slots.filter(isSlotUnavailable).length;
+  const isToday = localDateKey(date) === ukTodayKey();
   const shiftDay = (days: number) =>
     setDate(moment(date).add(days, 'day').toDate());
 
@@ -277,7 +282,8 @@ export default function TeacherSlotPage() {
             </div>
             <p className="pl-7 text-xs font-semibold text-black/70">
               {slots.length} slot{slots.length === 1 ? '' : 's'} ·{' '}
-              {slots.length - booked} available · {booked} booked
+              {slots.length - booked - unavailable} available · {booked} booked
+              · {unavailable} unavailable
             </p>
           </div>
 
@@ -359,6 +365,10 @@ export default function TeacherSlotPage() {
               <span className="h-3 w-3 rounded-sm border border-emerald-400 bg-emerald-100" />
               Booked
             </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded-sm border border-black/30 bg-gray-200" />
+              Unavailable
+            </span>
           </div>
         </div>
       </div>
@@ -379,7 +389,7 @@ export default function TeacherSlotPage() {
           <p className="mt-1 text-sm text-black">
             Generate slots for this day or choose another date.
           </p>
-          {access.create && !moment(date).isBefore(moment(), 'day') && (
+          {access.create && !moment(date).isBefore(startOfToday(), 'day') && (
             <div className="mt-5 flex flex-wrap justify-center gap-2">
               <Button
                 size="sm"
@@ -398,6 +408,7 @@ export default function TeacherSlotPage() {
             const groupBooked = group.slots.filter(
               (s) => s.status === 'booked'
             ).length;
+            const openSlots = group.slots.filter((s) => s.status !== 'booked');
             return (
               <section
                 key={group.id}
@@ -414,14 +425,16 @@ export default function TeacherSlotPage() {
                     <span className="text-[11px] font-medium text-black">
                       {groupBooked}/{group.slots.length} booked
                     </span>
-                    {access.delete && group.slots.length > 0 && (
+                    {access.delete && openSlots.length > 0 && (
                       <Button
                         type="button"
                         variant="destructive"
                         size="sm"
                         className="h-7 gap-1 px-2 text-xs"
-                        onClick={() => setDeletingDay(group)}
-                        aria-label={`Delete all slots of ${group.name} on this day`}
+                        onClick={() =>
+                          setDeletingDay({ ...group, slots: openSlots })
+                        }
+                        aria-label={`Delete all open slots of ${group.name} on this day`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                         Delete All
@@ -500,7 +513,7 @@ export default function TeacherSlotPage() {
         title="Delete this slot?"
         description={
           deleting
-            ? `${deleting.teacherId?.name || 'No teacher'}, ${formatTime(deleting.startTime)} – ${formatTime(deleting.endTime)}${deleting.status === 'booked' ? '. It is booked, the booking will be removed too.' : ''}`
+            ? `${deleting.teacherId?.name || 'No teacher'}, ${formatTime(deleting.startTime)} – ${formatTime(deleting.endTime)}`
             : ''
         }
       />
@@ -510,14 +523,10 @@ export default function TeacherSlotPage() {
         onClose={() => setDeletingDay(null)}
         onConfirm={deleteTeacherDay}
         loading={deleteLoading}
-        title={`Delete all slots of ${deletingDay?.name || ''}?`}
+        title={`Delete all open slots of ${deletingDay?.name || ''}?`}
         description={
           deletingDay
-            ? `All ${deletingDay.slots.length} slot${deletingDay.slots.length === 1 ? '' : 's'} on ${moment(date).format('dddd, D MMMM YYYY')} will be deleted.${
-                deletingDayBooked
-                  ? ` ${deletingDayBooked} of them ${deletingDayBooked === 1 ? 'is' : 'are'} booked, those bookings will be removed too.`
-                  : ''
-              } This can not be undone.`
+            ? `${deletingDay.slots.length} open slot${deletingDay.slots.length === 1 ? '' : 's'} on ${moment(date).format('dddd, D MMMM YYYY')} will be deleted. Booked slots are skipped. This can not be undone.`
             : ''
         }
       />
@@ -540,8 +549,8 @@ export default function TeacherSlotPage() {
   );
 }
 
-// Every teacher's slots on one chosen day. It first says how many slots (and
-// bookings) that day has, then asks for a confirmation before deleting.
+// Every teacher's open slots on one chosen day, booked ones are skipped. It
+// first says how many there are, then asks for a confirmation before deleting.
 function DeleteByDateDialog({
   open,
   onOpenChange,
@@ -592,6 +601,7 @@ function DeleteByDateDialog({
   }, [open, date]);
 
   const dayLabel = moment(date).format('dddd, D MMMM YYYY');
+  const openCount = counts ? counts.total - counts.booked : 0;
 
   const remove = async () => {
     setDeleting(true);
@@ -623,7 +633,7 @@ function DeleteByDateDialog({
           </DialogTitle>
           <DialogDescription className="text-black">
             {step === 'form'
-              ? 'Choose a day to delete every teacher slot on it.'
+              ? 'Choose a day to delete every open teacher slot on it. Booked slots are skipped.'
               : 'Please confirm before the slots are deleted.'}
           </DialogDescription>
         </DialogHeader>
@@ -657,7 +667,7 @@ function DeleteByDateDialog({
               <Button
                 variant="destructive"
                 className="flex-1"
-                disabled={counting || !counts?.total}
+                disabled={counting || !openCount}
                 onClick={() => setStep('confirm')}
               >
                 Continue
@@ -671,13 +681,13 @@ function DeleteByDateDialog({
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
               <div className="space-y-1 text-sm text-red-900">
                 <p className="font-semibold">
-                  {counts?.total} slot{counts?.total === 1 ? '' : 's'} of all
+                  {openCount} open slot{openCount === 1 ? '' : 's'} of all
                   teachers on {dayLabel} will be deleted
                 </p>
                 {!!counts?.booked && (
                   <p>
-                    {counts.booked} of them {counts.booked === 1 ? 'is' : 'are'}{' '}
-                    booked, those bookings will be removed too.
+                    {counts.booked} booked slot
+                    {counts.booked === 1 ? ' is' : 's are'} skipped.
                   </p>
                 )}
                 <p>This can not be undone.</p>
@@ -729,21 +739,32 @@ function SlotCard({
   onFeedback?: (slot: any) => void;
 }) {
   const booked = slot.status === 'booked';
+  const unavailable = isSlotUnavailable(slot);
 
   return (
     // One compact row: status, time, duration, student (when booked), actions
     <div
       role="button"
-      tabIndex={0}
-      onClick={() => onOpen?.(slot)}
-      onKeyDown={(e) => e.key === 'Enter' && onOpen?.(slot)}
-      className={`flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm text-black transition hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-supperagent ${
-        booked
-          ? 'border-emerald-300 bg-emerald-50'
-          : 'border-blue-300 bg-blue-50'
+      tabIndex={unavailable ? -1 : 0}
+      aria-disabled={unavailable}
+      onClick={() => !unavailable && onOpen?.(slot)}
+      onKeyDown={(e) => !unavailable && e.key === 'Enter' && onOpen?.(slot)}
+      className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-supperagent ${
+        unavailable
+          ? 'cursor-not-allowed border-black/10 bg-gray-200'
+          : `cursor-pointer hover:shadow-sm ${
+              booked
+                ? 'border-emerald-300 bg-emerald-50'
+                : 'border-blue-300 bg-blue-50'
+            }`
       }`}
     >
-      {/* Only booked slots get a badge, the blue card already means open */}
+      {/* The blue card already means open, so it needs no badge */}
+      {unavailable && (
+        <Badge className="shrink-0 justify-center border-transparent bg-black px-2 py-0 text-[11px] text-white shadow-none hover:bg-black">
+          Unavailable
+        </Badge>
+      )}
       {booked && (
         <Badge className="w-[70px] shrink-0 justify-center border-transparent bg-emerald-600 px-2 py-0 text-[11px] text-white shadow-none hover:bg-emerald-600">
           Booked
@@ -777,7 +798,7 @@ function SlotCard({
       {booked && <MarkBadge mark={slot.feedback?.mark} />}
 
 
-      {onAssign && !booked && slot.teacherId && (
+      {onAssign && !booked && !unavailable && slot.teacherId && (
         <Button
           type="button"
           size="sm"
@@ -809,7 +830,7 @@ function SlotCard({
         </Button>
       )}
 
-      {onEdit && (
+      {onEdit && !unavailable && (
         <Button
           type="button"
           size="icon"
@@ -823,7 +844,7 @@ function SlotCard({
           <Pencil className="h-3.5 w-3.5" />
         </Button>
       )}
-      {onDelete && (
+      {onDelete && !booked && (
         <Button
           type="button"
           variant="destructive"
@@ -1016,7 +1037,10 @@ function SlotDetailsDialog({
                           <CalendarCheck className="h-4 w-4 shrink-0 text-emerald-700" />
                           <span className="truncate">
                             Booked{' '}
-                            {moment(slot.bookedAt).format('D MMM YYYY, HH:mm')}
+                            {formatUkDateTime(
+                              slot.bookedAt,
+                              'D MMM YYYY, HH:mm'
+                            )}
                           </span>
                         </p>
                       )}

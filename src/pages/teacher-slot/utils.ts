@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import moment from 'moment';
 import momentTz from 'moment-timezone';
 import axiosInstance from '@/lib/axios';
@@ -5,6 +6,22 @@ import axiosInstance from '@/lib/axios';
 // Slots are run in the UK, so "today" follows UK time whatever the device says
 export const UK_TZ = 'Europe/London';
 export const ukTodayKey = () => momentTz().tz(UK_TZ).format('YYYY-MM-DD');
+
+// Today in UK time, as a local date for the date pickers
+export const startOfToday = () => moment(ukTodayKey(), 'YYYY-MM-DD').toDate();
+
+// A moment in time, such as bookedAt, shown on the UK clock
+export const formatUkDateTime = (value: string, format: string) =>
+  momentTz(value).tz(UK_TZ).format(format);
+
+// Re-renders the page each minute, so slots turn unavailable as time passes
+export function useMinuteTick() {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick((n) => n + 1), 60000);
+    return () => clearInterval(timer);
+  }, []);
+}
 
 // ── Calendar constants (same grid as the course routine) ─────────────────────
 export const START_H = 8;
@@ -35,12 +52,23 @@ export function fmtH(h: number) {
 }
 
 export function isToday(d: Date) {
-  return moment(d).isSame(moment(), 'day');
+  return localDateKey(d) === ukTodayKey();
 }
 
 export function toMinutes(t: string) {
   const [h, m] = t.split(':').map(Number);
   return h * 60 + m;
+}
+
+// Earliest start first, then the earliest end
+export function byStartTime(
+  a: { startTime: string; endTime: string },
+  b: { startTime: string; endTime: string }
+) {
+  return (
+    toMinutes(a.startTime) - toMinutes(b.startTime) ||
+    toMinutes(a.endTime) - toMinutes(b.endTime)
+  );
 }
 
 export function timeRangesOverlap(
@@ -113,12 +141,17 @@ export function formatTime(t: string) {
   return moment(t, 'HH:mm').format('HH:mm');
 }
 
-export function isSlotPast(slot: { date: string; endTime: string }) {
-  return moment(
-    `${slotDateKey(slot.date)} ${slot.endTime}`,
-    'YYYY-MM-DD HH:mm'
-  ).isBefore(moment());
+// A slot's date and times are UK wall clock times
+export function isSlotPast(slot: { date: string; startTime: string }) {
+  return momentTz
+    .tz(`${slotDateKey(slot.date)} ${slot.startTime}`, 'YYYY-MM-DD HH:mm', UK_TZ)
+    .isBefore(momentTz());
 }
+
+// It started with nobody booked. A booked slot stays as it is, it still
+// needs its feedback.
+export const isSlotUnavailable = (slot: any) =>
+  slot.status !== 'booked' && isSlotPast(slot);
 
 export function studentName(student: any) {
   if (!student) return '';

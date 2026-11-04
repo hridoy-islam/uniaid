@@ -28,16 +28,18 @@ import {
   MarkBadge
 } from './components/slot-feedback';
 import {
+  byStartTime,
   durationLabel,
   formatSlotDate,
   formatTime,
+  formatUkDateTime,
+  isSlotUnavailable,
   localDateKey,
+  startOfToday,
   studentName,
-  ukTodayKey
+  ukTodayKey,
+  useMinuteTick
 } from './utils';
-
-// Today in UK time, as a local date for the date picker
-const startOfToday = () => moment(ukTodayKey(), 'YYYY-MM-DD').toDate();
 
 // A teacher's own slots, one day at a time, laid out like Teacher Slots
 export default function MySlotsPage() {
@@ -46,6 +48,7 @@ export default function MySlotsPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
   const [feedbackFor, setFeedbackFor] = useState<any>(null);
+  useMinuteTick();
 
   // The server scopes this list to the logged in teacher
   const fetchSlots = useCallback(async () => {
@@ -55,7 +58,7 @@ export default function MySlotsPage() {
       const response = await axiosInstance.get('/teacher-slots', {
         params: { fromDate: key, toDate: key, limit: 'all' }
       });
-      setSlots(response.data?.data?.result || []);
+      setSlots((response.data?.data?.result || []).sort(byStartTime));
     } catch (error) {
       console.error('Error fetching slots:', error);
       setSlots([]);
@@ -69,6 +72,7 @@ export default function MySlotsPage() {
   }, [fetchSlots]);
 
   const booked = slots.filter((s) => s.status === 'booked').length;
+  const unavailable = slots.filter(isSlotUnavailable).length;
   const isToday = localDateKey(date) === ukTodayKey();
   const shiftDay = (days: number) =>
     setDate(moment(date).add(days, 'day').toDate());
@@ -85,7 +89,8 @@ export default function MySlotsPage() {
             </div>
             <p className="pl-7 text-xs font-semibold">
               {slots.length} slot{slots.length === 1 ? '' : 's'} ·{' '}
-              {slots.length - booked} available · {booked} booked
+              {slots.length - booked - unavailable} available · {booked} booked
+              · {unavailable} unavailable
             </p>
           </div>
 
@@ -136,6 +141,10 @@ export default function MySlotsPage() {
           <span className="flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-sm border border-emerald-400 bg-emerald-100" />
             Booked
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded-sm border border-black/30 bg-gray-200" />
+            Unavailable
           </span>
         </div>
       </div>
@@ -225,7 +234,10 @@ export default function MySlotsPage() {
                     <>
                       <dt>Booked At</dt>
                       <dd className="col-span-2">
-                        {moment(selected.bookedAt).format('DD MMM YYYY, HH:mm')}
+                        {formatUkDateTime(
+                          selected.bookedAt,
+                          'DD MMM YYYY, HH:mm'
+                        )}
                       </dd>
                     </>
                   )}
@@ -289,37 +301,47 @@ function MySlotCard({
   onFeedback: (slot: any) => void;
 }) {
   const booked = slot.status === 'booked';
+  const unavailable = isSlotUnavailable(slot);
   const student = booked && slot.studentId ? studentName(slot.studentId) : '';
+  const solid = booked
+    ? 'bg-emerald-600'
+    : unavailable
+      ? 'bg-black'
+      : 'bg-blue-600';
 
   return (
     // A div, not a button, so the Feedback button can sit inside it
     <div
       role="button"
-      tabIndex={0}
-      onClick={() => onClick(slot)}
+      tabIndex={unavailable ? -1 : 0}
+      aria-disabled={unavailable}
+      onClick={() => !unavailable && onClick(slot)}
       onKeyDown={(e) =>
-        e.target === e.currentTarget && e.key === 'Enter' && onClick(slot)
+        !unavailable &&
+        e.target === e.currentTarget &&
+        e.key === 'Enter' &&
+        onClick(slot)
       }
-      className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-xl border text-left text-black shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-supperagent ${
-        booked
-          ? 'border-emerald-200 bg-emerald-50'
-          : 'border-blue-200 bg-blue-50'
+      className={`group relative flex flex-col overflow-hidden rounded-xl border text-left text-black shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-supperagent ${
+        unavailable
+          ? 'cursor-not-allowed border-black/10 bg-gray-200'
+          : `cursor-pointer hover:-translate-y-0.5 hover:shadow-md ${
+              booked
+                ? 'border-emerald-200 bg-emerald-50'
+                : 'border-blue-200 bg-blue-50'
+            }`
       }`}
     >
       {/* Status accent down the left edge */}
       <span
-        className={`absolute inset-y-0 left-0 w-1 ${
-          booked ? 'bg-emerald-500' : 'bg-blue-500'
-        }`}
+        className={`absolute inset-y-0 left-0 w-1 ${solid}`}
       />
 
       <div className="space-y-4 p-4 pl-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <span
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white ${
-                booked ? 'bg-emerald-600' : 'bg-blue-600'
-              }`}
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white ${solid}`}
             >
               <Clock className="h-5 w-5" />
             </span>
@@ -343,12 +365,10 @@ function MySlotCard({
               </span>
             )}
             <span
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white ${
-                booked ? 'bg-emerald-600' : 'bg-blue-600'
-              }`}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white ${solid}`}
             >
               <span className="h-1.5 w-1.5 rounded-full bg-white" />
-              {booked ? 'Booked' : 'Available'}
+              {booked ? 'Booked' : unavailable ? 'Unavailable' : 'Available'}
             </span>
           </div>
         </div>
@@ -359,7 +379,9 @@ function MySlotCard({
           className={`grid grid-cols-[auto_1fr] divide-x rounded-lg border bg-white ${
             booked
               ? 'divide-emerald-200 border-emerald-200'
-              : 'divide-blue-200 border-blue-200'
+              : unavailable
+                ? 'divide-black/10 border-black/10'
+                : 'divide-blue-200 border-blue-200'
           }`}
         >
           <div className="flex items-center gap-2.5 px-3 py-2.5">
@@ -392,7 +414,9 @@ function MySlotCard({
                   )}
                 </>
               ) : (
-                <p className="text-sm font-medium">Not booked yet</p>
+                <p className="text-sm font-medium">
+                  {unavailable ? 'Not booked' : 'Not booked yet'}
+                </p>
               )}
             </div>
           </div>

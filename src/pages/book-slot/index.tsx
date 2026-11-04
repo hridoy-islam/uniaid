@@ -44,11 +44,16 @@ import { BlinkingDots } from '@/components/shared/blinking-dots';
 import AsyncSelect from 'react-select/async';
 import axiosInstance from '@/lib/axios';
 import {
+  byStartTime,
   durationLabel,
   formatSlotDate,
   formatTime,
+  isSlotPast,
   localDateKey,
-  slotDateKey
+  slotDateKey,
+  startOfToday,
+  ukTodayKey,
+  useMinuteTick
 } from '../teacher-slot/utils';
 
 // Plain axios on purpose: this page is used by students who are not logged in
@@ -87,8 +92,9 @@ const failToast = (title: string, error: any) =>
     className: 'bg-red-500 border-none text-white'
   });
 
-// A time can be booked while it has a free seat, even if it has started
-const isBookable = (group: SeatGroup) => group.available > 0;
+// A time can be booked while it has a free seat, until it starts in UK time
+const isBookable = (group: SeatGroup) =>
+  group.available > 0 && !isSlotPast(group);
 
 const groupBySeats = (slots: any[]): SeatGroup[] => {
   const map = new Map<string, SeatGroup>();
@@ -107,14 +113,8 @@ const groupBySeats = (slots: any[]): SeatGroup[] => {
     if (slot.status === 'available') group.available += 1;
     map.set(key, group);
   }
-  return [...map.values()].sort(
-    (a, b) =>
-      a.startTime.localeCompare(b.startTime) ||
-      a.endTime.localeCompare(b.endTime)
-  );
+  return [...map.values()].sort(byStartTime);
 };
-
-const startOfToday = () => moment().startOf('day').toDate();
 
 // Keeps typed text to digits and adds the slashes: "28102026" -> "28/10/2026"
 const maskDate = (value: string) => {
@@ -141,6 +141,7 @@ export default function BookSlotPage({
   // A verified email stays usable if a booking fails, so the student can pick
   // another slot without a new code. Cleared when the page resets.
   const [verified, setVerified] = useState<Verified | null>(null);
+  useMinuteTick();
 
   const fetchSlots = useCallback(async () => {
     setLoading(true);
@@ -179,20 +180,17 @@ export default function BookSlotPage({
     setSelected(null);
     setVerified(null);
     setAvailableOnly(false);
-    if (moment(date).isSame(moment(), 'day')) fetchSlots();
+    if (localDateKey(date) === ukTodayKey()) fetchSlots();
     else setDate(startOfToday());
   }, [date, fetchSlots]);
 
-  const isToday = moment(date).isSame(moment(), 'day');
+  const isToday = localDateKey(date) === ukTodayKey();
   const shiftDay = (days: number) =>
     setDate(moment(date).add(days, 'day').toDate());
 
   const groups = useMemo(() => groupBySeats(slots), [slots]);
   const bookableCount = groups.filter(isBookable).length;
-  // Bookable times first, each part still in time order
-  const visible = availableOnly
-    ? groups.filter(isBookable)
-    : [...groups.filter(isBookable), ...groups.filter((g) => !isBookable(g))];
+  const visible = availableOnly ? groups.filter(isBookable) : groups;
 
   return (
     <div className={embedded ? '' : 'min-h-screen bg-white'}>
@@ -254,7 +252,7 @@ export default function BookSlotPage({
                       { label: 'Today', days: 0 },
                       { label: 'Tomorrow', days: 1 }
                     ].map(({ label, days }) => {
-                      const target = moment().add(days, 'day').startOf('day');
+                      const target = moment(startOfToday()).add(days, 'day');
                       const active = target.isSame(date, 'day');
                       return (
                         <button
@@ -345,6 +343,10 @@ export default function BookSlotPage({
                         {
                           label: 'Booked',
                           swatch: 'border-rose-500 bg-rose-100'
+                        },
+                        {
+                          label: 'Unavailable',
+                          swatch: 'border-black/30 bg-gray-200'
                         }
                       ].map(({ label, swatch }) => (
                         <span key={label} className="flex items-center gap-1.5">
@@ -403,6 +405,7 @@ export default function BookSlotPage({
 
 // Shared look and limits for both calendars
 const calendarProps = {
+  today: startOfToday(),
   fromDate: startOfToday(),
   disabled: { before: startOfToday() },
   showOutsideDays: false,
@@ -469,7 +472,7 @@ function DateField({
   const commit = (raw = text) => {
     const parsed = moment(raw, DATE_FORMAT, true);
     if (!parsed.isValid()) return setError('Enter a valid date as DD/MM/YYYY');
-    if (parsed.isBefore(moment(), 'day'))
+    if (parsed.isBefore(startOfToday(), 'day'))
       return setError('Choose today or a later date');
     setError('');
     if (!parsed.isSame(value, 'day')) onChange(parsed.startOf('day').toDate());
@@ -502,7 +505,7 @@ function DateField({
   );
 }
 
-// Status shown by colour: available green, booked red
+// Status shown by colour: available green, booked red, time passed gray
 function SlotCard({
   group,
   onSelect
@@ -511,21 +514,29 @@ function SlotCard({
   onSelect: (group: SeatGroup) => void;
 }) {
   const disabled = !isBookable(group);
-  const tone = disabled
+  const tone = isSlotPast(group)
     ? {
-        card: 'border-rose-200 border-l-rose-500 bg-rose-50/60',
-        icon: 'bg-rose-100 text-rose-600',
-        badge: 'bg-rose-100 text-rose-700 ring-rose-200',
-        label: 'Booked',
-        footer: 'No seats left'
-      }
-    : {
-        card: 'border-emerald-200 border-l-emerald-500 bg-white hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-100',
-        icon: 'bg-emerald-100 text-emerald-700',
-        badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-        label: 'Available',
+        card: 'border-black/10 border-l-black/30 bg-gray-200',
+        icon: 'bg-white text-black',
+        badge: 'bg-white text-black ring-black/10',
+        label: 'Unavailable',
         footer: ''
-      };
+      }
+    : disabled
+      ? {
+          card: 'border-rose-200 border-l-rose-500 bg-rose-50/60',
+          icon: 'bg-rose-100 text-rose-600',
+          badge: 'bg-rose-100 text-rose-700 ring-rose-200',
+          label: 'Booked',
+          footer: 'No seats left'
+        }
+      : {
+          card: 'border-emerald-200 border-l-emerald-500 bg-white hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-100',
+          icon: 'bg-emerald-100 text-emerald-700',
+          badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+          label: 'Available',
+          footer: ''
+        };
 
   return (
     <button
@@ -645,6 +656,7 @@ function BookingView({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (timeRanOut()) return;
     setSubmitting(true);
     setBookingError('');
 
@@ -691,7 +703,7 @@ function BookingView({
   };
 
   const bookForStudent = async () => {
-    if (!student) return;
+    if (!student || timeRanOut()) return;
     setSubmitting(true);
     try {
       const res = await axiosInstance.post('/teacher-slots/book-for-student', {
@@ -711,6 +723,18 @@ function BookingView({
       setConfirming(false);
       setSubmitting(false);
     }
+  };
+
+  // The time can run out while the form is open
+  const timeRanOut = () => {
+    if (!isSlotPast(slot)) return false;
+    toast({
+      title: 'This time has passed',
+      description: 'Please choose another time.',
+      className: 'bg-red-500 border-none text-white'
+    });
+    onBack();
+    return true;
   };
 
   const bookedEmail = staff ? student?.email : trimmed;

@@ -321,7 +321,7 @@ export function SlotFormSheet({
           <SheetFooter className="absolute bottom-0 left-0 right-0 flex flex-col gap-2 border-t bg-supperagent/5 p-4 sm:flex-row sm:justify-between">
             {isEdit && (
               <div className="flex gap-2">
-                {canDelete && (
+                {canDelete && !isBooked && (
                   <Button
                     variant="destructive"
                     size="sm"
@@ -374,9 +374,7 @@ export function SlotFormSheet({
         title={confirm === 'delete' ? 'Delete Slot' : 'Cancel Booking'}
         description={
           confirm === 'delete'
-            ? isBooked
-              ? 'This slot is booked. Deleting it also removes the student booking. This can not be undone.'
-              : 'Are you sure you want to delete this slot? This can not be undone.'
+            ? 'Are you sure you want to delete this slot? This can not be undone.'
             : 'The slot becomes available for other students again.'
         }
       />
