@@ -15,6 +15,19 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useRouter } from '@/routes/hooks';
 import { useToast } from '@/components/ui/use-toast';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const formSchema = z.object({
+  name: z.string().trim().min(1, { message: 'Name is required' }),
+  email: z.string().email({ message: 'Enter a valid email address' }),
+  phone: z.string(),
+  password: z
+    .string()
+    .min(6, { message: 'Password must be at least 6 characters' })
+});
+
+type SignUpFormValue = z.infer<typeof formSchema>;
 
 interface SignUpFormProps extends HTMLAttributes<HTMLDivElement> {}
 
@@ -22,19 +35,22 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
   const { toast } = useToast();
   const router = useRouter();
 
-  const form = useForm({
+  const form = useForm<SignUpFormValue>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
       email: '',
       password: '',
-      phone: '',
-      role: 'agent'
+      phone: ''
     }
   });
 
-  async function onSubmit(data) {
+  async function onSubmit(data: SignUpFormValue) {
     try {
-      const result = await axiosInstance.post(`/auth/signup`, data);
+      const result = await axiosInstance.post(`/auth/signup`, {
+        ...data,
+        role: 'agent'
+      });
       if (result?.data?.success) {
         toast({
           title: 'Account Created',
@@ -116,8 +132,12 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
                 </FormItem>
               )}
             />
-            <Button className="mt-2" type="submit" variant={'outline'}>
-              Create Account
+            <Button
+              className="mt-2 bg-teal-600 text-white hover:bg-teal-600/90"
+              type="submit"
+              disabled={form.formState.isSubmitting}
+            >
+              {form.formState.isSubmitting ? 'Creating...' : 'Create Account'}
             </Button>
           </div>
         </form>

@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -17,7 +16,7 @@ import {
 import { AppDispatch } from '@/redux/store';
 import { useRouter } from '@/routes/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -30,12 +29,17 @@ const formSchema = z.object({
 
 type UserFormValue = z.infer<typeof formSchema>;
 
+// "Remember me" keeps the email filled in for the next sign in
+const REMEMBERED_EMAIL_KEY = 'uniaid_remembered_email';
+
 export default function UserAuthForm() {
   const router = useRouter();
   const { loading, error } = useSelector((state: any) => state.auth);
   const dispatch = useDispatch<AppDispatch>();
+  const rememberedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY) || '';
+  const [remember, setRemember] = useState(!!rememberedEmail);
   const defaultValues = {
-    email: '',
+    email: rememberedEmail,
     password: ''
   };
   const form = useForm<UserFormValue>({
@@ -46,6 +50,11 @@ export default function UserAuthForm() {
   const onSubmit = async (data: UserFormValue) => {
     const result: any = await dispatch(loginUser(data));
     if (result?.payload?.success) {
+      if (remember) {
+        localStorage.setItem(REMEMBERED_EMAIL_KEY, data.email);
+      } else {
+        localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+      }
       router.push('/admin');
     }
   };
@@ -103,7 +112,11 @@ export default function UserAuthForm() {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Checkbox id="remember" />
+              <Checkbox
+                id="remember"
+                checked={remember}
+                onCheckedChange={(checked) => setRemember(checked === true)}
+              />
               <label
                 htmlFor="remember"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -123,8 +136,14 @@ export default function UserAuthForm() {
           <Button disabled={loading} type="submit" className="w-full text-white bg-teal-600 hover:bg-teal-600/90">
             Login
           </Button>
-          {error && <Badge className="mt-2 text-red-500">{error}</Badge>}
-          <p className="text-center text-sm text-gray-600">
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <p className="text-center text-sm text-black">
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-teal-600 hover:text-teal-500">
+              Sign up
+            </Link>
+          </p>
+          <p className="text-center text-sm text-black">
             By signin up, you agree to our{" "}
             <Link to="/terms" className="text-teal-600 hover:text-teal-500">
               Terms and Conditions

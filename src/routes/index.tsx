@@ -306,6 +306,10 @@ export default function AppRouter() {
       index: true
     },
     {
+      path: '/login',
+      element: <SignInPage />
+    },
+    {
       path: '/signup',
       element: <SignUpPage />,
       index: true

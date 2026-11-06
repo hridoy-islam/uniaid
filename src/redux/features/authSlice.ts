@@ -132,9 +132,25 @@ export const authWithFbORGoogle = createAsyncThunk<
 });
 // forgot password
 
-export const requestOtp = createAsyncThunk<ForgetResponse, forgetCredentials>(
-  'auth/forget',
-  async (userCredentials) => {
+// The password reset pages show the API's own message when a step fails
+const apiErrorMessage = (error: any): string => {
+  const data = error?.response?.data;
+  // "Validation Error" is only a label, the reason is in errorSources
+  if (data?.message === 'Validation Error') {
+    return (
+      data.errorSources?.[0]?.message ||
+      'Please check the details you entered and try again.'
+    );
+  }
+  return data?.message || 'Server not reachable, please try again';
+};
+
+export const requestOtp = createAsyncThunk<
+  ForgetResponse,
+  forgetCredentials,
+  { rejectValue: string }
+>('auth/forget', async (userCredentials, { rejectWithValue }) => {
+  try {
     const request = await axios.post(
       `${import.meta.env.VITE_API_URL}/auth/forget`,
       userCredentials,
@@ -145,51 +161,57 @@ export const requestOtp = createAsyncThunk<ForgetResponse, forgetCredentials>(
         }
       }
     );
-    const response = await request.data;
-
-    return response;
+    return request.data;
+  } catch (error) {
+    return rejectWithValue(apiErrorMessage(error));
   }
-);
+});
 
 // validate request OTP
 export const validateRequestOtp = createAsyncThunk<
   ValidateOtpResponse,
-  validateOtpCredentials
->('auth/validate', async (userCredentials) => {
-  const request = await axios.post(
-    `${import.meta.env.VITE_API_URL}/auth/validate`,
-    userCredentials,
-    {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json' //this line solved cors
+  validateOtpCredentials,
+  { rejectValue: string }
+>('auth/validate', async (userCredentials, { rejectWithValue }) => {
+  try {
+    const request = await axios.post(
+      `${import.meta.env.VITE_API_URL}/auth/validate`,
+      userCredentials,
+      {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json' //this line solved cors
+        }
       }
-    }
-  );
-  const response = await request.data;
-
-  return response;
+    );
+    return request.data;
+  } catch (error) {
+    return rejectWithValue(apiErrorMessage(error));
+  }
 });
 
 // patch new password
 export const changePassword = createAsyncThunk<
   ChangePasswordResponse,
-  ChangePasswordCredentials
->('users/:id', async (userCredentials) => {
-  const request = await axios.patch(
-    `${import.meta.env.VITE_API_URL}/users/${userCredentials.userId}`,
-    userCredentials,
-    {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json', //this line solved cors
-        Authorization: `Bearer ${userCredentials.token}`
+  ChangePasswordCredentials,
+  { rejectValue: string }
+>('users/:id', async (userCredentials, { rejectWithValue }) => {
+  try {
+    const request = await axios.patch(
+      `${import.meta.env.VITE_API_URL}/users/${userCredentials.userId}`,
+      { password: userCredentials.password },
+      {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json', //this line solved cors
+          Authorization: `Bearer ${userCredentials.token}`
+        }
       }
-    }
-  );
-  const response = await request.data;
-
-  return response;
+    );
+    return request.data;
+  } catch (error) {
+    return rejectWithValue(apiErrorMessage(error));
+  }
 });
 
 export const logout = createAsyncThunk<void>('user/logout', async () => {

@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -13,11 +12,13 @@ import { requestOtp } from '@/redux/features/authSlice';
 import { AppDispatch } from '@/redux/store';
 import { useRouter } from '@/routes/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
+import AuthLayout from '../components/auth-layout';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Enter a valid email address' })
@@ -26,88 +27,68 @@ const formSchema = z.object({
 type UserFormValue = z.infer<typeof formSchema>;
 
 export default function ForgotPassword() {
-  const { loading, error } = useSelector((state: any) => state.auth);
+  const [error, setError] = useState('');
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const defaultValues = {
-    email: '',
-    password: ''
-  };
   const form = useForm<UserFormValue>({
     resolver: zodResolver(formSchema),
-    defaultValues
+    defaultValues: { email: '' }
   });
+  const { isSubmitting } = form.formState;
 
   const onSubmit = async (data: UserFormValue) => {
+    setError('');
     const result: any = await dispatch(requestOtp(data));
     if (result?.payload?.success) {
       localStorage.setItem('tp_otp_email', data.email);
       router.push('/otp');
+    } else {
+      setError(result?.payload || 'Something went wrong');
     }
   };
 
   return (
-    <>
-      <div className="container grid h-svh flex-col items-center justify-center bg-primary lg:max-w-none lg:px-0">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-2 sm:w-[480px] lg:p-8">
-          <div className="mb-4 flex items-center justify-center">
-            {/* <img src="/logo.png" alt="Logo" className="w-1/2" /> */}
-            <h3 className='text-4xl font-bold'>UniAid</h3>
-          </div>
-          <Card className="p-6">
-            <div className="mb-2 flex flex-col space-y-2 text-left">
-              <h1 className="text-md font-semibold tracking-tight">
-                Forgot Password
-              </h1>
-              <p className="text-sm text-muted">
-                Enter your registered email and <br /> we will send you a link
-                to reset your password.
-              </p>
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="w-full space-y-2"
-                >
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="Enter your email..."
-                            disabled={loading}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+    <AuthLayout
+      title="Forgot Password"
+      description="Enter your registered email and we will send you a code to reset your password."
+    >
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="Enter your email..."
+                    disabled={isSubmitting}
+                    {...field}
                   />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-                  <Button
-                    disabled={loading}
-                    className="ml-auto w-full bg-background text-white hover:bg-background"
-                    type="submit"
-                  >
-                    Reset Password
-                  </Button>
-                </form>
-              </Form>
-            </div>
-            {/* <ForgotForm /> */}
-            <p className="mt-4 px-8 text-center text-sm text-muted">
-              Don't have an account?{' '}
-              <Link to="/sign-up" className="underline underline-offset-4">
-                Sign up
-              </Link>
-              .
-            </p>
-          </Card>
-        </div>
-      </div>
-    </>
+          <Button
+            disabled={isSubmitting}
+            className="w-full bg-teal-600 text-white hover:bg-teal-600/90"
+            type="submit"
+          >
+            {isSubmitting ? 'Sending...' : 'Reset Password'}
+          </Button>
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <p className="text-center text-sm text-black">
+            Remembered your password?{' '}
+            <Link to="/login" className="text-teal-600 hover:text-teal-500">
+              Sign In
+            </Link>
+          </p>
+        </form>
+      </Form>
+    </AuthLayout>
   );
 }
