@@ -565,7 +565,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                             )}
                           </Button>
 
-                          {invoice.status === 'due' && (
+                          {user?.role === 'admin' && invoice.status === 'due' && (
                             <Button
                               size="icon"
                               aria-label="Delete invoice"
