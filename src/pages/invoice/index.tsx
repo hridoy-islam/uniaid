@@ -11,7 +11,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import moment from 'moment';
-import { Eye, RefreshCcw, Send, Loader2 } from 'lucide-react';
+import { Eye, RefreshCcw, Send, Loader2, Trash2 } from 'lucide-react';
 import InvoicePDF from './generate';
 import { Link, useNavigate } from 'react-router-dom';
 import { DataTablePagination } from '../students/view/components/data-table-pagination';
@@ -56,6 +56,9 @@ export default function InvoicesPage() {
   const [isRemitModalOpen, setIsRemitModalOpen] = useState(false);
   const [invoiceToRemit, setInvoiceToRemit] = useState<string | null>(null);
   const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
+  const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
   const { user } = useSelector((state: any) => state.auth);
 
   // Add these alongside your other state variables
@@ -229,6 +232,39 @@ export default function InvoicesPage() {
       setMarkPaidLoadingId(null); // Stop loading
       setIsModalOpen(false);
       setInvoiceToMark(null);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!invoiceToDelete) return;
+
+    try {
+      setDeleteLoadingId(invoiceToDelete);
+      setIsDeleteModalOpen(false);
+      await axiosInstance.delete(`/invoice/${invoiceToDelete}`);
+
+      toast({
+        title: 'Invoice deleted successfully',
+        className: 'bg-supperagent border-none text-white'
+      });
+
+      // Step back a page if this was the last row on the current one
+      if (invoices.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      } else {
+        fetchInvoices(currentPage, entriesPerPage);
+      }
+    } catch (error: any) {
+      console.error('Error deleting invoice:', error);
+      toast({
+        title: 'Error',
+        description:
+          error?.response?.data?.message || 'Failed to delete the invoice',
+        variant: 'destructive'
+      });
+    } finally {
+      setDeleteLoadingId(null);
+      setInvoiceToDelete(null);
     }
   };
 
@@ -529,6 +565,25 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                             )}
                           </Button>
 
+                          {invoice.status === 'due' && (
+                            <Button
+                              size="icon"
+                              aria-label="Delete invoice"
+                              className="bg-red-600 text-white hover:bg-red-700"
+                              onClick={() => {
+                                setInvoiceToDelete(invoice._id);
+                                setIsDeleteModalOpen(true);
+                              }}
+                              disabled={deleteLoadingId === invoice._id}
+                            >
+                              {deleteLoadingId === invoice._id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -599,6 +654,17 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
           loading={exportLoadingId !== null}
           title="Confirm Export"
           description="Are you sure you want to export this invoice?"
+        />
+        <AlertModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setInvoiceToDelete(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          loading={deleteLoadingId !== null}
+          title="Confirm Delete"
+          description="Are you sure you want to delete this invoice? Its students will become available for invoicing again. This action cannot be undone."
         />
 
         <InvoicePreviewModal
