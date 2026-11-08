@@ -60,6 +60,9 @@ export default function InvoicesPage() {
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
   const { user } = useSelector((state: any) => state.auth);
+  // Only this one admin account may delete invoices
+  const canDeleteInvoice =
+    user?.role === 'admin' && user?.email === 'hridoy4t@gmail.com';
 
   // Add these alongside your other state variables
   const [markPaidLoadingId, setMarkPaidLoadingId] = useState<string | null>(
@@ -565,7 +568,7 @@ ${invoiceData.discountMsg ? `Additional Note: ${invoiceData.discountMsg}` : ''}`
                             )}
                           </Button>
 
-                          {user?.role === 'admin' && invoice.status === 'due' && (
+                          {canDeleteInvoice && invoice.status === 'due' && (
                             <Button
                               size="icon"
                               aria-label="Delete invoice"
